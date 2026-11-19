@@ -381,6 +381,65 @@ export async function timesheet(c: { clinicId: string; tenantId: string }, ref: 
   return { ref, settings: s, employees: rows }
 }
 
+// Conferência do dia para o RH: quem bateu o ponto, quem ainda não bateu e quem está justificado, por polo.
+// Cada colaborador usa o dia e o relógio do seu polo (ex.: Mato Grosso do Sul, -1 h).
+export async function dayReport(c: { clinicId: string; tenantId: string }, date: string, workplaceId?: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HrError(400, 'Data inválida.')
+  const s = await getTimeSettings(c.clinicId)
+  const wps = await prisma.hRWorkplace.findMany({ where: { clinicId: c.clinicId }, select: { id: true, name: true, utcOffsetMinutes: true } })
+  const wpName = new Map(wps.map((w) => [w.id, w.name]))
+  const offOf = (e: { workplaceId: string | null }) => (e.workplaceId ? wps.find((w) => w.id === e.workplaceId)?.utcOffsetMinutes ?? BRT_OFF : BRT_OFF)
+  const emps = (await prisma.hREmployee.findMany({
+    where: { clinicId: c.clinicId, tenantId: c.tenantId, status: { notIn: ['TERMINATED', 'Desligado'] }, ...(workplaceId === 'CLINICA' ? { workplaceId: null } : workplaceId ? { workplaceId } : {}) },
+    select: { id: true, name: true, position: true, workStart: true, workEnd: true, workplaceId: true, admissionDate: true, terminationDate: true }, orderBy: { name: 'asc' },
+  })).filter((e) => e.admissionDate.toISOString().slice(0, 10) <= date && (!e.terminationDate || e.terminationDate.toISOString().slice(0, 10) >= date))
+  const wd = new Date(`${date}T12:00:00Z`).getUTCDay()
+  const expectedHours = wd === 0 ? 0 : wd === 6 ? s.saturdayHours : s.dailyHours
+  const windowOf = (e: { workplaceId: string | null }) => { const start = new Date(Date.parse(`${date}T00:00:00Z`) - offOf(e) * 60000); return { start, end: new Date(start.getTime() + 86400000) } }
+  const ids = emps.map((e) => e.id)
+  const wide = { gte: new Date(Date.parse(`${date}T00:00:00Z`) - 4 * 3600000), lt: new Date(Date.parse(`${date}T00:00:00Z`) + 86400000 + 4 * 3600000) }
+  const [punches, attendance, requests] = ids.length ? await Promise.all([
+    prisma.hRTimePunch.findMany({ where: { employeeId: { in: ids }, punchedAt: wide }, orderBy: { punchedAt: 'asc' }, select: { employeeId: true, kind: true, punchedAt: true, insideWorkplace: true } }),
+    prisma.hRAttendance.findMany({ where: { employeeId: { in: ids }, clinicId: c.clinicId, date: { gte: new Date(`${date}T00:00:00.000Z`), lt: new Date(Date.parse(`${date}T00:00:00Z`) + 86400000) } }, select: { employeeId: true, status: true, clockIn: true } }),
+    prisma.hRAbsenceRequest.findMany({ where: { employeeId: { in: ids }, absenceDate: date, status: { not: 'RECUSADA' } }, select: { employeeId: true, status: true } }),
+  ]) : [[], [], []]
+  const now = new Date()
+  const toMin = (t: string | null | undefined, fallback: string) => { const m = /^(\d{1,2}):(\d{2})/.exec(t || fallback); return m ? Number(m[1]) * 60 + Number(m[2]) : 480 }
+  const JUSTIFIED = ['atestado', 'férias', 'ferias', 'folga', 'falta abonada', 'abonada', 'home office', 'falta']
+
+  const rows = emps.map((e) => {
+    const off = offOf(e)
+    const w = windowOf(e)
+    const mine = punches.filter((p) => p.employeeId === e.id && p.punchedAt >= w.start && p.punchedAt < w.end)
+    const att = attendance.find((a) => a.employeeId === e.id)
+    const req = requests.find((r) => r.employeeId === e.id)
+    const todayLocal = dayKey(now, off)
+    const nowLocalMin = new Date(now.getTime() + off * 60000).getUTCHours() * 60 + new Date(now.getTime() + off * 60000).getUTCMinutes()
+    const dueMin = toMin(e.workStart, s.startTime) + s.toleranceMinutes + 30
+    let status: 'BATEU' | 'NAO_BATEU' | 'AINDA_NAO' | 'JUSTIFICADO' | 'SEM_EXPEDIENTE' | 'FUTURO'
+    let detail = ''
+    if (mine.length) status = 'BATEU'
+    else if (att && (att.clockIn || JUSTIFIED.includes(String(att.status).toLowerCase()))) { status = 'JUSTIFICADO'; detail = String(att.status || 'Lançamento manual') }
+    else if (req) { status = 'JUSTIFICADO'; detail = req.status === 'PENDENTE' ? 'Justificativa enviada (aguardando decisão)' : 'Justificativa aprovada' }
+    else if (!(expectedHours > 0)) status = 'SEM_EXPEDIENTE'
+    else if (date > todayLocal) status = 'FUTURO'
+    else if (date === todayLocal && nowLocalMin < dueMin) status = 'AINDA_NAO'
+    else status = 'NAO_BATEU'
+    return {
+      employeeId: e.id, name: e.name, position: e.position, workplace: e.workplaceId ? wpName.get(e.workplaceId) || 'Polo' : 'Clínica', workStart: e.workStart || s.startTime,
+      status, detail,
+      punches: mine.map((p) => ({ kind: p.kind, label: KIND_LABEL[p.kind] || p.kind, time: hhmm(p.punchedAt, off), inside: p.insideWorkplace })),
+      open: mine.length % 2 === 1 && date < todayLocal, // dia passado com número ímpar de batidas: faltou registrar a saída
+    }
+  })
+  const count = (st: string) => rows.filter((r) => r.status === st).length
+  return {
+    date, expectedDay: expectedHours > 0,
+    totals: { total: rows.length, bateu: count('BATEU'), naoBateu: count('NAO_BATEU'), ainda: count('AINDA_NAO'), justificado: count('JUSTIFICADO'), semExpediente: count('SEM_EXPEDIENTE'), incompletas: rows.filter((r) => r.open).length },
+    rows,
+  }
+}
+
 export async function employeeMonth(c: { clinicId: string; tenantId: string }, employeeId: string, ref: string) {
   const emp = await prisma.hREmployee.findFirst({ where: { id: employeeId, clinicId: c.clinicId, tenantId: c.tenantId } })
   if (!emp) throw new HrError(404, 'Colaborador não encontrado.')

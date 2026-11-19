@@ -538,6 +538,7 @@ router.post('/hr/me/absence-requests', hrTime.meCreateRequest)
 // RH, administração e gestor.
 router.get('/hr/timeclock/settings', requirePermission('hr.view'), hrTime.settingsGet)
 router.put('/hr/timeclock/settings', requirePermission('hr.edit'), hrTime.settingsSave)
+router.get('/hr/timeclock/day', requirePermission('hr.view'), hrTime.dayReport)
 router.get('/hr/timesheet', requirePermission('hr.view'), hrTime.timesheet)
 router.get('/hr/timesheet/:employeeId', requirePermission('hr.view'), hrTime.employeeMonth)
 router.get('/hr/payroll-suggestions', requirePermission('hr.sensitive'), hrTime.suggestions)
