@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, TextField, Typography } from "@mui/material";
 import FacePunchKiosk from "./FacePunchKiosk";
-import { GEO_HELP, useBestLocation } from "../hooks/useBestLocation";
+import { COARSE_HELP, COARSE_LIMIT, GEO_HELP, useBestLocation } from "../hooks/useBestLocation";
 import type { PunchApi } from "../services/HrFaceApi";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -40,6 +40,7 @@ function CalibrateStep({ name, onConfirm }: { name: string; onConfirm: (g: { lat
       {loc.status === "denied" ? <Alert severity="warning" action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>A localização está bloqueada neste aparelho. {GEO_HELP}</Alert>
         : loc.status === "unavailable" ? <Alert severity="warning" action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Este aparelho não conseguiu achar o local. {GEO_HELP}</Alert>
         : acc === null ? <Alert severity="info" icon={<CircularProgress size={20} />} action={secs >= 30 ? <Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button> : undefined}>Procurando o sinal de GPS… ({secs} s). {secs >= 20 ? GEO_HELP : "Pode levar alguns segundos."}</Alert>
+        : acc > COARSE_LIMIT ? <Alert severity="warning" action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Localização aproximada (±{acc} m). {COARSE_HELP}</Alert>
         : good ? <Alert severity="success">Localização encontrada (precisão ±{acc} m). Pode confirmar.</Alert>
         : <Alert severity="info">Melhorando a precisão… agora ±{acc} m. Libera a ±60 m, ou a ±100 m depois de {Math.max(0, 25 - secs)} s. Se puder, chegue perto de uma janela ou área aberta.</Alert>}
       {error && <Alert severity="error">{error}</Alert>}
