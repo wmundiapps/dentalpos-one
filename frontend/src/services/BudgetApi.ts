@@ -8,3 +8,5 @@ export const approveBudget=(id:string,dues?:{firstDueDate?:string;entryDueDate?:
 export const cancelBudget=(id:string)=>req<BudgetRow>(`/budget/${id}`,{method:'DELETE'});
 
 export const deleteBudget=(id:string)=>req<{ok:boolean}>(`/budget/${id}/permanent`,{method:'DELETE'});
+
+export const updateBudgetDueDates=(id:string,dues:Array<{installment:number;dueDate:string}>)=>req<BudgetRow>(`/budget/${id}/due-dates`,{method:'PUT',body:JSON.stringify({dues})});

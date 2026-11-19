@@ -221,3 +221,38 @@ export async function destroy(req: AuthRequest, res: Response) {
     return res.status(500).json({ error: 'Erro ao excluir orçamento.' })
   }
 }
+
+// Ajuste de vencimentos de um orçamento aprovado: só parcelas ainda não recebidas.
+export async function updateDueDates(req: AuthRequest, res: Response) {
+  try {
+    const u = ctx(req)
+    const id = String(req.params.id)
+    const list: Array<{ installment: number; dueDate: string }> = Array.isArray(req.body?.dues) ? req.body.dues : []
+    if (!list.length) return res.status(400).json({ error: 'Informe os vencimentos.' })
+    const existing = await prisma.budget.findFirst({ where: { id, clinicId: u.clinicId, tenantId: u.tenantId }, include: { payments: true } })
+    if (!existing) return res.status(404).json({ error: 'Orçamento não encontrado.' })
+    if (existing.status !== 'APPROVED') return res.status(409).json({ error: 'Só é possível alterar vencimentos de orçamento aprovado.' })
+    const changes: Array<{ installment: number; from: Date; to: Date }> = []
+    await prisma.$transaction(async (tx) => {
+      for (const d of list) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d.dueDate || ''))
+        if (!m) throw new Error('DATA')
+        const to = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0))
+        const pay = existing.payments.find((p) => p.installment === Number(d.installment))
+        if (!pay) continue
+        if (pay.status === 'PAID' || pay.status === 'RECEIVED' || pay.paidDate) continue
+        if (pay.dueDate.toISOString().slice(0, 10) === to.toISOString().slice(0, 10)) continue
+        await tx.payment.update({ where: { id: pay.id }, data: { dueDate: to } })
+        await tx.financialEntry.updateMany({ where: { clinicId: u.clinicId, tenantId: u.tenantId, origin: 'BUDGET', originId: id, installment: pay.installment, status: { not: 'PAID' } }, data: { dueDate: to } })
+        changes.push({ installment: pay.installment, from: pay.dueDate, to })
+      }
+    })
+    if (changes.length) await writeAudit({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id, module: 'finance', action: 'BUDGET_DUE_DATES', entityType: 'Budget', entityId: id, afterData: { changes }, summary: `Vencimentos do orçamento "${existing.description}" alterados (${changes.length} parcela(s)).` })
+    const row = await prisma.budget.findUnique({ where: { id }, include: { patient: true, payments: true } })
+    return res.json(row)
+  } catch (error) {
+    if ((error as Error).message === 'DATA') return res.status(400).json({ error: 'Data inválida.' })
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao alterar vencimentos.' })
+  }
+}
