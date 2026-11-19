@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
 import { confirmTreatment } from '../services/treatmentStageService'
+import { issueBudgetBoletos } from '../services/budgetBoletoService'
 
 function ctx(req: AuthRequest) {
   if (!req.user) throw new Error('Não autenticado')
@@ -254,5 +255,19 @@ export async function updateDueDates(req: AuthRequest, res: Response) {
     if ((error as Error).message === 'DATA') return res.status(400).json({ error: 'Data inválida.' })
     console.error(error)
     return res.status(500).json({ error: 'Erro ao alterar vencimentos.' })
+  }
+}
+
+export async function issueBoletos(req: AuthRequest, res: Response) {
+  try {
+    const u = ctx(req)
+    const out = await issueBudgetBoletos({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id }, String(req.params.id))
+    await writeAudit({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id, module: 'finance', action: 'BUDGET_BOLETOS', entityType: 'Budget', entityId: String(req.params.id), summary: `Boletos emitidos (${out.boletos.filter((b) => !b.error).length}/${out.boletos.length}) para ${out.patientName}.` })
+    return res.json(out)
+  } catch (error) {
+    const st = (error as { status?: number }).status
+    if (st) return res.status(st).json({ error: (error as Error).message })
+    console.error(error)
+    return res.status(502).json({ error: (error as Error).message || 'Erro ao emitir boletos.' })
   }
 }
