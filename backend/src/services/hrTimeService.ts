@@ -398,11 +398,12 @@ export async function dayReport(c: { clinicId: string; tenantId: string }, date:
   const windowOf = (e: { workplaceId: string | null }) => { const start = new Date(Date.parse(`${date}T00:00:00Z`) - offOf(e) * 60000); return { start, end: new Date(start.getTime() + 86400000) } }
   const ids = emps.map((e) => e.id)
   const wide = { gte: new Date(Date.parse(`${date}T00:00:00Z`) - 4 * 3600000), lt: new Date(Date.parse(`${date}T00:00:00Z`) + 86400000 + 4 * 3600000) }
-  const [punches, attendance, requests] = ids.length ? await Promise.all([
+  const [punches, attendance, requests, vacations] = ids.length ? await Promise.all([
     prisma.hRTimePunch.findMany({ where: { employeeId: { in: ids }, punchedAt: wide }, orderBy: { punchedAt: 'asc' }, select: { employeeId: true, kind: true, punchedAt: true, insideWorkplace: true } }),
     prisma.hRAttendance.findMany({ where: { employeeId: { in: ids }, clinicId: c.clinicId, date: { gte: new Date(`${date}T00:00:00.000Z`), lt: new Date(Date.parse(`${date}T00:00:00Z`) + 86400000) } }, select: { employeeId: true, status: true, clockIn: true } }),
     prisma.hRAbsenceRequest.findMany({ where: { employeeId: { in: ids }, absenceDate: date, status: { not: 'RECUSADA' } }, select: { employeeId: true, status: true } }),
-  ]) : [[], [], []]
+    prisma.hRVacation.findMany({ where: { employeeId: { in: ids }, scheduledStart: { lte: new Date(`${date}T23:59:59.999Z`) }, scheduledEnd: { gte: new Date(`${date}T00:00:00.000Z`) }, status: { notIn: ['CANCELLED', 'CANCELED', 'CANCELADA', 'Cancelada'] } }, select: { employeeId: true } }),
+  ]) : [[], [], [], []]
   const now = new Date()
   const toMin = (t: string | null | undefined, fallback: string) => { const m = /^(\d{1,2}):(\d{2})/.exec(t || fallback); return m ? Number(m[1]) * 60 + Number(m[2]) : 480 }
   const JUSTIFIED = ['atestado', 'férias', 'ferias', 'folga', 'falta abonada', 'abonada', 'home office', 'falta']
@@ -421,6 +422,7 @@ export async function dayReport(c: { clinicId: string; tenantId: string }, date:
     let status: 'BATEU' | 'NAO_BATEU' | 'AINDA_NAO' | 'NA_TOLERANCIA' | 'JUSTIFICADO' | 'SEM_EXPEDIENTE' | 'FUTURO'
     let detail = ''
     if (mine.length) status = 'BATEU'
+    else if (vacations.some((v) => v.employeeId === e.id)) { status = 'JUSTIFICADO'; detail = 'Em férias' }
     else if (att && (att.clockIn || JUSTIFIED.includes(String(att.status).toLowerCase()))) { status = 'JUSTIFICADO'; detail = String(att.status || 'Lançamento manual') }
     else if (req) { status = 'JUSTIFICADO'; detail = req.status === 'PENDENTE' ? 'Justificativa enviada (aguardando decisão)' : 'Justificativa aprovada' }
     else if (!(expectedHours > 0)) status = 'SEM_EXPEDIENTE'
