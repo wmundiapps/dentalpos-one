@@ -4,6 +4,8 @@ import { HrApi, fmtDate, type Employee } from "../../services/HrApi";
 
 const today = () => new Date().toISOString().slice(0, 10);
 type Kind = "vacations" | "documents" | "discipline";
+// Situações em português (o sistema guarda o código em inglês).
+const STATUS_PT: Record<string, string> = { PLANNED: "Programada", AVAILABLE: "Disponível", ONGOING: "Em férias", DONE: "Concluída", EXPIRED: "Vencida", ACTIVE: "Vigente", ARCHIVED: "Arquivado", APPLIED: "Aplicada", CANCELLED: "Cancelada", PENDING: "Pendente", SIGNED: "Assinado" };
 
 export default function RecordsTab({ kind, employees }: { kind: Kind; employees: Employee[] }) {
   const [rows, setRows] = useState<Array<Record<string, any>>>([]);
@@ -24,6 +26,12 @@ export default function RecordsTab({ kind, employees }: { kind: Kind; employees:
       if (kind === "discipline") await HrApi.addDiscipline({ employeeId: f.employeeId, type: f.type, date: f.date, reason: f.text, daysSuspended: f.type === "Suspensão" ? Number(f.days) || 1 : null });
       setF({ ...f, text: "" }); await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar."); }
+  };
+  const remove = async (r: Record<string, any>) => {
+    const what = kind === "vacations" ? "o controle de férias" : kind === "documents" ? "o documento" : "a ocorrência";
+    if (!window.confirm(`Excluir ${what} de ${r.employee?.name || "este colaborador"}? Use só para anotação lançada por engano. A exclusão fica registrada na auditoria.`)) return;
+    try { await HrApi.deleteRecord(kind, String(r.id)); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível excluir."); }
   };
   const valid = Boolean(f.employeeId) && (kind === "vacations" || f.text.trim().length > 2);
   const title = kind === "vacations" ? "Controle de férias" : kind === "documents" ? "Contratos e documentos" : "Orientações, advertências e suspensões";
@@ -47,12 +55,15 @@ export default function RecordsTab({ kind, employees }: { kind: Kind; employees:
       </Box>
       {rows.length === 0 && <Typography color="text.secondary">Nada registrado.</Typography>}
       {rows.map((r) => (
-        <Box key={r.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 3fr 1.5fr" }, gap: 1.5, py: 1.2, borderTop: "1px solid", borderColor: "divider" }}>
+        <Box key={r.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 3fr 2fr" }, gap: 1.5, py: 1.2, borderTop: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700 }}>{r.employee?.name}</Typography>
           <Typography variant="body2" color="text.secondary">
             {kind === "vacations" ? `Aquisitivo ${fmtDate(r.acquisitionStart)} a ${fmtDate(r.acquisitionEnd)} • limite ${fmtDate(r.concessionDeadline)}` : kind === "documents" ? `${r.type} • ${r.title} • emissão ${fmtDate(r.issuedAt)}${r.expiresAt ? ` • vence ${fmtDate(r.expiresAt)}` : ""}` : `${r.type} • ${fmtDate(r.date)} • ${r.reason}${r.daysSuspended ? ` • ${r.daysSuspended} dia(s)` : ""}`}
           </Typography>
-          <Typography>{r.status}</Typography>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: { md: "space-between" }, gap: 1 }}>
+            <Typography>{STATUS_PT[String(r.status)] || r.status}</Typography>
+            <Button size="small" color="error" variant="outlined" onClick={() => void remove(r)}>Excluir</Button>
+          </Box>
         </Box>
       ))}
     </Box>

@@ -58,6 +58,8 @@ export const HrApi = {
   attendance: () => req<Array<{ id: string; date: string; status: string; clockIn?: string | null; clockOut?: string | null; observation?: string | null; employee?: { name: string } }>>("/hr/attendance"),
   addAttendance: (b: Record<string, unknown>) => req("/hr/attendance", { method: "POST", json: b }),
   vacations: () => req<Array<{ id: string; acquisitionStart: string; acquisitionEnd: string; concessionDeadline: string; status: string; employee?: { name: string } }>>("/hr/vacations"),
+  // Exclui uma anotação lançada por engano (férias, documentos ou ocorrências).
+  deleteRecord: (kind: "vacations" | "documents" | "discipline", id: string) => req<{ ok: boolean }>(`/hr/${kind === "discipline" ? "disciplinary-actions" : kind}/${encodeURIComponent(id)}`, { method: "DELETE" }),
   addVacation: (b: Record<string, unknown>) => req("/hr/vacations", { method: "POST", json: b }),
   documents: () => req<Array<{ id: string; type: string; title: string; issuedAt: string; expiresAt?: string | null; status: string; employee?: { name: string } }>>("/hr/documents"),
   addDocument: (b: Record<string, unknown>) => req("/hr/documents", { method: "POST", json: b }),
