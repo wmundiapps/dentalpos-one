@@ -415,16 +415,19 @@ export async function dayReport(c: { clinicId: string; tenantId: string }, date:
     const req = requests.find((r) => r.employeeId === e.id)
     const todayLocal = dayKey(now, off)
     const nowLocalMin = new Date(now.getTime() + off * 60000).getUTCHours() * 60 + new Date(now.getTime() + off * 60000).getUTCMinutes()
-    const dueMin = toMin(e.workStart, s.startTime) + s.toleranceMinutes + 30
-    let status: 'BATEU' | 'NAO_BATEU' | 'AINDA_NAO' | 'JUSTIFICADO' | 'SEM_EXPEDIENTE' | 'FUTURO'
+    // Antes do horário de entrada: ainda não deu a hora. Até entrada + tolerância: dentro da tolerância. Depois disso sem batida: NÃO BATEU.
+    const startMin = toMin(e.workStart, s.startTime)
+    const limitMin = startMin + s.toleranceMinutes
+    let status: 'BATEU' | 'NAO_BATEU' | 'AINDA_NAO' | 'NA_TOLERANCIA' | 'JUSTIFICADO' | 'SEM_EXPEDIENTE' | 'FUTURO'
     let detail = ''
     if (mine.length) status = 'BATEU'
     else if (att && (att.clockIn || JUSTIFIED.includes(String(att.status).toLowerCase()))) { status = 'JUSTIFICADO'; detail = String(att.status || 'Lançamento manual') }
     else if (req) { status = 'JUSTIFICADO'; detail = req.status === 'PENDENTE' ? 'Justificativa enviada (aguardando decisão)' : 'Justificativa aprovada' }
     else if (!(expectedHours > 0)) status = 'SEM_EXPEDIENTE'
     else if (date > todayLocal) status = 'FUTURO'
-    else if (date === todayLocal && nowLocalMin < dueMin) status = 'AINDA_NAO'
-    else status = 'NAO_BATEU'
+    else if (date === todayLocal && nowLocalMin < startMin) status = 'AINDA_NAO'
+    else if (date === todayLocal && nowLocalMin <= limitMin) { status = 'NA_TOLERANCIA'; detail = `Tolerância até ${String(Math.floor(limitMin / 60)).padStart(2, '0')}:${String(limitMin % 60).padStart(2, '0')}` }
+    else { status = 'NAO_BATEU'; if (date === todayLocal) detail = `Sem entrada há ${nowLocalMin - startMin} min (previsto ${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')})` }
     return {
       employeeId: e.id, name: e.name, position: e.position, workplace: e.workplaceId ? wpName.get(e.workplaceId) || 'Polo' : 'Clínica', workStart: e.workStart || s.startTime,
       status, detail,
@@ -435,7 +438,7 @@ export async function dayReport(c: { clinicId: string; tenantId: string }, date:
   const count = (st: string) => rows.filter((r) => r.status === st).length
   return {
     date, expectedDay: expectedHours > 0,
-    totals: { total: rows.length, bateu: count('BATEU'), naoBateu: count('NAO_BATEU'), ainda: count('AINDA_NAO'), justificado: count('JUSTIFICADO'), semExpediente: count('SEM_EXPEDIENTE'), incompletas: rows.filter((r) => r.open).length },
+    totals: { total: rows.length, bateu: count('BATEU'), naoBateu: count('NAO_BATEU'), ainda: count('AINDA_NAO') + count('NA_TOLERANCIA'), justificado: count('JUSTIFICADO'), semExpediente: count('SEM_EXPEDIENTE'), incompletas: rows.filter((r) => r.open).length },
     rows,
   }
 }

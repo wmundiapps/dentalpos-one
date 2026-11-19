@@ -85,7 +85,7 @@ export const money = (v: number | string) => new Intl.NumberFormat("pt-BR", { st
 export const fmtDate = (v: string) => { const d = v.slice(0, 10).split("-"); return d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : v; };
 export const STATUS_LABEL: Record<string, string> = { OK: "Normal", ATRASO: "Atraso", FALTA: "Falta", ABONADA: "Abonada", INCOMPLETO: "Batida incompleta", FOLGA: "Folga", AGUARDANDO: "Aguardando", PENDENTE: "Em análise", NAO_ABONADA: "Não abonada", SANCIONADA: "Sanção aplicada" };
 
-export type DayStatus = "BATEU" | "NAO_BATEU" | "AINDA_NAO" | "JUSTIFICADO" | "SEM_EXPEDIENTE" | "FUTURO";
+export type DayStatus = "BATEU" | "NAO_BATEU" | "AINDA_NAO" | "NA_TOLERANCIA" | "JUSTIFICADO" | "SEM_EXPEDIENTE" | "FUTURO";
 export interface DayReportRow {
   employeeId: string; name: string; position: string; workplace: string; workStart: string; status: DayStatus; detail: string; open: boolean;
   punches: Array<{ kind: string; label: string; time: string; inside: boolean | null }>;
