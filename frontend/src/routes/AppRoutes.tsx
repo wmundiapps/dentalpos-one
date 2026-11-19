@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import AppErrorBoundary from "../components/AppErrorBoundary";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 
@@ -127,7 +128,8 @@ export default function AppRoutes() {
   }
 
   return (
-    <Suspense fallback={<Box sx={{ p: 4 }}><Typography color="text.secondary">Carregando...</Typography></Box>}>
+    <AppErrorBoundary resetKey={location.pathname}>
+<Suspense fallback={<Box sx={{ p: 4 }}><Typography color="text.secondary">Carregando...</Typography></Box>}>
     <Routes>
       <Route path="/" element={<Dashboard />} />
 
@@ -331,5 +333,6 @@ export default function AppRoutes() {
       />
     </Routes>
     </Suspense>
+    </AppErrorBoundary>
   );
 }
