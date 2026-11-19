@@ -8,7 +8,7 @@ import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { createTreatmentItem, getTreatmentPlan, importOdontogram, updateTreatmentItem, type TreatmentPlanItem } from "../services/TreatmentPlanApi";
 import { printPromissories } from "../utils/promissory";
-import { approveBudget, cancelBudget, deleteBudget, createBudget, listBudgets, type BudgetRow } from "../services/BudgetApi";
+import { approveBudget, cancelBudget, deleteBudget, updateBudgetDueDates, createBudget, listBudgets, type BudgetRow } from "../services/BudgetApi";
 import { createClinicalDocument } from "../services/ClinicalDocumentService";
 import { readSessionUser } from "../services/DemoAccess";
 import { formatBRL, money, parseBRL } from "../utils/money";
@@ -103,6 +103,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
   const [form, setForm] = useState(EMPTY_ITEM);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [dueFor, setDueFor] = useState<BudgetRow | null>(null);
+  const [editDue, setEditDue] = useState<{ id: string; rows: Array<{ installment: number; dueDate: string; paid: boolean; amount: number }> } | null>(null);
   const [firstDue, setFirstDue] = useState("");
   const [entryDue, setEntryDue] = useState("");
   const [terms, setTerms] = useState(EMPTY_TERMS);
@@ -367,6 +368,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
                     <Chip size="small" label={BUDGET_STATUS[b.status] || b.status} color={b.status === "APPROVED" ? "success" : b.status === "CANCELLED" ? "default" : "warning"} />
                     {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => askDue(b)}>Aprovar</Button>}
                     {b.status === "APPROVED" && <Button size="small" disabled={busy} onClick={() => void printNotes(b)}>Imprimir promissórias</Button>}
+                    {b.status === "APPROVED" && <Button size="small" disabled={busy} onClick={() => { const pays = ((b as BudgetExtra & { payments?: Array<{ installment: number; amount: number; dueDate: string; status: string; paidDate?: string | null }> }).payments || []).slice().sort((x, y) => x.installment - y.installment); setEditDue({ id: b.id, rows: pays.map((p) => ({ installment: p.installment, amount: Number(p.amount), dueDate: String(p.dueDate).slice(0, 10), paid: p.status === "PAID" || p.status === "RECEIVED" || Boolean(p.paidDate) })) }); }}>Editar vencimentos</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "share")}>Enviar PDF</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "download")}>Baixar PDF</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "print")}>Imprimir</Button>}
@@ -484,6 +486,21 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
         <DialogActions>
           <Button onClick={() => setDueFor(null)}>Cancelar</Button>
           <Button variant="contained" color="success" disabled={!firstDue || busy} onClick={() => { const b = dueFor as BudgetExtra; setDueFor(null); void approveAndPrepare(b, { firstDueDate: firstDue, entryDueDate: entryDue || undefined }); }}>Aprovar orçamento</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={Boolean(editDue)} onClose={() => setEditDue(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Editar vencimentos</DialogTitle>
+        <DialogContent>
+          {editDue?.rows.map((r, idx) => (
+            <Box key={r.installment} sx={{ display: "flex", gap: 1.5, alignItems: "center", mt: 1.5 }}>
+              <Typography sx={{ minWidth: 90, fontWeight: 700 }}>{r.installment === 0 ? "Entrada" : `Parcela ${r.installment}`}</Typography>
+              <TextField size="small" type="date" value={r.dueDate} disabled={r.paid} onChange={(e) => setEditDue({ ...editDue, rows: editDue.rows.map((x, j) => (j === idx ? { ...x, dueDate: e.target.value } : x)) })} slotProps={{ inputLabel: { shrink: true } }} helperText={r.paid ? "Já recebida" : undefined} />
+            </Box>
+          ))}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDue(null)}>Cancelar</Button>
+          <Button variant="contained" disabled={busy || !editDue?.rows.every((r) => r.dueDate)} onClick={() => { const e = editDue!; setEditDue(null); void run(async () => { await updateBudgetDueDates(e.id, e.rows.filter((r) => !r.paid).map((r) => ({ installment: r.installment, dueDate: r.dueDate }))); }, "Vencimentos atualizados."); }}>Salvar</Button>
         </DialogActions>
       </Dialog>
     </Box>
