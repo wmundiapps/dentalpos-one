@@ -23,7 +23,7 @@ export default function RecordsTab({ kind, employees }: { kind: Kind; employees:
 
   const save = async () => {
     try {
-      if (kind === "vacations") await HrApi.addVacation({ employeeId: f.employeeId, acquisitionStart: f.date, acquisitionEnd: f.date2, concessionDeadline: f.date3, status: f.status, ...(f.vStart && f.vEnd ? { scheduledStart: f.vStart, scheduledEnd: f.vEnd } : { vacationDays: 30 }) });
+      if (kind === "vacations") await HrApi.addVacation({ employeeId: f.employeeId, status: f.status, scheduledStart: f.vStart, scheduledEnd: f.vEnd });
       if (kind === "documents") await HrApi.addDocument({ employeeId: f.employeeId, type: f.type, title: f.text, issuedAt: f.date, expiresAt: f.date2 === f.date ? null : f.date2, status: "ACTIVE" });
       if (kind === "discipline") await HrApi.addDiscipline({ employeeId: f.employeeId, type: f.type, date: f.date, reason: f.text, daysSuspended: f.type === "Suspensão" ? Number(f.days) || 1 : null });
       setF({ ...f, text: "", vStart: "", vEnd: "" }); await load();
@@ -35,35 +35,29 @@ export default function RecordsTab({ kind, employees }: { kind: Kind; employees:
     try { await HrApi.deleteRecord(kind, String(r.id)); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível excluir."); }
   };
-  const valid = Boolean(f.employeeId) && (kind === "vacations" ? (!f.vStart && !f.vEnd) || vacDays !== null : f.text.trim().length > 2);
+  const valid = Boolean(f.employeeId) && (kind === "vacations" ? vacDays !== null : f.text.trim().length > 2);
   const title = kind === "vacations" ? "Controle de férias" : kind === "documents" ? "Contratos e documentos" : "Orientações, advertências e suspensões";
 
   return (
     <Box sx={{ p: 2 }}>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
       <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>{title}</Typography>
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1.4fr 1fr 1fr 1fr 2fr auto" }, gap: 1.2, mb: 2 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: kind === "vacations" ? "2fr 1.4fr 1fr 1fr 2fr auto" : "2fr 1.4fr 1fr 1fr 1fr 2fr auto" }, gap: 1.2, mb: 2 }}>
         <TextField select size="small" label="Colaborador" value={f.employeeId} onChange={set("employeeId")}>{employees.map((e) => <MenuItem key={e.id} value={e.id}>{e.name}</MenuItem>)}</TextField>
         {kind === "vacations"
           ? <TextField select size="small" label="Situação" value={f.status} onChange={set("status")}>{[["PLANNED", "Programada"], ["AVAILABLE", "Disponível"], ["ONGOING", "Em férias"], ["DONE", "Concluída"], ["EXPIRED", "Vencida"]].map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}</TextField>
           : kind === "documents"
             ? <TextField size="small" label="Tipo" value={f.type} onChange={set("type")} />
             : <TextField select size="small" label="Tipo" value={f.type} onChange={set("type")}>{["Orientação", "Advertência verbal", "Advertência escrita", "Suspensão", "Justa causa"].map((x) => <MenuItem key={x} value={x}>{x}</MenuItem>)}</TextField>}
-        <TextField size="small" type="date" label={kind === "vacations" ? "Início aquisitivo" : kind === "documents" ? "Emissão" : "Data"} value={f.date} onChange={set("date")} slotProps={{ inputLabel: { shrink: true } }} />
-        {kind !== "discipline" ? <TextField size="small" type="date" label={kind === "vacations" ? "Fim aquisitivo" : "Vencimento"} value={f.date2} onChange={set("date2")} slotProps={{ inputLabel: { shrink: true } }} /> : <TextField size="small" label="Dias (suspensão)" type="number" value={f.days} onChange={set("days")} disabled={f.type !== "Suspensão"} />}
-        {kind === "vacations" ? <TextField size="small" type="date" label="Limite concessão" value={f.date3} onChange={set("date3")} slotProps={{ inputLabel: { shrink: true } }} /> : <Box />}
+        {kind === "vacations" && <TextField size="small" type="date" label="Início das férias" value={f.vStart} onChange={set("vStart")} slotProps={{ inputLabel: { shrink: true } }} />}
+        {kind === "vacations" && <TextField size="small" type="date" label="Fim das férias" value={f.vEnd} onChange={set("vEnd")} slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: f.vStart || undefined } }} error={Boolean(f.vStart && f.vEnd && f.vEnd < f.vStart)} />}
+        {kind !== "vacations" && <TextField size="small" type="date" label={kind === "documents" ? "Emissão" : "Data"} value={f.date} onChange={set("date")} slotProps={{ inputLabel: { shrink: true } }} />}
+        {kind === "vacations" ? null : kind !== "discipline" ? <TextField size="small" type="date" label={"Vencimento"} value={f.date2} onChange={set("date2")} slotProps={{ inputLabel: { shrink: true } }} /> : <TextField size="small" label="Dias (suspensão)" type="number" value={f.days} onChange={set("days")} disabled={f.type !== "Suspensão"} />}
+        {kind === "vacations" ? null : <Box />}
         {kind !== "vacations" ? <TextField size="small" label={kind === "documents" ? "Título" : "Motivo / descrição"} value={f.text} onChange={set("text")} /> : <Box />}
         <Button variant="contained" disabled={!valid} onClick={() => void save()}>Salvar</Button>
       </Box>
-      {kind === "vacations" && (
-        <Box sx={{ display: "flex", gap: 1.2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
-          <TextField size="small" type="date" label="Início das férias" value={f.vStart} onChange={set("vStart")} slotProps={{ inputLabel: { shrink: true } }} />
-          <TextField size="small" type="date" label="Fim das férias" value={f.vEnd} onChange={set("vEnd")} slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: f.vStart || undefined } }} error={Boolean(f.vStart && f.vEnd && f.vEnd < f.vStart)} />
-          <Typography sx={{ fontWeight: 800 }} color={vacDays === null ? "text.secondary" : "primary"}>
-            {vacDays !== null ? `${vacDays} dia${vacDays === 1 ? "" : "s"} de férias` : f.vStart && f.vEnd ? "O fim não pode ser antes do início" : "Informe o início e o fim: o sistema calcula os dias"}
-          </Typography>
-        </Box>
-      )}
+      {kind === "vacations" && <Typography sx={{ fontWeight: 800, mb: 2 }} color={vacDays === null ? "text.secondary" : "primary"}>{vacDays !== null ? `${vacDays} dia${vacDays === 1 ? "" : "s"} de férias` : f.vStart && f.vEnd ? "O fim não pode ser antes do início" : "Informe o início e o fim: o sistema calcula os dias"}</Typography>}
       {rows.length === 0 && <Typography color="text.secondary">Nada registrado.</Typography>}
       {rows.map((r) => (
         <Box key={r.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 3fr 2fr" }, gap: 1.5, py: 1.2, borderTop: "1px solid", borderColor: "divider" }}>
