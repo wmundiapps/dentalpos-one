@@ -8,7 +8,7 @@ import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { createTreatmentItem, getTreatmentPlan, importOdontogram, updateTreatmentItem, type TreatmentPlanItem } from "../services/TreatmentPlanApi";
 import { printPromissories } from "../utils/promissory";
-import { approveBudget, cancelBudget, createBudget, listBudgets, type BudgetRow } from "../services/BudgetApi";
+import { approveBudget, cancelBudget, deleteBudget, createBudget, listBudgets, type BudgetRow } from "../services/BudgetApi";
 import { createClinicalDocument } from "../services/ClinicalDocumentService";
 import { readSessionUser } from "../services/DemoAccess";
 import { formatBRL, money, parseBRL } from "../utils/money";
@@ -102,6 +102,9 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_ITEM);
   const [budgetOpen, setBudgetOpen] = useState(false);
+  const [dueFor, setDueFor] = useState<BudgetRow | null>(null);
+  const [firstDue, setFirstDue] = useState("");
+  const [entryDue, setEntryDue] = useState("");
   const [terms, setTerms] = useState(EMPTY_TERMS);
   const [scope, setScope] = useState<BudgetScope>("FULL");
   const [picked, setPicked] = useState<string[]>([]);
@@ -216,12 +219,19 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
     if (!ok) setError("O navegador bloqueou a janela. Permita pop-ups para este site e tente de novo.");
   };
   // Aprovação com boleto/promissória: gera o contrato (rascunho) e abre as promissórias de cada parcela para imprimir e assinar.
-  const approveAndPrepare = async (b: BudgetExtra) => {
+  const askDue = (b: BudgetRow) => {
+    const d = new Date(); const hasEntry = Number((b as BudgetExtra).entryAmount || 0) > 0;
+    if (!hasEntry) d.setMonth(d.getMonth() + 1);
+    const iso = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+    const t = new Date(); d.setDate(Math.min(d.getDate(), 28));
+    setFirstDue(hasEntry ? iso(new Date(t.getFullYear(), t.getMonth() + 1, t.getDate())) : iso(d)); setEntryDue(iso(t)); setDueFor(b);
+  };
+  const approveAndPrepare = async (b: BudgetExtra, dues?: { firstDueDate?: string; entryDueDate?: string }) => {
     const wantsNotes = ["Boleto", "Promissória"].includes(String(b.paymentMethod || "")) && b.installments > 0;
     const pre = wantsNotes ? window.open("", "_blank", "width=900,height=1000") : null;
     pre?.document.write('<p style="font-family:Arial;padding:40px">Preparando promissórias…</p>');
     let approved: (BudgetExtra & { payments?: Array<{ installment: number; amount: number; dueDate: string }> }) | null = null;
-    await run(async () => { approved = (await approveBudget(b.id)) as typeof approved; if (wantsNotes) await generateContractQuiet(b); window.dispatchEvent(new Event(PATIENT_STAGE_EVENT)); }, wantsNotes ? "Orçamento aprovado. Contrato gerado como rascunho em Documentos e Contratos e promissórias abertas para impressão." : "Orçamento aprovado.");
+    await run(async () => { approved = (await approveBudget(b.id, dues)) as typeof approved; if (wantsNotes) await generateContractQuiet(b); window.dispatchEvent(new Event(PATIENT_STAGE_EVENT)); }, wantsNotes ? "Orçamento aprovado. Contrato gerado como rascunho em Documentos e Contratos e promissórias abertas para impressão." : "Orçamento aprovado.");
     if (wantsNotes && approved) await printNotes(approved, pre); else pre?.close();
   };
   const generateContractQuiet = async (b: BudgetExtra) => {
@@ -355,13 +365,14 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
                   </Box>
                   <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                     <Chip size="small" label={BUDGET_STATUS[b.status] || b.status} color={b.status === "APPROVED" ? "success" : b.status === "CANCELLED" ? "default" : "warning"} />
-                    {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => void approveAndPrepare(b)}>Aprovar</Button>}
+                    {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => askDue(b)}>Aprovar</Button>}
                     {b.status === "APPROVED" && <Button size="small" disabled={busy} onClick={() => void printNotes(b)}>Imprimir promissórias</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "share")}>Enviar PDF</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "download")}>Baixar PDF</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "print")}>Imprimir</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" disabled={busy} onClick={() => void generateContract(b)}>Gerar contrato</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" color="error" disabled={busy} onClick={() => { if (window.confirm("Cancelar este orçamento?")) void run(() => cancelBudget(b.id), "Orçamento cancelado."); }}>Cancelar</Button>}
+                    <Button size="small" color="error" variant="outlined" disabled={busy} onClick={() => { if (window.confirm("Excluir este orçamento definitivamente? As parcelas em aberto geradas por ele também serão removidas.")) void run(() => deleteBudget(b.id), "Orçamento excluído."); }}>Excluir</Button>
                   </Box>
                 </Box>
               </Paper>
@@ -459,6 +470,20 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
         <DialogActions>
           <Button disabled={busy} onClick={() => setBudgetOpen(false)}>Cancelar</Button>
           <Button variant="contained" disabled={busy || !canCreate} onClick={() => void createProposal()}>{busy ? "Gerando..." : "Gerar orçamento"}</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={Boolean(dueFor)} onClose={() => setDueFor(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Vencimento das parcelas</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Escolha a data que o paciente combinou. As demais parcelas vencem no mesmo dia dos meses seguintes.</Typography>
+          {Number((dueFor as BudgetExtra | null)?.entryAmount || 0) > 0 && (
+            <TextField fullWidth type="date" label="Vencimento da entrada" value={entryDue} onChange={(e) => setEntryDue(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} sx={{ mb: 2 }} />
+          )}
+          <TextField fullWidth type="date" label="Vencimento da 1ª parcela" value={firstDue} onChange={(e) => setFirstDue(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDueFor(null)}>Cancelar</Button>
+          <Button variant="contained" color="success" disabled={!firstDue || busy} onClick={() => { const b = dueFor as BudgetExtra; setDueFor(null); void approveAndPrepare(b, { firstDueDate: firstDue, entryDueDate: entryDue || undefined }); }}>Aprovar orçamento</Button>
         </DialogActions>
       </Dialog>
     </Box>
