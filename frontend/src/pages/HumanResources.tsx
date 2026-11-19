@@ -34,7 +34,7 @@ function HumanResourcesContent() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {pending > 0 && <Alert severity="warning" sx={{ mb: 2 }}>Há {pending} justificativa(s) de falta aguardando análise do RH ou do gestor.</Alert>}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4,1fr)" }, gap: 2, mb: 2 }}>
-        {[["Colaboradores ativos", String(active.length)], ["Em experiência", String(active.filter((e) => e.status === "EXPERIENCE").length)], ["Custo-base mensal", money(cost)], ["Justificativas em análise", String(pending)]].map(([t, v]) => (
+        {[["Colaboradores ativos", String(active.length)], ["Em experiência", String(active.filter((e) => e.status === "EXPERIENCE" || (e.experienceEndDate && String(e.experienceEndDate).slice(0, 10) >= new Date().toLocaleDateString("sv-SE"))).length)], ["Custo-base mensal", money(cost)], ["Justificativas em análise", String(pending)]].map(([t, v]) => (
           <Paper key={t} sx={{ p: 2.2, borderRadius: 3 }}><Typography color="text.secondary">{t}</Typography><Typography variant="h5" sx={{ fontWeight: 900 }}>{v}</Typography></Paper>
         ))}
       </Box>
