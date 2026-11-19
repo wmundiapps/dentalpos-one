@@ -7,13 +7,15 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
+import SchoolIcon from "@mui/icons-material/School";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import BrandName from "./BrandName";
 import AlertasMenu from "../edu/alertas/AlertasMenu";
 import { appConfig } from "../config/app";
-import { navigationGroups } from "../config/navigation";
+import { navigationGroups, SETORES } from "../config/navigation";
+import { eduApi } from "../services/EduApi";
 import { ajudaDoItem, groupHelp } from "../config/menuHelp";
 import MenuHelp from "./MenuHelp";
 import { rotaBloqueada, useModulosBloqueados } from "../edu/acesso/modulos";
@@ -25,6 +27,17 @@ import {
   publicBookingUrl,
 } from "../services/DemoAccess";
 
+const OPEN_SETOR_KEY = "edumaster.menu.setor-aberto.v1";
+const POS = ["POS_LATO","POS_STRICTO"];
+type CursoMenu = { id: string; nome: string; modalidade: string; nivel: string; origem: "curso"|"pos" };
+function cursosDoSetor(todos:CursoMenu[],tipo:string):CursoMenu[]{
+  const ead=(c:CursoMenu)=>String(c.modalidade).toUpperCase()==="EAD";
+  const pos=(c:CursoMenu)=>c.origem==="pos"||POS.includes(c.nivel);
+  if(tipo==="grad-presencial")return todos.filter(c=>!pos(c)&&!ead(c));
+  if(tipo==="grad-ead")return todos.filter(c=>!pos(c)&&ead(c));
+  if(tipo==="pos-presencial")return todos.filter(c=>pos(c)&&!ead(c));
+  return todos.filter(c=>pos(c)&&ead(c));
+}
 const OPEN_GROUPS_KEY = "dentalpos.navigation.open-groups.v2";
 const COLLAPSED_KEY = "dentalpos.navigation.collapsed.v2";
 const AGENDAMENTO_ONLINE_PATH = "/agendamento-online";
@@ -65,6 +78,7 @@ export default function Sidebar(){
         if(it.roles&&!it.roles.includes(cargoLogado))return false;
         if(rotaBloqueada(it.path,modulosBloqueados))return false;
         if(permitidos&&!permitidos.some(pp=>it.path.split("?")[0]===pp))return false;
+        if(group.atalho)return true; // atalhos repetem telas de outros grupos dentro do setor
         const dedupeKey=it.path;
         if(seen.has(dedupeKey))return false;
         seen.add(dedupeKey);
@@ -84,13 +98,29 @@ export default function Sidebar(){
     catch{return {};}
   });
 
+  const [setorAberto,setSetorAberto]=useState<string>(()=>{try{return localStorage.getItem(OPEN_SETOR_KEY)||"";}catch{return "";}});
+  const [cursos,setCursos]=useState<CursoMenu[]>([]);
+  useEffect(()=>{
+    if(!EDU_ONLY)return;
+    const norm=(r:any):any[]=>Array.isArray(r)?r:(r?.items||[]);
+    Promise.all([
+      eduApi.get<any>("/academico/cursos").then(norm).catch(()=>[]),
+      eduApi.get<any>("/modalidades/pos/programas").then(norm).catch(()=>[]),
+    ]).then(([c,p])=>setCursos([
+      ...c.map((x:any):CursoMenu=>({id:x.id,nome:x.nome,modalidade:x.modalidade,nivel:x.perfil?.nivel||"GRADUACAO",origem:"curso"})),
+      ...p.map((x:any):CursoMenu=>({id:x.id,nome:x.nome,modalidade:x.modalidade||"EAD",nivel:x.nivel||"POS_LATO",origem:"pos"})),
+    ]));
+  },[]);
+  useEffect(()=>{try{localStorage.setItem(OPEN_SETOR_KEY,setorAberto)}catch{}},[setorAberto]);
   useEffect(()=>{if(isDesign)setCollapsed(true)},[isDesign]);
   // Botão de menu (hambúrguer) do topo: abre/fecha o menu lateral.
   useEffect(()=>{const h=()=>setCollapsed(v=>!v);window.addEventListener("edu:toggle-menu",h);return()=>window.removeEventListener("edu:toggle-menu",h)},[]);
   useEffect(()=>{localStorage.setItem(COLLAPSED_KEY,collapsed?"1":"0")},[collapsed]);
   useEffect(()=>{
     if(activeGroup)setOpenGroups({[activeGroup]:true}); // somente um grupo aberto
-  },[activeGroup]);
+    const g=visibleGroups.find(x=>x.label===activeGroup);
+    if(EDU_ONLY&&g?.setor)setSetorAberto(g.setor);
+  },[activeGroup,visibleGroups]);
   useEffect(()=>{localStorage.setItem(OPEN_GROUPS_KEY,JSON.stringify(openGroups))},[openGroups]);
 
   const sidebarWidth=collapsed?58:224;
@@ -123,37 +153,7 @@ export default function Sidebar(){
     handleItemClick((current||group.items[0]).path);
   }
 
-  const daysRemaining=demo?.daysRemaining??0;
-
-  return <Box component="aside" sx={{
-    width:sidebarWidth,minWidth:sidebarWidth,height:"100vh",bgcolor:"#0F172A",color:"#fff",
-    display:"flex",flexDirection:"column",position:"sticky",top:0,overflowY:"auto",overflowX:"visible",
-    transition:"width .2s ease,min-width .2s ease",flexShrink:0
-  }}>
-    <Tooltip title={collapsed?"Expandir menu":"Recolher menu"} placement="right">
-      <IconButton onClick={()=>setCollapsed(v=>!v)} size="small" sx={{
-        position:"fixed",left:sidebarWidth-13,top:72,zIndex:1400,width:26,height:42,
-        borderRadius:"0 10px 10px 0",bgcolor:"#0F172A",color:"#fff",border:"1px solid #334155",
-        transition:"left .2s ease","&:hover":{bgcolor:"primary.main"}
-      }}>
-        {collapsed?<MenuIcon fontSize="small"/>:<MenuOpenIcon fontSize="small"/>}
-      </IconButton>
-    </Tooltip>
-
-    <Box sx={{px:collapsed?.5:1.5,pt:1.2,pb:1,textAlign:"center"}}>
-      <Avatar sx={{width:collapsed?34:48,height:collapsed?34:48,mx:"auto",mb:collapsed?0:.8,bgcolor:"primary.main",fontSize:14}}>
-        {initials}
-      </Avatar>
-      {!collapsed&&<>
-        <Typography sx={{fontWeight:800,fontSize:14,lineHeight:1.2}}>{displayName}</Typography>
-        <Typography sx={{color:"#94A3B8",fontSize:11}}>{roleLabel}</Typography>
-      </>}
-    </Box>
-    <Divider sx={{borderColor:"#334155"}}/>
-    {EDU_ONLY&&<><AlertasMenu collapsed={collapsed} offsetLeft={sidebarWidth}/><Divider sx={{borderColor:"#334155"}}/></>}
-
-    <List sx={{mt:.5,px:collapsed?.4:.7}}>
-      {visibleGroups.map(group=>{
+  const renderGrupo=(group:typeof visibleGroups[number],_aninhado?:boolean)=>{
         const selected=group.items.some(i=>pathMatches(i.path,location.pathname,location.search));
         const open=Boolean(openGroups[group.label]);
 
@@ -209,6 +209,72 @@ export default function Sidebar(){
                 </ListItemButton>
               })}
             </List>
+          </Collapse>
+        </Box>
+      };
+
+  const daysRemaining=demo?.daysRemaining??0;
+
+  return <Box component="aside" sx={{
+    width:sidebarWidth,minWidth:sidebarWidth,height:"100vh",bgcolor:"#0F172A",color:"#fff",
+    display:"flex",flexDirection:"column",position:"sticky",top:0,overflowY:"auto",overflowX:"visible",
+    transition:"width .2s ease,min-width .2s ease",flexShrink:0
+  }}>
+    <Tooltip title={collapsed?"Expandir menu":"Recolher menu"} placement="right">
+      <IconButton onClick={()=>setCollapsed(v=>!v)} size="small" sx={{
+        position:"fixed",left:sidebarWidth-13,top:72,zIndex:1400,width:26,height:42,
+        borderRadius:"0 10px 10px 0",bgcolor:"#0F172A",color:"#fff",border:"1px solid #334155",
+        transition:"left .2s ease","&:hover":{bgcolor:"primary.main"}
+      }}>
+        {collapsed?<MenuIcon fontSize="small"/>:<MenuOpenIcon fontSize="small"/>}
+      </IconButton>
+    </Tooltip>
+
+    <Box sx={{px:collapsed?.5:1.5,pt:1.2,pb:1,textAlign:"center"}}>
+      <Avatar sx={{width:collapsed?34:48,height:collapsed?34:48,mx:"auto",mb:collapsed?0:.8,bgcolor:"primary.main",fontSize:14}}>
+        {initials}
+      </Avatar>
+      {!collapsed&&<>
+        <Typography sx={{fontWeight:800,fontSize:14,lineHeight:1.2}}>{displayName}</Typography>
+        <Typography sx={{color:"#94A3B8",fontSize:11}}>{roleLabel}</Typography>
+      </>}
+    </Box>
+    <Divider sx={{borderColor:"#334155"}}/>
+    {EDU_ONLY&&<><AlertasMenu collapsed={collapsed} offsetLeft={sidebarWidth}/><Divider sx={{borderColor:"#334155"}}/></>}
+
+    <List sx={{mt:.5,px:collapsed?.4:.7}}>
+      {!EDU_ONLY&&visibleGroups.map(g=>renderGrupo(g))}
+      {EDU_ONLY&&SETORES.map(setor=>{
+        const grupos=visibleGroups.filter(g=>g.setor===setor.nome);
+        const doSetor=setor.cursos?cursosDoSetor(cursos,setor.cursos):[];
+        if(!grupos.length&&!doSetor.length)return null;
+        const aberto=setorAberto===setor.nome;
+        const ativo=grupos.some(g=>g.items.some(i=>pathMatches(i.path,location.pathname,location.search)));
+        if(collapsed){
+          return <Tooltip key={setor.nome} title={setor.nome} placement="right" arrow>
+            <ListItemButton onClick={()=>{setCollapsed(false);setSetorAberto(setor.nome)}} selected={ativo} sx={{mb:.3,minHeight:42,borderRadius:2,justifyContent:"center",px:.5,color:ativo?"#fff":"#CBD5E1","&.Mui-selected":{bgcolor:"#1976D2"},"&:hover":{bgcolor:"#1E293B",color:"#fff"}}}>
+              <ListItemIcon sx={{color:"inherit",minWidth:0,justifyContent:"center"}}>{setor.icon}</ListItemIcon>
+            </ListItemButton>
+          </Tooltip>
+        }
+        return <Box key={setor.nome} sx={{mb:.4}}>
+          <ListItemButton onClick={()=>setSetorAberto(aberto?"":setor.nome)} sx={{borderRadius:2,minHeight:42,color:ativo?"#fff":"#E2E8F0",bgcolor:aberto?"rgba(25,118,210,.18)":"transparent","&:hover":{bgcolor:"#1E293B"}}}>
+            <ListItemIcon sx={{color:"inherit",minWidth:34}}>{setor.icon}</ListItemIcon>
+            <ListItemText primary={<Typography component="span" sx={{fontWeight:800,fontSize:13.5,lineHeight:1.2}}>{setor.nome}</Typography>}/>
+            {aberto?<ExpandLessIcon fontSize="small"/>:<ExpandMoreIcon fontSize="small"/>}
+          </ListItemButton>
+          <Collapse in={aberto} timeout="auto" unmountOnExit>
+            <Box sx={{pl:.8,pt:.3,borderLeft:`2px solid ${setor.cor}66`,ml:1.4}}>
+              {setor.cursos&&<Box sx={{mb:.5}}>
+                <Typography sx={{fontSize:10.5,fontWeight:800,letterSpacing:.5,color:"#94A3B8",px:1,py:.4}}>CURSOS</Typography>
+                {doSetor.length===0&&<Typography sx={{fontSize:12,color:"#64748B",px:1.5,pb:.5}}>Nenhum curso cadastrado neste setor.</Typography>}
+                {doSetor.map(c=><ListItemButton key={c.origem+c.id} onClick={()=>handleItemClick(c.origem==="curso"?`/edu/academico/matrizes?programId=${c.id}`:"/edu/modalidades")} sx={{minHeight:34,borderRadius:2,my:.1,pl:1.5,color:"#CBD5E1","&:hover":{bgcolor:"#1E293B",color:"#fff"}}}>
+                  <ListItemIcon sx={{color:"inherit",minWidth:28}}><SchoolIcon sx={{fontSize:17}}/></ListItemIcon>
+                  <ListItemText primary={<Typography component="span" sx={{fontSize:12.5}}>{c.nome}</Typography>}/>
+                </ListItemButton>)}
+              </Box>}
+              {grupos.map(g=>renderGrupo(g,true))}
+            </Box>
           </Collapse>
         </Box>
       })}

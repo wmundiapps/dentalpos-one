@@ -1,5 +1,6 @@
 import { Alert, Box, Button, Chip, Paper, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Bar, DataList, FormDialog, Kpi, KpiRow, LoadBox, Pick, Section, Status, call, fmtNum, itemsOf, label, qsOf, useApi, useIsMobile, useRunner, useToast, Flag, NIVEL_ROTULO,
 } from "./kit";
@@ -12,7 +13,8 @@ const COR_TIPO: Record<string, string> = { OBRIGATORIA: "#0F5FDB", OPTATIVA: "#7
 const COR_STATUS: Record<string, string> = { CONCLUIDA: "#2e9e5b", EM_CURSO: "#0F5FDB", DISPONIVEL: "#e0a100", BLOQUEADA: "#94a3b8" };
 
 export default function MatrizesPage() {
-  const [programId, setProgramId] = useState("");
+  const [sp] = useSearchParams();
+  const [programId, setProgramId] = useState(sp.get("programId") || "");
   const [sel, setSel] = useState<string>("");
   const [rev, setRev] = useState(0);
   const [novo, setNovo] = useState(false);

@@ -74,7 +74,7 @@ import { createSvgIcon } from "@mui/material/utils";
 import type { ReactNode } from "react";
 
 export interface NavigationItem { label: string; path: string; icon: ReactNode; /** Se informado, o item só aparece para estes cargos (papel do usuário logado). */ roles?: string[]; }
-export interface NavigationGroup { label: string; icon: ReactNode; items: NavigationItem[]; }
+export interface NavigationGroup { label: string; icon: ReactNode; items: NavigationItem[]; /** Setor do menu principal onde o grupo aparece (EduMaster). */ setor?: string; /** Atalho: repete telas de outro grupo dentro do setor (não passa pela deduplicação). */ atalho?: boolean; }
 
 /** Cargos que veem o submenu Contabilidade (alunos e professores não têm acesso). */
 const CTB_ROLES = ["ADMIN","OWNER","RECTOR","BOARD","FINANCE","GESTOR_CONTABIL","ANALISTA_CONTABIL","ACCOUNTANT","CONTADOR","COORDINATOR"];
@@ -476,9 +476,77 @@ const allNavigationGroups:NavigationGroup[] = [
   }
 ];
 
+// ---------- Setores do menu principal (EduMaster) ----------
+// O menu principal lista os setores; dentro de cada setor ficam os grupos que já existiam (nada foi removido).
+export interface Setor { nome: string; icon: ReactNode; cor: string; /** Preenchimento dinâmico com os cursos cadastrados. */ cursos?: "grad-presencial"|"grad-ead"|"pos-presencial"|"pos-ead"; }
+export const SETORES:Setor[] = [
+  { nome:"Reitoria", icon:tile(<AccountBalanceOutlinedIcon/>,"#0F766E"), cor:"#0F766E" },
+  { nome:"Administração", icon:tile(<AdminPanelSettingsIcon/>,"#475569"), cor:"#475569" },
+  { nome:"Operacional", icon:tile(<WorkIcon/>,"#B45309"), cor:"#B45309" },
+  { nome:"Financeiro", icon:tile(<AccountBalanceWalletIcon/>,"#0E7490"), cor:"#0E7490" },
+  { nome:"Alunos", icon:tile(<PeopleAltIcon/>,"#4F46E5"), cor:"#4F46E5" },
+  { nome:"Graduação presencial", icon:tile(<SchoolIcon/>,"#2563EB"), cor:"#2563EB", cursos:"grad-presencial" },
+  { nome:"Graduação EAD", icon:tile(<PublicIcon/>,"#7C3AED"), cor:"#7C3AED", cursos:"grad-ead" },
+  { nome:"Pós-graduação presencial (sede e unidades avançadas)", icon:tile(<BiotechIcon/>,"#0369A1"), cor:"#0369A1", cursos:"pos-presencial" },
+  { nome:"Pós-graduação EAD", icon:tile(<AutoAwesomeIcon/>,"#9333EA"), cor:"#9333EA", cursos:"pos-ead" },
+  { nome:"Polos educacionais", icon:tile(<LocationCityIcon/>,"#0E7490"), cor:"#0E7490" },
+  { nome:"Professores", icon:tile(<GroupsIcon/>,"#D97706"), cor:"#D97706" },
+  { nome:"Departamentos", icon:tile(<LocalHospitalIcon/>,"#047857"), cor:"#047857" },
+];
+const SETOR_DO_GRUPO:Record<string,string> = {
+  "EduMaster · Reitoria":"Reitoria","Acadêmico":"Alunos","EduMaster · Acadêmico":"Alunos","ENADE · ENAMED · OAB":"Alunos","EduMaster · Portais e ambientes":"Alunos",
+  "EduMaster · Operação":"Operacional",
+  "EduMaster · Financeiro":"Financeiro","EduMaster · Cobrança":"Financeiro","EduMaster · Contabilidade":"Financeiro",
+  "EduMaster · Atendimento":"Administração","EduMaster · Agente de documentos":"Administração","EduMaster · Jurídico":"Administração","EduMaster · RH":"Administração","EduMaster · CIPA e segurança":"Administração","EduMaster · Marketing":"Administração","Configurações":"Administração",
+  "EduMaster · Campos de prática":"Departamentos",
+};
+const atalhoGrupo=(label:string,setor:string,icon:ReactNode,items:NavigationItem[]):NavigationGroup=>({label,setor,atalho:true,icon,items});
+const gruposAtalho:NavigationGroup[] = [
+  atalhoGrupo("Graduação presencial · apoio","Graduação presencial",tile(<SchoolIcon/>,"#2563EB"),[
+    item("Cursos e matrizes","/edu/academico/matrizes?setor=gp",<HubIcon/>),
+    item("Admissões e vestibular","/edu/admissoes?setor=gp",<PeopleAltIcon/>),
+    item("Calendário e salas","/edu/calendario?setor=gp",<EventIcon/>),
+    item("Notas e diário","/edu/notas?setor=gp",<AssessmentIcon/>),
+  ]),
+  atalhoGrupo("Graduação EAD · apoio","Graduação EAD",tile(<PublicIcon/>,"#7C3AED"),[
+    item("Modalidades, EAD e pós","/edu/modalidades?setor=ge",<GroupsIcon/>),
+    item("Ambientes de ensino","/edu/inicio?setor=ge",<SpaceDashboardIcon/>),
+    item("Cursos e matrizes","/edu/academico/matrizes?setor=ge",<HubIcon/>),
+  ]),
+  atalhoGrupo("Pós-graduação presencial · apoio","Pós-graduação presencial (sede e unidades avançadas)",tile(<BiotechIcon/>,"#0369A1"),[
+    item("Graduação e pós","/edu/reitoria/niveis?setor=pp",<SchoolIcon/>),
+    item("Modalidades, EAD e pós","/edu/modalidades?setor=pp",<GroupsIcon/>),
+    item("Pesquisa, extensão e ligas","/edu/academico/pesquisa-extensao?setor=pp",<BiotechIcon/>),
+  ]),
+  atalhoGrupo("Pós-graduação EAD · apoio","Pós-graduação EAD",tile(<AutoAwesomeIcon/>,"#9333EA"),[
+    item("Modalidades, EAD e pós","/edu/modalidades?setor=pe",<GroupsIcon/>),
+    item("Polos EAD","/edu/polos-ead?setor=pe",<LocationCityIcon/>),
+  ]),
+  atalhoGrupo("Polos educacionais","Polos educacionais",tile(<LocationCityIcon/>,"#0E7490"),[
+    item("Polos EAD","/edu/polos-ead?setor=polos",<LocationCityIcon/>),
+    item("Unidades e polos","/clinicas?setor=polos",<LocalHospitalIcon/>),
+    item("Jurídico dos polos","/edu/juridico?secao=polos&setor=polos",<GavelIcon/>),
+    item("Acesso por polo","/edu/acesso-polos?setor=polos",<AdminPanelSettingsIcon/>,["ADMIN","OWNER"]),
+  ]),
+  atalhoGrupo("Professores","Professores",tile(<GroupsIcon/>,"#D97706"),[
+    item("Portal do professor","/edu/portal-professor?setor=prof",<GroupsIcon/>),
+    item("Cadastro de professores","/academico?secao=professores&setor=prof",<PeopleAltIcon/>),
+    item("Notas e diário","/edu/notas?setor=prof",<AssessmentIcon/>),
+    item("Calendário e salas","/edu/calendario?setor=prof",<EventIcon/>),
+    item("Presença e acesso","/edu/presenca?setor=prof",<HowToRegIcon/>),
+    item("Pessoas e avaliações","/edu/reitoria/pessoas?setor=prof",<FactCheckIcon/>),
+  ]),
+  atalhoGrupo("Hospitais e laboratórios","Departamentos",tile(<MedicalServicesIcon/>,"#047857"),[
+    item("Hospitais e convênios","/edu/campos-pratica?secao=convenios&setor=dep",<HandshakeIcon/>),
+    item("Laboratórios e clínicas-escola","/edu/campos-pratica?secao=clinicas&setor=dep",<LocalHospitalIcon/>),
+  ]),
+];
+
 // No modo EduMaster só aparecem os grupos cujos itens apontam para /edu.
 export const navigationGroups:NavigationGroup[] = EDU_ONLY
-  ? allNavigationGroups.filter(g=>g.items.some(i=>i.path.startsWith("/edu")))
+  ? [...allNavigationGroups,...gruposAtalho]
+      .filter(g=>g.items.some(i=>i.path.startsWith("/edu")))
+      .map(g=>({...g,setor:g.setor||SETOR_DO_GRUPO[g.label]||"Administração"}))
   : allNavigationGroups;
 
 export const navigationItems = navigationGroups.flatMap(g=>g.items);
