@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, TextField, Typography } from "@mui/material";
 import FacePunchKiosk from "./FacePunchKiosk";
+import { GEO_HELP, useBestLocation } from "../hooks/useBestLocation";
 import type { PunchApi } from "../services/HrFaceApi";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -14,31 +15,18 @@ async function call<T>(path: string, token: string | null, body?: unknown): Prom
 // Primeiro acesso do polo: depois do PIN, o aparelho do polo pede para CONFIRMAR A LOCALIZAÇÃO. Grava o local exato (GPS com boa precisão),
 // no lugar de qualquer local que estivesse salvo antes. Só aparece quando o RH liberou a calibragem do polo.
 function CalibrateStep({ name, onConfirm }: { name: string; onConfirm: (g: { latitude: number; longitude: number; accuracy: number }) => Promise<void> }) {
-  const best = useRef<{ latitude: number; longitude: number; accuracy: number; at: number } | null>(null);
-  const [acc, setAcc] = useState<number | null>(null);
-  const [geoErr, setGeoErr] = useState("");
+  const loc = useBestLocation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [, setTick] = useState(0);
+  useEffect(() => { const t = window.setInterval(() => setTick((n) => n + 1), 1500); return () => window.clearInterval(t); }, []);
 
-  useEffect(() => {
-    if (!navigator.geolocation) { setGeoErr("Este aparelho não informa a localização."); return; }
-    // Guarda a leitura mais precisa dos últimos segundos; leituras sempre novas (sem cache).
-    const id = navigator.geolocation.watchPosition(
-      (p) => {
-        const now = Date.now();
-        const cur = best.current;
-        if (!cur || p.coords.accuracy <= cur.accuracy || now - cur.at > 25000) { best.current = { latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy, at: now }; setAcc(Math.round(p.coords.accuracy)); }
-        setGeoErr("");
-      },
-      () => setGeoErr("Ative a localização do aparelho e permita o acesso do navegador a ela."),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 },
-    );
-    return () => navigator.geolocation.clearWatch(id);
-  }, []);
-
-  const good = acc !== null && acc <= 60;
+  // Libera com ±60 m na hora; se o aparelho não passar disso, aceita até ±100 m depois de 25 s de busca (melhor leitura obtida).
+  const secs = loc.secondsSearching();
+  const acc = loc.accuracy;
+  const good = acc !== null && (acc <= 60 || (acc <= 100 && secs >= 25));
   const confirm = async () => {
-    const g = best.current;
+    const g = loc.best.current;
     if (!g) return;
     setBusy(true); setError("");
     try { await onConfirm({ latitude: g.latitude, longitude: g.longitude, accuracy: g.accuracy }); }
@@ -49,10 +37,11 @@ function CalibrateStep({ name, onConfirm }: { name: string; onConfirm: (g: { lat
     <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, display: "grid", gap: 2 }}>
       <Typography variant="h5" sx={{ fontWeight: 900, textAlign: "center" }}>Confirmar a localização — {name}</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>Primeiro uso do polo: este aparelho vai gravar o local exato onde você está agora. Confirme só se estiver <b>dentro do polo</b>. Use o celular do polo, com a localização ligada.</Typography>
-      {geoErr ? <Alert severity="warning">{geoErr}</Alert>
-        : acc === null ? <Box sx={{ display: "grid", justifyItems: "center", gap: 1 }}><CircularProgress size={28} /><Typography variant="body2">Buscando a localização exata…</Typography></Box>
-        : good ? <Alert severity="success">Localização exata encontrada (precisão ±{acc} m). Pode confirmar.</Alert>
-        : <Alert severity="info">Buscando a localização exata… precisão atual ±{acc} m (precisa chegar a ±60 m). Aguarde alguns segundos e, se puder, chegue perto de uma janela ou área aberta.</Alert>}
+      {loc.status === "denied" ? <Alert severity="warning" action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>A localização está bloqueada neste aparelho. {GEO_HELP}</Alert>
+        : loc.status === "unavailable" ? <Alert severity="warning" action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Este aparelho não conseguiu achar o local. {GEO_HELP}</Alert>
+        : acc === null ? <Alert severity="info" icon={<CircularProgress size={20} />} action={secs >= 30 ? <Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button> : undefined}>Procurando o sinal de GPS… ({secs} s). {secs >= 20 ? GEO_HELP : "Pode levar alguns segundos."}</Alert>
+        : good ? <Alert severity="success">Localização encontrada (precisão ±{acc} m). Pode confirmar.</Alert>
+        : <Alert severity="info">Melhorando a precisão… agora ±{acc} m. Libera a ±60 m, ou a ±100 m depois de {Math.max(0, 25 - secs)} s. Se puder, chegue perto de uma janela ou área aberta.</Alert>}
       {error && <Alert severity="error">{error}</Alert>}
       <Button variant="contained" size="large" disabled={busy || !good} onClick={() => void confirm()}>{busy ? "Gravando…" : "Confirmar que estou no polo"}</Button>
     </Paper>
