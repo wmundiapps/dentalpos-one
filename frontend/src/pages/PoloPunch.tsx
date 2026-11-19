@@ -53,7 +53,7 @@ function CalibrateStep({ name, onConfirm }: { name: string; onConfirm: (g: { lat
 export default function PoloPunch({ slug }: { slug: string }) {
   const keyName = `completodonto.polo.${slug}`;
   const [token, setToken] = useState(() => { try { return localStorage.getItem(keyName); } catch { return null; } });
-  const [info, setInfo] = useState<{ name: string; ready: boolean; calibrating?: boolean; pending?: boolean } | null | undefined>(undefined);
+  const [info, setInfo] = useState<{ name: string; ready: boolean; calibrating?: boolean; pending?: boolean; approxLocation?: boolean } | null | undefined>(undefined);
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -96,7 +96,7 @@ export default function PoloPunch({ slug }: { slug: string }) {
             <CalibrateStep name={info.name} onConfirm={async (g) => { await call(`${slug}/calibrate`, token, g); setInfo({ ...info, calibrating: false, pending: false }); }} />
           ) : info.pending && !info.calibrating ? (
             <Alert severity="warning">O local deste polo ainda não foi definido. Peça ao RH para liberar a confirmação do local e tente de novo.</Alert>
-          ) : <FacePunchKiosk embedded api={api} title={`Ponto — ${info.name}`} description={info.pending ? "PRIMEIRO ACESSO DO POLO: o seu primeiro ponto, feito agora dentro do polo, define o local do polo. Ligue a localização do aparelho e fique na recepção." : "Digite o CPF e olhe para a câmera. O ponto só vale dentro do polo, com a localização do aparelho ligada."} />}
+          ) : <FacePunchKiosk embedded approx={Boolean(info.approxLocation)} api={api} title={`Ponto — ${info.name}`} description={info.pending ? "PRIMEIRO ACESSO DO POLO: o seu primeiro ponto, feito agora dentro do polo, define o local do polo. Ligue a localização do aparelho e fique na recepção." : "Digite o CPF e olhe para a câmera. O ponto só vale dentro do polo, com a localização do aparelho ligada."} />}
       </Box>
     </Box>
   );
