@@ -3,6 +3,7 @@ import { Alert, Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogConten
 import { HrApi, STATUS_LABEL, fmtDate, fmtMin, type Employee, type TimeSettings } from "../../services/HrApi";
 import { punchPhoto } from "../../services/HrFaceApi";
 import DayReport from "./DayReport";
+import { printTimeMirrors } from "../../utils/timeMirror";
 
 type Sheet = Awaited<ReturnType<typeof HrApi.timesheet>>;
 type Detail = Awaited<ReturnType<typeof HrApi.employeeMonth>>;
@@ -25,15 +26,15 @@ export default function TimesheetTab({ employees, canEdit }: { employees: Employ
 
   const [photo, setPhoto] = useState<string | null | undefined>(undefined);
   const showPhoto = async (id: string) => { try { setPhoto((await punchPhoto(id)).photo); } catch { setPhoto(null); } };
-  const printMirror = () => {
-    if (!detail) return;
-    const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
-    const rows = detail.days.map((d) => `<tr><td>${fmtDate(d.date)}</td><td>${esc(STATUS_LABEL[d.status] || d.status)}</td><td>${esc(d.punches.map((p) => p.time).join(" · ") || d.note || "—")}</td><td>${fmtMin(d.workedMin)}</td><td>${d.expectedMin ? fmtMin(d.diffMin) : ""}</td></tr>`).join("");
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(`<html><head><title>Espelho de ponto</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:12px}h2{margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #999;padding:4px 6px;text-align:left}.sig{display:flex;gap:40px;margin-top:60px}.sig div{flex:1;border-top:1px solid #000;text-align:center;padding-top:4px}</style></head><body><h2>Espelho de ponto — ${esc(detail.employee.name)}</h2><div>Competência ${ref.split("-").reverse().join("/")}</div><table><thead><tr><th>Data</th><th>Situação</th><th>Batidas</th><th>Trabalhadas</th><th>Saldo</th></tr></thead><tbody>${rows}</tbody></table><p><b>Trabalhadas:</b> ${fmtMin(detail.totals.workedMin)} &nbsp; <b>Banco de horas:</b> ${fmtMin(detail.totals.balanceMin)} &nbsp; <b>Faltas:</b> ${detail.totals.faltas} &nbsp; <b>Atrasos:</b> ${detail.totals.atrasos}</p><div class="sig"><div>Colaborador</div><div>Responsável</div></div></body></html>`);
-    w.document.close();
-    w.print();
+  const [mirrorBusy, setMirrorBusy] = useState(false);
+  const printMirrors = async (ids: string[]) => {
+    setMirrorBusy(true); setError("");
+    try {
+      const out: Awaited<ReturnType<typeof HrApi.employeeMonth>>[] = [];
+      for (let i = 0; i < ids.length; i += 5) out.push(...(await Promise.all(ids.slice(i, i + 5).map((id) => HrApi.employeeMonth(id, ref)))));
+      if (!(await printTimeMirrors(out))) setError("O navegador bloqueou a janela. Permita pop-ups para este site e tente de novo.");
+    } catch (e) { setError(e instanceof Error ? e.message : "Erro ao gerar os espelhos."); }
+    finally { setMirrorBusy(false); }
   };
   const openDetail = async (id: string) => { try { setDetail(await HrApi.employeeMonth(id, ref)); } catch (e) { setError(e instanceof Error ? e.message : "Erro."); } };
   const openSettings = async () => { try { const s = await HrApi.settings(); setSettings({ ...s, allowedIps: s.allowedIps.join(", ") }); } catch (e) { setError(e instanceof Error ? e.message : "Erro."); } };
@@ -56,6 +57,7 @@ export default function TimesheetTab({ employees, canEdit }: { employees: Employ
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
         <TextField select size="small" label="Mês" value={ref} onChange={(e) => setRef(e.target.value)} sx={{ minWidth: 150 }}>{months().map((m) => <MenuItem key={m} value={m}>{m.split("-").reverse().join("/")}</MenuItem>)}</TextField>
         <Box sx={{ flex: 1 }} />
+        {sheet && sheet.employees.length > 0 && <Button variant="contained" disabled={mirrorBusy} onClick={() => void printMirrors(sheet.employees.map((r) => r.employeeId))}>{mirrorBusy ? "Gerando…" : "Imprimir espelho de todos (para assinar)"}</Button>}
         {canEdit && <Button variant="outlined" onClick={() => void openSettings()}>Regras do ponto (jornada, IP, local)</Button>}
       </Box>
       <Alert severity="info" sx={{ mb: 2 }}>O colaborador bate o ponto em <b>Meu ponto</b>, com senha, IP e localização. O quadro abaixo soma horas, faltas, atrasos e banco de horas de cada um. Clique no nome para ver os dias e os registros.</Alert>
@@ -121,7 +123,7 @@ export default function TimesheetTab({ employees, canEdit }: { employees: Employ
             </>)}
           </>)}
         </DialogContent>
-        <DialogActions><Button onClick={printMirror}>Imprimir espelho</Button><Button onClick={() => setDetail(null)}>Fechar</Button></DialogActions>
+        <DialogActions><Button disabled={mirrorBusy} onClick={() => detail && void printMirrors([detail.employee.id])}>Imprimir espelho (para assinar)</Button><Button onClick={() => setDetail(null)}>Fechar</Button></DialogActions>
       </Dialog>
 
       <Dialog open={photo !== undefined} onClose={() => setPhoto(undefined)}>
