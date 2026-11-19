@@ -49,6 +49,7 @@ import lavanderiaRouter from './operacao/lavanderia'
 import rastreioRouter from './operacao/rastreio'
 import poloGestorRouter from './operacao/polos'
 import convitesRouter from './operacao/convites'
+import alertasRouter from './alertas/routes'
 import contabilRouter from './contabil/routes'
 import contabilCarteiraRouter from './contabil/carteira/routes'
 import { registrarIntegracaoFiscal } from './contabil/carteira/integracaoFiscal'
@@ -110,6 +111,7 @@ router.use('/lavanderia', lavanderiaRouter)
 router.use('/compras-rastreio', rastreioRouter)
 router.use('/acesso-polos', poloGestorRouter)
 router.use('/convites', convitesRouter)
+router.use('/alertas', alertasRouter)
 // Contabilidade > Carteira de clientes (banco de clientes do escritório + portal do cliente). Ver contabil/carteira/README.md.
 registrarIntegracaoFiscal()   // guias do módulo fiscal (CtbGuia) para clientes vinculados a uma empresa
 router.use('/contabil/carteira', contabilCarteiraRouter)

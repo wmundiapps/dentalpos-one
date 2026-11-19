@@ -58,6 +58,7 @@ export async function polirDemo(prisma: PrismaClient) {
 
   // Suprimentos
   await run('estoque', `UPDATE "SupSaldo" s SET quantidade = GREATEST(s.quantidade, i."estoqueMinimo" * 3) FROM "SupItem" i WHERE i.id = s."itemId" AND i."estoqueMinimo" > 0`)
+  await run('estoque-reposicao', `UPDATE "SupSaldo" SET quantidade = 1 WHERE id IN (SELECT s.id FROM "SupSaldo" s JOIN "SupItem" i ON i.id = s."itemId" WHERE i.nome ILIKE 'Luva de procedimento%' OR i.nome ILIKE 'Papel A4%')`)
   await run('requisicoes', `UPDATE "SupRequisicao" SET status='APROVADA' WHERE status::text='AGUARDANDO_APROVACAO'`)
 
   // Notas e apoio ao estudante

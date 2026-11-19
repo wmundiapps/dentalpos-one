@@ -11,6 +11,7 @@ import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import BrandName from "./BrandName";
+import AlertasMenu from "../edu/alertas/AlertasMenu";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
 import { ajudaDoItem, groupHelp } from "../config/menuHelp";
@@ -84,6 +85,8 @@ export default function Sidebar(){
   });
 
   useEffect(()=>{if(isDesign)setCollapsed(true)},[isDesign]);
+  // Botão de menu (hambúrguer) do topo: abre/fecha o menu lateral.
+  useEffect(()=>{const h=()=>setCollapsed(v=>!v);window.addEventListener("edu:toggle-menu",h);return()=>window.removeEventListener("edu:toggle-menu",h)},[]);
   useEffect(()=>{localStorage.setItem(COLLAPSED_KEY,collapsed?"1":"0")},[collapsed]);
   useEffect(()=>{
     if(activeGroup)setOpenGroups({[activeGroup]:true}); // somente um grupo aberto
@@ -147,6 +150,7 @@ export default function Sidebar(){
       </>}
     </Box>
     <Divider sx={{borderColor:"#334155"}}/>
+    {EDU_ONLY&&<><AlertasMenu collapsed={collapsed} offsetLeft={sidebarWidth}/><Divider sx={{borderColor:"#334155"}}/></>}
 
     <List sx={{mt:.5,px:collapsed?.4:.7}}>
       {visibleGroups.map(group=>{

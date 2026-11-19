@@ -69,6 +69,31 @@ export async function seedOperacao(api: Api, ctx: { failures?: string[] } = {}) 
     }
   } catch (e) { falha('portal do colaborador', e) }
 
+
+  // ---------- POPs ligados aos alertas críticos (cada alerta mostra o procedimento relacionado)
+  try {
+    const painelP = await api('GET', '/edu/colaborador/painel')
+    const tem = new Set((painelP.documentos ?? []).map((d: any) => String(d.titulo)))
+    const pops: Array<[string, string]> = [
+      ['POP — Tratativa de parcelas em atraso (cobrança amigável)', '1. Confira em Cobrança > Inadimplentes quem tem parcela vencida.\n2. Execute a régua de cobrança (WhatsApp, depois e-mail).\n3. Com o retorno do aluno, registre acordo ou promessa de pagamento.\n4. Sem retorno após a régua, escale ao Jurídico com o histórico.\n5. Atualize o status e encerre quando houver o pagamento.'],
+      ['POP — Pagamento de fornecedores e contas a pagar', '1. Confira a conta e o documento na fila de conferência.\n2. Autorize conforme a alçada do valor.\n3. Pague na data e registre a baixa.\n4. Em atraso, negocie nova data com o fornecedor e registre.'],
+      ['POP — Empréstimo e devolução de obras na biblioteca', '1. Identifique o leitor e confira o prazo.\n2. Registre a devolução ou a renovação.\n3. Em atraso, avise o leitor e aplique a multa conforme a política.\n4. Confira o estado da obra na devolução.'],
+      ['POP — Ordem de serviço e prazo (SLA) de manutenção', '1. Abra a OS com descrição, local e fotos.\n2. Defina responsável e prazo.\n3. Atualize o andamento e peça material, se faltar.\n4. Conclua com a solução e avise o solicitante.'],
+      ['POP — Reposição de estoque mínimo', '1. Confira o saldo por almoxarifado.\n2. Crie a requisição com a quantidade de reposição.\n3. Aprove na alçada e acompanhe o pedido até o setor.\n4. Dê entrada no estoque na conferência.'],
+      ['POP — Acompanhamento de pedidos de compra', '1. Registre cada etapa: enviado, chegou, conferido, entrada, saiu para entrega e entregue.\n2. Contate o fornecedor se a previsão passar.\n3. Confira quantidade e qualidade na chegada.\n4. Avise o setor solicitante.'],
+      ['POP — Renovação do certificado da brigada de incêndio', '1. Verifique a validade em CIPA > Brigada.\n2. Agende a reciclagem no calendário de treinamentos.\n3. Confirme presença e carga horária.\n4. Atualize a validade do certificado.'],
+      ['POP — Tratamento de acidente de trabalho (CAT)', '1. Preste o primeiro atendimento e acione a brigada.\n2. Registre a ocorrência no Registro de CAT.\n3. Descreva e execute a providência.\n4. Comunique o órgão competente se houver afastamento.\n5. Encerre depois da confirmação.'],
+      ['POP — Entrega e troca de EPI', '1. Designe o EPI ao colaborador no RH.\n2. Registre a entrega, o tamanho e a validade.\n3. O colaborador confirma o recebimento.\n4. Troque no prazo de validade.'],
+      ['POP — Evidências e prazos do MEC', '1. Identifique o indicador e o documento exigido.\n2. Reúna e anexe a evidência na pasta do kit.\n3. Marque como atendida.\n4. Avise a coordenação.'],
+      ['POP — Tratamento de publicações do Diário Oficial', '1. Leia a publicação e identifique a exigência.\n2. Designe o responsável e o prazo.\n3. Registre o andamento.\n4. Marque como tratada.'],
+      ['POP — Atendimento dentro do prazo (SLA)', '1. Responda ao solicitante no primeiro contato.\n2. Encaminhe ao setor com prazo, se necessário.\n3. Resolva e registre a solução.\n4. Peça a avaliação do atendimento.'],
+      ['POP — Alertas de acesso e portaria', '1. Confira o registro de entrada e saída.\n2. Verifique o local e a pessoa.\n3. Resolva o alerta e registre a conclusão.'],
+      ['POP — Rouparia: coleta, retorno e conferência', '1. Conte as peças na coleta e registre a remessa.\n2. Acompanhe cada etapa da jornada.\n3. Confira as peças na devolução.\n4. Registre divergências.'],
+      ['POP — Guias e vencimentos fiscais', '1. Confira o valor e a linha digitável.\n2. Programe o pagamento antes do vencimento.\n3. Marque como paga e arquive o comprovante.'],
+    ]
+    for (const [titulo, conteudo] of pops) if (!tem.has(titulo)) await api('POST', '/edu/colaborador/documentos', { tipo: 'POP', titulo, conteudo, obrigatorio: false })
+  } catch (e) { falha('POPs dos alertas', e) }
+
   // ---------- CIPA
   try {
     const painel = await api('GET', '/edu/cipa/painel')

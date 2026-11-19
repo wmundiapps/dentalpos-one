@@ -233,6 +233,7 @@ const allNavigationGroups:NavigationGroup[] = [
     icon:tile(<AccountBalanceOutlinedIcon/>,"#0F766E"),
     items:[
       item("Painel executivo","/edu",<SpaceDashboardIcon/>),
+      item("Alertas críticos","/edu/alertas",<ReportProblemIcon/>),
       item("Minha mesa e lembretes","/edu/minha-mesa",<AssignmentIcon/>),
       item("Agenda da Reitoria","/edu/reitoria/agenda",<EventIcon/>),
       item("Diário Oficial (DOU)","/edu/reitoria/dou",<DescriptionIcon/>),

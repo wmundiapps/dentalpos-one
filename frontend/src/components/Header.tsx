@@ -20,6 +20,7 @@ import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchIcon from "@mui/icons-material/Search";
+import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -130,6 +131,7 @@ export default function Header() {
       }}
     >
       <Toolbar sx={{ gap: { xs: 1, md: 2 }, minHeight: 72 }}>
+        <Tooltip title="Menu"><IconButton onClick={() => window.dispatchEvent(new Event("edu:toggle-menu"))} aria-label="Abrir ou fechar o menu" edge="start"><MenuIcon /></IconButton></Tooltip>
         {location.pathname !== "/" && location.pathname !== "/dashboard" && (
           <Tooltip title="Voltar">
             <IconButton

@@ -55,6 +55,7 @@ const EduSalas = lazy(() => import("../pages/edu/EduSalas"));
 const EduDesenvolvimento = lazy(() => import("../pages/edu/EduDesenvolvimento"));
 const EduPesquisaExtensao = lazy(() => import("../pages/edu/EduPesquisaExtensao"));
 const EduRh = lazy(() => import("../pages/edu/EduRh"));
+const EduAlertas = lazy(() => import("../pages/edu/EduAlertas"));
 const EduColaborador = lazy(() => import("../pages/edu/EduColaborador"));
 const EduCipa = lazy(() => import("../pages/edu/EduCipa"));
 const EduLavanderia = lazy(() => import("../pages/edu/EduLavanderia"));
@@ -211,6 +212,8 @@ export default function AppRoutes() {
       <Route path="/edu/lgpd" element={<EduLgpd />} />
       <Route path="/edu/acesso-por-cargo" element={<EduAcessoPorCargo />} />
       <Route path="/edu/rh" element={<EduRh />} />
+      <Route path="/edu/alertas" element={<EduAlertas />} />
+      <Route path="/edu/alertas/ver" element={<EduAlertas detalhe />} />
       <Route path="/edu/colaborador" element={<EduColaborador />} />
       <Route path="/edu/cipa" element={<EduCipa />} />
       <Route path="/edu/lavanderia" element={<EduLavanderia />} />

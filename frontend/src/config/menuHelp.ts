@@ -42,6 +42,7 @@ const itemList: Array<[string, string, string]> = [
   ["/edu/lavanderia", "Controle da rouparia enviada por departamento e jornada de coleta, transporte, lavagem, retorno e entrega.", "Registre a remessa com as peças, avance cada etapa informando o responsável e confira as peças na devolução."],
   ["/edu/acesso-polos", "Define quais polos cada gestor pode ver.", "Escolha o gestor e marque um ou mais polos. Sem polos marcados, ele vê todos."],
   ["/seguranca", "Segurança da sua conta: ativar a autenticação em 2 etapas e códigos de recuperação.", "Ative com o app autenticador e guarde os códigos de recuperação em local seguro."],
+  ["/edu/alertas", "Lista de todos os alertas críticos, por departamento.", "Escolha o alerta para ver o problema, o que fazer e o POP relacionado."],
   // Acadêmico (cadastro)
   ["/academico", "Resumo geral da vida acadêmica com números de alunos, cursos e turmas.", "Use como ponto de partida e clique nos cartões para abrir cada assunto."],
   ["/academico?secao=alunos", "Cadastro e consulta de alunos.", "Pesquise pelo nome ou matrícula, abra a ficha e edite dados, situação e documentos."],

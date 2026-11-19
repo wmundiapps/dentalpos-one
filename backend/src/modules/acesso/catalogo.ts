@@ -76,6 +76,7 @@ export const MODULOS: Array<{ modulo: string; nome: string; grupo: string }> = [
   { modulo: 'lavanderia', nome: 'Lavanderia', grupo: 'Administrativo' },
   { modulo: 'compras-rastreio', nome: 'Acompanhamento de compras', grupo: 'Administrativo' },
   { modulo: 'acesso-polos', nome: 'Acesso por polo', grupo: 'Essenciais' },
+  { modulo: 'alertas', nome: 'Alertas críticos', grupo: 'Essenciais' },
   { modulo: 'convites', nome: 'Convites de acesso', grupo: 'Essenciais' },
   { modulo: 'reitoria', nome: 'Reitoria e painéis executivos', grupo: 'Gestão e conformidade' },
   { modulo: 'governanca', nome: 'Governança e PDI', grupo: 'Gestão e conformidade' },
