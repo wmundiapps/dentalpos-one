@@ -114,7 +114,7 @@ export async function calibrate(place: Place, body: any) {
   if (!w || !w.calibrating) return { error: 'A calibragem do local não está liberada para este polo. Peça ao RH para liberar.', status: 403 }
   const latitude = num(body?.latitude), longitude = num(body?.longitude), accuracy = Math.round(num(body?.accuracy))
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180 || (latitude === 0 && longitude === 0)) return { error: 'Localização inválida. Ative a localização do aparelho e tente de novo.' }
-  if (!Number.isFinite(accuracy) || accuracy > 60) return { error: `A localização está imprecisa (±${Number.isFinite(accuracy) ? accuracy : '?'} m). Vá para perto de uma janela ou área aberta, espere alguns segundos e tente de novo (precisa ficar em até 60 m).` }
+  if (!Number.isFinite(accuracy) || accuracy > 100) return { error: `A localização está imprecisa (±${Number.isFinite(accuracy) ? accuracy : '?'} m). Vá para perto de uma janela ou área aberta, espere alguns segundos e tente de novo (precisa ficar em até 100 m).` }
   await prisma.hRWorkplace.update({ where: { id: w.id }, data: { latitude, longitude, calibrating: false, calibratedAt: new Date(), calibratedAccuracy: accuracy } })
   await writeAudit({ clinicId: w.clinicId, tenantId: w.tenantId, actorId: `polo:${w.id}`, module: 'hr', action: 'WORKPLACE_CALIBRATED', entityType: 'HRWorkplace', entityId: w.id, summary: `Local do polo ${w.name} confirmado pelo celular do polo (${latitude.toFixed(5)}, ${longitude.toFixed(5)}, precisão ±${accuracy} m).` }).catch(() => undefined)
   return { ok: true }

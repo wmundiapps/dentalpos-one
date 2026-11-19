@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, TextField, Typography } from "@mui/material";
 import PageHeader from "../components/PageHeader";
 import { describeFace, loadFaceApi, snapshot, useCamera } from "../utils/faceCamera";
+import { GEO_HELP, useBestLocation } from "../hooks/useBestLocation";
 import { clinicPunchApi, type FacePunchResult, type PunchApi } from "../services/HrFaceApi";
 import { Button as MuiButton, Checkbox, FormControlLabel } from "@mui/material";
 
@@ -20,10 +21,11 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<FacePunchResult | null>(null);
   const [problem, setProblem] = useState("");
-  const [geoMsg, setGeoMsg] = useState("");
-  const [geoAcc, setGeoAcc] = useState<number | null>(null);
-  const geo = useRef<Geo>({});
-  const geoAt = useRef(0);
+  // Local do aparelho: melhor leitura (rápida + GPS preciso), sempre a mais recente quando alguém lê geo.current.
+  const loc = useBestLocation();
+  const geo = useMemo(() => ({ get current(): Geo { const b = loc.best.current; return b ? { latitude: b.latitude, longitude: b.longitude, accuracy: b.accuracy } : {}; } }) as unknown as React.MutableRefObject<Geo>, [loc.best]);
+  const [, setTick] = useState(0);
+  useEffect(() => { const t = window.setInterval(() => setTick((n) => n + 1), 2000); return () => window.clearInterval(t); }, []);
 
   // Atalho na tela inicial: troca o manifesto do app só nesta tela, para abrir direto no ponto.
   useEffect(() => {
@@ -35,26 +37,6 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
     return () => { link.remove(); document.title = prev; };
   }, []);
 
-  useEffect(() => {
-    if (!navigator.geolocation) { setGeoMsg("Este aparelho não informa a localização."); return; }
-    // Guarda a MELHOR leitura dos últimos segundos (a mais precisa), e não só a última: um sinal de Wi-Fi impreciso não pode
-    // trocar uma leitura boa de GPS. Sem cache (maximumAge 0): cada leitura é nova. O primeiro acesso do polo grava este local.
-    const id = navigator.geolocation.watchPosition(
-      (p) => {
-        const now = Date.now();
-        const cur = geo.current;
-        if (cur.accuracy === undefined || p.coords.accuracy <= cur.accuracy || now - geoAt.current > 25000) {
-          geo.current = { latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy };
-          geoAt.current = now;
-          setGeoAcc(Math.round(p.coords.accuracy));
-        }
-        setGeoMsg("");
-      },
-      () => setGeoMsg("Ative a localização do aparelho: o ponto exige o local da clínica."),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 },
-    );
-    return () => navigator.geolocation.clearWatch(id);
-  }, []);
 
   const speak = useCallback((text: string) => { try { const u = new SpeechSynthesisUtterance(text); u.lang = "pt-BR"; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch { /* sem voz */ } }, []);
   const reset = useCallback(() => { setStep("cpf"); setCpf(""); setResult(null); setProblem(""); }, []);
@@ -71,6 +53,8 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
     if (checking || cpfDigits.length !== 11) return;
     setChecking(true); setProblem("");
     try {
+      // Espera o GPS chegar a uma leitura boa (até 20 s) antes de consultar o CPF: o ponto só vale com boa precisão.
+      await loc.waitForFix(150, 20000);
       const c = await api.cpfCheck(cpfDigits, geo.current);
       if (c.hasFace) setStep("camera"); else { setFirstName(c.employeeName); setStep("enroll"); }
     } catch (e) { setProblem(e instanceof Error ? e.message : "Não foi possível verificar o CPF."); }
@@ -80,8 +64,10 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
     <Box>
       {embedded ? <Typography variant="h5" sx={{ fontWeight: 900, textAlign: "center", mb: 0.5 }}>{title}</Typography> : <PageHeader title={title} description={description} />}
       {embedded && <Typography color="text.secondary" sx={{ textAlign: "center", mb: 2 }}>{description}</Typography>}
-      {geoMsg && <Alert severity="warning" sx={{ mb: 2 }}>{geoMsg}</Alert>}
-      {!geoMsg && geoAcc !== null && geoAcc > 60 && <Alert severity="info" sx={{ mb: 2 }}>Buscando a localização exata do aparelho (precisão atual ±{geoAcc} m). No primeiro acesso do polo ela precisa chegar a ±60 m: aguarde alguns segundos, vá para perto de uma janela ou área aberta e use o celular do polo, não o computador.</Alert>}
+      {loc.status === "denied" && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>A localização está bloqueada neste aparelho. {GEO_HELP}</Alert>}
+      {loc.status === "unavailable" && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Este aparelho não conseguiu achar o local. {GEO_HELP}</Alert>}
+      {loc.status === "searching" && loc.secondsSearching() >= 6 && <Alert severity="info" sx={{ mb: 2 }} action={loc.secondsSearching() >= 30 ? <Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button> : undefined}>Procurando o sinal de GPS… ({loc.secondsSearching()} s). {loc.secondsSearching() >= 20 ? GEO_HELP : "Pode levar alguns segundos."}</Alert>}
+      {loc.status === "ok" && loc.accuracy !== null && loc.accuracy > 150 && <Alert severity="info" sx={{ mb: 2 }}>Melhorando a precisão do GPS (agora ±{loc.accuracy} m; o ponto precisa de ±150 m). Aguarde alguns segundos, perto de uma janela ou área aberta.</Alert>}
       {result ? (
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 3, textAlign: "center", maxWidth: 520, mx: "auto" }}>
           <Typography variant="h4" sx={{ fontWeight: 900 }}>{result.employeeName}</Typography>

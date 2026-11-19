@@ -162,6 +162,9 @@ function assertWorkplace(emp: { workplaceId?: string | null }, place?: Place) {
   else if (emp.workplaceId) throw new HrError(403, 'O seu ponto é registrado no celular do seu polo, pelo link do polo. Fale com o RH se precisar de ajuda.')
 }
 
+// Precisão máxima do GPS aceita para bater ponto no polo (metros). Mais que isso o local não é confiável.
+const PUNCH_MAX_ACCURACY = 200
+
 // Trava do polo: depois que o local foi confirmado no primeiro acesso, NADA do ponto funciona fora do raio dele
 // (consultar CPF, cadastrar rosto ou bater ponto). Enquanto a calibragem está liberada o local ainda está sendo definido, então não trava.
 function assertInsidePlace(place: Place | undefined, body: any) {
@@ -170,7 +173,7 @@ function assertInsidePlace(place: Place | undefined, body: any) {
   const lat = body?.latitude === undefined || body?.latitude === null ? NaN : Number(body.latitude)
   const lng = body?.longitude === undefined || body?.longitude === null ? NaN : Number(body.longitude)
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new HrError(400, 'Ative a localização do aparelho: o ponto só funciona dentro do polo.')
-  if (Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > 150) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
+  if (Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > PUNCH_MAX_ACCURACY) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
   const distance = haversine(place.latitude, place.longitude, lat, lng)
   if (distance > place.radiusMeters) throw new HrError(403, `Você está a ${Math.round(distance)} m do polo ${place.name}. O ponto só funciona a até ${place.radiusMeters} m do local confirmado do polo.`)
 }
@@ -179,7 +182,7 @@ async function recordPunch(emp: { id: string; name: string }, c: { clinicId: str
   if (place?.pending) throw new HrError(409, `O local do polo ${place.name} ainda não foi definido. A pessoa responsável pelo polo precisa confirmar o local pelo celular do polo (calibragem liberada pelo RH).`)
   const base = await getTimeSettings(c.clinicId)
   const s = place ? { ...base, latitude: place.latitude, longitude: place.longitude, radiusMeters: place.radiusMeters, requireLocation: true, blockOutside: true, allowedIps: [] as string[] } : base
-  if (place && Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > 150) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
+  if (place && Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > PUNCH_MAX_ACCURACY) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
   const lat = body?.latitude === undefined || body?.latitude === null ? null : Number(body.latitude)
   const lng = body?.longitude === undefined || body?.longitude === null ? null : Number(body.longitude)
   const hasGeo = lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng)
@@ -197,6 +200,7 @@ async function recordPunch(emp: { id: string; name: string }, c: { clinicId: str
   const note = [
     ipOk === null ? null : `IP ${ipOk ? 'autorizado' : 'fora da lista'}`,
     geoOk === null ? (s.latitude === null ? null : 'sem localização') : `${Math.round(distance as number)} m do local (${geoOk ? 'dentro' : 'fora'} do raio)`,
+    Number.isFinite(Number(body?.accuracy)) ? `precisão do GPS ±${Math.round(Number(body.accuracy))} m` : null,
   ].concat(place ? [`Polo ${place.name}`] : []).concat(extraNote ? [extraNote] : []).filter(Boolean).join(' · ') || null
   if (s.blockOutside && inside === false) throw new HrError(403, place ? `Você está a ${Math.round(distance ?? 0)} m do polo ${place.name}. O ponto só pode ser batido a até ${place.radiusMeters} m do polo.` : 'O ponto só pode ser registrado no ambiente de trabalho.')
 
