@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { confirmTreatment } from '../services/treatmentStageService'
 
 function ctx(req: AuthRequest) {
   if (!req.user) throw new Error('Não autenticado')
@@ -161,6 +162,7 @@ export async function approve(req: AuthRequest, res: Response) {
         await tx.financialEntry.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, patientId: existing.patientId, type: 'INCOME', description: `${existing.description} • Parcela ${i}/${count}`, category: 'TRATAMENTO', personName: existing.patient.fullName, amount: installmentValue, dueDate: due, status: 'PENDING', paymentMethod: method, provider, origin: 'BUDGET', originId: id, installment: i, installments: count, issuerEntity: 'INSTITUTO_RAVEL' } })
       }
     })
+    await confirmTreatment({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id }, existing.patientId, 'orçamento aprovado')
     const row = await prisma.budget.findUnique({ where: { id }, include: { patient: true, payments: true } })
     await writeAudit({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id, module: 'finance', action: 'BUDGET_APPROVE', entityType: 'Budget', entityId: id, beforeData: existing, afterData: row || undefined, summary: 'Orçamento aprovado com aceite registrado e contas a receber geradas.' })
     return res.json(row)

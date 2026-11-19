@@ -1,3 +1,4 @@
+import { confirmTreatment } from '../services/treatmentStageService'
 import crypto from 'crypto'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
@@ -104,6 +105,7 @@ export async function createDocument(req: AuthRequest, res: Response) {
       contentHash,
       version: 1,
     } })
+    if (documentType === 'CLINICAL_CONTRACT') await confirmTreatment({ clinicId, tenantId, actorId: actorUserId }, patientId, 'contrato de serviços gerado')
     await writeAudit({ clinicId, tenantId, actorId: actorUserId, module: 'clinical', action: 'CLINICAL_DOCUMENT_CREATE', entityType: 'ClinicalDocument', entityId: row.id, metadata: { patientId, documentType, status, version: 1 } })
     return res.status(201).json(row)
   } catch (error: any) { return res.status(400).json({ error: error?.message || 'Erro ao emitir documento clínico.' }) }

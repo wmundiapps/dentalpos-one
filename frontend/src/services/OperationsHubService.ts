@@ -497,6 +497,9 @@ function getFinancialEntries(): AlertFinanceRow[] {
   return realFinanceRows.map(fromRealFinance);
 }
 
+// Lançamentos usados pelos avisos (mesma fonte), para mostrar o financeiro do paciente na agenda do início.
+export const getFinanceRowsForAlerts = () => getFinancialEntries();
+
 const daysBetween = (dateISO?: string) => {
   if (!dateISO) return Number.POSITIVE_INFINITY;
   const a = new Date(`${todayISO()}T12:00:00`).getTime();
