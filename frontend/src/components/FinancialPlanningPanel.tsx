@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Button, Chip, MenuItem, Paper, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { loadFinancialEntries, type FinancialEntry } from "../services/FinancialApi";
 import { deactivateRecurringBill, frequencyLabels, listRecurringBills, loadDebtors, loadForecast, loadReminders, updateRecurringBill, type Debtors, type Forecast, type RecurringBill, type Reminders } from "../services/FinancialPlanningApi";
 
 const money = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -16,6 +17,14 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [bills, setBills] = useState<RecurringBill[]>([]);
   const [error, setError] = useState("");
+  const [view, setView] = useState<{ r: Reminders["items"][number]; entry: FinancialEntry | null; bill: RecurringBill | null; loading: boolean } | null>(null);
+  const openView = async (r: Reminders["items"][number]) => {
+    const bill = r.recurringBillId ? bills.find((b) => b.id === r.recurringBillId) || null : null;
+    setView({ r, entry: null, bill, loading: Boolean(r.entryId) });
+    if (!r.entryId) return;
+    try { const all = await loadFinancialEntries(); setView({ r, entry: all.find((e) => e.id === r.entryId) || null, bill, loading: false }); }
+    catch { setView({ r, entry: null, bill, loading: false }); }
+  };
 
   const load = async () => {
     setError("");
@@ -57,7 +66,7 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
         {!reminders ? <Typography color="text.secondary">Carregando...</Typography>
           : reminders.items.length === 0 ? <Alert severity="success">{"Nenhuma pend\u00eancia: as contas do m\u00eas est\u00e3o lan\u00e7adas e em dia."}</Alert>
           : <Box sx={{ display: "grid", gap: 1 }}>{reminders.items.map((r, i) => (
-            <Alert key={i} severity={r.severity === "HIGH" ? "error" : "warning"} action={<Button color="inherit" size="small" onClick={() => goTo(r.detail.split(" - ")[0])}>Ver</Button>}>
+            <Alert key={i} severity={r.severity === "HIGH" ? "error" : "warning"} action={<Button color="inherit" size="small" onClick={() => void openView(r)}>Ver</Button>}>
               <b>{r.title}</b>{` \u2014 ${r.detail} \u2022 ${money(r.amount)} \u2022 venc. ${brDate(r.dueDate)}`}
             </Alert>))}</Box>}
       </Box>}
@@ -120,6 +129,34 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
               </Box> : <span />}
             </Box>))}
       </Box>}
+      <Dialog open={Boolean(view)} onClose={() => setView(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>{view?.r.title}</DialogTitle>
+        <DialogContent>
+          {view && (() => {
+            const e = view.entry; const b = view.bill;
+            const rows: Array<[string, string]> = [
+              ["Conta", e?.description || b?.description || view.r.detail],
+              ["Pessoa / fornecedor", e?.personName || b?.personName || "-"],
+              ["Valor", money(e?.amount ?? view.r.amount)],
+              ["Vencimento", brDate(e?.dueDate || view.r.dueDate)],
+              ["Situação", e ? (e.status === "PAID" ? "Paga" : e.status === "CANCELLED" ? "Cancelada" : "Em aberto") : "Ainda não lançada neste mês"],
+              ["Tipo", (e?.type || b?.type) === "INCOME" ? "A receber" : "A pagar"],
+              ["Categoria", e?.category || b?.category || "-"],
+              ["Forma de pagamento", e?.paymentMethod || b?.paymentMethod || "-"],
+              ...(b ? [["Recorrência", `${frequencyLabels[b.frequency as keyof typeof frequencyLabels] || b.frequency} • dia ${b.dueDay}${b.autoDebit ? " • débito automático" : ""}`] as [string, string]] : []),
+            ];
+            return view.loading ? <Typography color="text.secondary">Carregando...</Typography> : (
+              <Box sx={{ display: "grid", gridTemplateColumns: "150px 1fr", gap: 1, mt: 0.5 }}>
+                {rows.map(([k, v]) => (<><Typography key={`k${k}`} color="text.secondary" variant="body2">{k}</Typography><Typography key={`v${k}`} sx={{ fontWeight: 700 }}>{v}</Typography></>))}
+              </Box>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setView(null)}>Fechar</Button>
+          <Button variant="contained" onClick={() => { const t = view?.entry?.description || view?.r.detail.split(" - ")[0] || ""; setView(null); goTo(t); }}>Abrir no financeiro</Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 }

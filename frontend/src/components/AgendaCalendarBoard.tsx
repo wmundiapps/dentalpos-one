@@ -1,5 +1,5 @@
 import { MarkerDots } from "../contexts/AgendaMarkers";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import { Box, Chip, Paper, Tooltip, Typography, useMediaQuery } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
@@ -33,6 +33,8 @@ interface Props {
   onNew: (prefill: AppointmentPrefill) => void;
   // Arrastar a borda de baixo do agendamento muda a duração (como no Clinicorp). Deve lançar erro se não puder salvar.
   onResize?: (appointment: IntegratedAppointment, durationMinutes: number) => Promise<void> | void;
+  // Arrastar o agendamento para outro dia/horário (pede o motivo e confirma na tela de quem usa).
+  onMove?: (appointment: IntegratedAppointment, dateISO: string, time: string) => void;
   // Altura máxima da área rolável (o cabeçalho dos dias fica fixo no topo enquanto a grade rola).
   maxHeight?: string | number;
   materialAlerts?: Map<string, string>;
@@ -353,6 +355,7 @@ function TimeGridView({
   onAppointmentClick,
   onNew,
   onResize,
+  onMove,
   maxHeight,
   materialAlerts,
   financialAlerts,
@@ -360,6 +363,8 @@ function TimeGridView({
   const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
   // Redimensionando: duração provisória enquanto o dedo/mouse arrasta a borda de baixo.
   const [resizing, setResizing] = useState<{ id: string | number; duration: number } | null>(null);
+  const drag = useRef<{ id: string | number; grabY: number } | null>(null);
+  const [dragOver, setDragOver] = useState<{ dayISO: string; top: number; label: string } | null>(null);
   // Linha vermelha do horário de agora: desce sozinha com o passar do tempo.
   const [nowTick, setNowTick] = useState(() => new Date());
   useEffect(() => {
@@ -466,6 +471,39 @@ function TimeGridView({
       .filter((item) => item.end > item.start);
   };
 
+  // Almoço (intervalo longo recorrente) ocupa pouco espaço na grade, desde que não haja agendamento dentro dele.
+  const SQUEEZE = 0.3;
+  const lunchWin = (() => {
+    const wins = recurringBreaks.map((b) => ({ s: Math.max(START_MINUTES, minuteOfDay(b.startTime)), e: Math.min(END_MINUTES, minuteOfDay(b.endTime)) })).filter((w) => w.e - w.s >= 60).sort((a, b) => b.e - b.s - (a.e - a.s));
+    const w = wins[0];
+    if (!w) return null;
+    const busy = items.some((a) => dates.includes(a.dateISO) && a.status !== "Cancelado" && minuteOfDay(a.time) < w.e && minuteOfDay(a.time) + Math.max(10, a.durationMinutes || 30) > w.s);
+    return busy ? null : w;
+  })();
+  const Y = (m: number) => {
+    const p = GRID_HEIGHT / TOTAL_MINUTES;
+    if (!lunchWin || m <= lunchWin.s) return (m - START_MINUTES) * p;
+    if (m >= lunchWin.e) return ((lunchWin.s - START_MINUTES) + (lunchWin.e - lunchWin.s) * SQUEEZE + (m - lunchWin.e)) * p;
+    return ((lunchWin.s - START_MINUTES) + (m - lunchWin.s) * SQUEEZE) * p;
+  };
+  const gridH = Y(END_MINUTES);
+  const invY = (y: number) => {
+    const p = GRID_HEIGHT / TOTAL_MINUTES;
+    let m = START_MINUTES + y / p;
+    if (lunchWin) {
+      const sq = (lunchWin.e - lunchWin.s) * SQUEEZE;
+      const yS = (lunchWin.s - START_MINUTES) * p;
+      if (y > yS + sq * p) m = lunchWin.e + (y - yS - sq * p) / p;
+      else if (y > yS) m = lunchWin.s + (y - yS) / (p * SQUEEZE);
+    }
+    return m;
+  };
+  const dropMinute = (event: { clientY: number; currentTarget: HTMLElement }) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const raw = invY(event.clientY - rect.top - (drag.current?.grabY ?? 0));
+    return Math.min(END_MINUTES - 15, Math.max(START_MINUTES, Math.round(raw / 15) * 15));
+  };
+
   return (
     <Box sx={{ overflow: "auto", maxHeight: maxHeight ?? "calc(100vh - 230px)" }}>
       <Box sx={{ minWidth: view === "week" ? (mergeSunday ? HOUR_GUTTER + 6 * 168 : 1160) : 760 }}>
@@ -521,22 +559,22 @@ function TimeGridView({
             const nowISO = `${nowTick.getFullYear()}-${String(nowTick.getMonth() + 1).padStart(2, "0")}-${String(nowTick.getDate()).padStart(2, "0")}`;
             const nowMinutes = nowTick.getHours() * 60 + nowTick.getMinutes();
             if (!dates.includes(nowISO) || nowMinutes < START_MINUTES || nowMinutes >= END_MINUTES) return null;
-            const top = ((nowMinutes - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
+            const top = Y(nowMinutes);
             return (
               <Box aria-label={`Agora: ${timeFromMinutes(nowMinutes)}`} title={`Agora: ${timeFromMinutes(nowMinutes)}`} sx={{ position: "absolute", left: 0, right: 0, top, height: 0, borderTop: "2px solid #e53935", zIndex: 6, pointerEvents: "none" }}>
                 <Box sx={{ position: "absolute", left: HOUR_GUTTER - 6, top: -6, width: 10, height: 10, borderRadius: "50%", bgcolor: "#e53935" }} />
               </Box>
             );
           })()}
-          <Box sx={{ position: "relative", height: GRID_HEIGHT, borderRight: 1, borderColor: "divider" }}>
-            {hours.map((hour) => (
+          <Box sx={{ position: "relative", height: gridH, borderRight: 1, borderColor: "divider" }}>
+            {hours.filter((hour) => !(lunchWin && hour * 60 > lunchWin.s && hour * 60 < lunchWin.e)).map((hour) => (
               <Typography
                 key={hour}
                 variant="caption"
                 color="text.secondary"
                 sx={{
                   position: "absolute",
-                  top: `${((hour * 60 - START_MINUTES) / TOTAL_MINUTES) * 100}%`,
+                  top: `${Y(hour * 60)}px`,
                   right: 8,
                   transform: "translateY(-50%)",
                 }}
@@ -559,9 +597,18 @@ function TimeGridView({
             return (
               <Box
                 key={dayISO}
+                onDragOver={(event) => { if (!drag.current || !onMove) return; event.preventDefault(); const m = dropMinute(event); setDragOver((cur) => (cur && cur.dayISO === dayISO && cur.label === timeFromMinutes(m) ? cur : { dayISO, top: Y(m), label: timeFromMinutes(m) })); }}
+                onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragOver(null); }}
+                onDrop={(event) => {
+                  const d = drag.current; drag.current = null; setDragOver(null);
+                  if (!d || !onMove) return;
+                  event.preventDefault();
+                  const target = items.find((a) => a.id === d.id);
+                  if (target) onMove(target, dayISO, timeFromMinutes(dropMinute(event)));
+                }}
                 sx={{
                   position: "relative",
-                  height: GRID_HEIGHT,
+                  height: gridH,
                   borderLeft: "1px solid #eef1f5",
                   cursor: "default",
                   bgcolor: "rgba(66,165,245,.07)",
@@ -576,14 +623,14 @@ function TimeGridView({
                     </Typography>
                   </Box>
                 ) : null}
-                {!isFirstDay && hours.map((hour) => (
+                {!isFirstDay && hours.filter((hour) => !(lunchWin && hour * 60 > lunchWin.s && hour * 60 < lunchWin.e)).map((hour) => (
                   <Typography
                     key={`h-${dayISO}-${hour}`}
                     variant="caption"
                     
                     sx={{
                       position: "absolute",
-                      top: `${((hour * 60 - START_MINUTES) / TOTAL_MINUTES) * 100}%`,
+                      top: `${Y(hour * 60)}px`,
                       left: 4,
                       width: HOUR_GUTTER - 6,
                       zIndex: 2,
@@ -599,8 +646,8 @@ function TimeGridView({
                 ))}
 
                 {slotRows(dayISO, dayItems).map((slot) => {
-                  const top = ((slot.start - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
-                  const height = ((slot.end - slot.start) / TOTAL_MINUTES) * GRID_HEIGHT;
+                  const top = Y(slot.start);
+                  const height = Y(slot.end) - Y(slot.start);
                   const startLabel = timeFromMinutes(slot.start);
                   const endLabel = timeFromMinutes(slot.end - 1);
                   return (
@@ -660,11 +707,16 @@ function TimeGridView({
                   );
                 })}
 
+                {dragOver && dragOver.dayISO === dayISO ? (
+                  <Box sx={{ position: "absolute", left: 0, right: 0, top: dragOver.top, height: 0, borderTop: "2px solid #1565c0", zIndex: 6, pointerEvents: "none" }}>
+                    <Typography variant="caption" sx={{ position: "absolute", right: 4, top: -18, bgcolor: "#1565c0", color: "#fff", borderRadius: 1, px: 0.6, fontWeight: 700 }}>{dragOver.label}</Typography>
+                  </Box>
+                ) : null}
                 {breakRows(dayISO).map((item) => {
-                  const top = ((item.start - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
+                  const top = Y(item.start);
                   const height = Math.max(
                     30,
-                    ((item.end - item.start) / TOTAL_MINUTES) * GRID_HEIGHT,
+                    Y(item.end) - Y(item.start),
                   );
                   return (
                     <Box
@@ -721,8 +773,8 @@ function TimeGridView({
                   if (start >= END_MINUTES || start + duration <= START_MINUTES) return null;
                   const visibleStart = Math.max(START_MINUTES, start);
                   const visibleEnd = Math.min(END_MINUTES, start + duration);
-                  const top = ((visibleStart - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
-                  const height = Math.max(28, ((visibleEnd - visibleStart) / TOTAL_MINUTES) * GRID_HEIGHT);
+                  const top = Y(visibleStart);
+                  const height = Math.max(28, Y(visibleEnd) - Y(visibleStart));
                   const badges = operationalBadges(appointment, materialAlerts, financialAlerts);
                   return (
                     <Tooltip key={`${sunday ? "dom-" : ""}${appointment.id}`} title={appointmentTip({ ...appointment, durationMinutes: duration })} arrow enterDelay={150} placement="top">
@@ -731,6 +783,9 @@ function TimeGridView({
                         event.stopPropagation();
                         onAppointmentClick(appointment);
                       }}
+                      draggable={Boolean(onMove && appointment.backendId && !sunday && !resizing && !isMobile)}
+                      onDragStart={(event) => { drag.current = { id: appointment.id, grabY: event.clientY - event.currentTarget.getBoundingClientRect().top }; event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", String(appointment.id)); }}
+                      onDragEnd={() => { drag.current = null; setDragOver(null); }}
                       sx={{
                         position: "absolute",
                         top,
@@ -881,6 +936,7 @@ export default function AgendaCalendarBoard(props: Props) {
       onAppointmentClick={props.onAppointmentClick}
       onNew={props.onNew}
       onResize={props.onResize}
+      onMove={props.onMove}
       maxHeight={props.maxHeight}
       materialAlerts={props.materialAlerts}
       financialAlerts={props.financialAlerts}
