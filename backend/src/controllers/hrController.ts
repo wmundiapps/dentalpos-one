@@ -51,3 +51,25 @@ export async function closePayroll(req:Request,res:Response){
 export async function createVacation(req:Request,res:Response){const c=requestContext(req),b=req.body,emp=await getEmployee(c.clinicId,c.tenantId,String(b.employeeId));if(!emp)return res.status(404).json({error:'Colaborador não encontrado.'});const a=toDate(b.acquisitionStart),z=toDate(b.acquisitionEnd),deadline=toDate(b.concessionDeadline);if(!a||!z||!deadline)return res.status(400).json({error:'Período aquisitivo e prazo de concessão são obrigatórios.'});const row=await prisma.hRVacation.create({data:{clinicId:c.clinicId,tenantId:c.tenantId,employeeId:emp.id,acquisitionStart:a,acquisitionEnd:z,concessionDeadline:deadline,scheduledStart:b.scheduledStart?toDate(b.scheduledStart):null,scheduledEnd:b.scheduledEnd?toDate(b.scheduledEnd):null,vacationDays:b.vacationDays??30,soldDays:b.soldDays??0,status:b.status||'PLANNED'}});return res.status(201).json(row)}
 export async function createDocument(req:Request,res:Response){const c=requestContext(req),b=req.body,emp=await getEmployee(c.clinicId,c.tenantId,String(b.employeeId));if(!emp)return res.status(404).json({error:'Colaborador não encontrado.'});const issued=toDate(b.issuedAt);if(!issued)return res.status(400).json({error:'Data de emissão é obrigatória.'});const row=await prisma.hRDocument.create({data:{clinicId:c.clinicId,tenantId:c.tenantId,employeeId:emp.id,type:b.type,title:b.title,issuedAt:issued,expiresAt:b.expiresAt?toDate(b.expiresAt):null,status:b.status||'ACTIVE',digitallySigned:Boolean(b.digitallySigned),fileUrl:b.fileUrl,notes:b.notes}});return res.status(201).json(row)}
 export async function createDiscipline(req:Request,res:Response){const c=requestContext(req),b=req.body,emp=await getEmployee(c.clinicId,c.tenantId,String(b.employeeId));if(!emp)return res.status(404).json({error:'Colaborador não encontrado.'});const row=await prisma.hRDisciplinaryAction.create({data:{clinicId:c.clinicId,tenantId:c.tenantId,employeeId:emp.id,type:b.type,date:toDate(b.date)??new Date(),reason:b.reason,daysSuspended:b.daysSuspended!==undefined?Number(b.daysSuspended):null,status:b.status||'APPLIED'}});return res.status(201).json(row)}
+
+// Excluir uma anotação lançada por engano (férias, documento ou ocorrência). Fica registrada na auditoria, com o conteúdo apagado.
+async function removeRecord(req: Request, res: Response, kind: 'vacation' | 'document' | 'discipline') {
+  try {
+    const c = requestContext(req)
+    const id = paramId(req)
+    const where = { id, clinicId: c.clinicId, tenantId: c.tenantId }
+    const before = kind === 'vacation' ? await prisma.hRVacation.findFirst({ where }) : kind === 'document' ? await prisma.hRDocument.findFirst({ where }) : await prisma.hRDisciplinaryAction.findFirst({ where })
+    if (!before) return res.status(404).json({ error: 'Anotação não encontrada.' })
+    if (kind === 'vacation') await prisma.hRVacation.delete({ where: { id } })
+    else if (kind === 'document') await prisma.hRDocument.delete({ where: { id } })
+    else await prisma.hRDisciplinaryAction.delete({ where: { id } })
+    await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.actorId, module: 'hr', action: `delete-${kind}`, entityType: kind === 'vacation' ? 'HRVacation' : kind === 'document' ? 'HRDocument' : 'HRDisciplinaryAction', entityId: id, beforeData: before, summary: 'Anotação excluída por engano.' }).catch((e: unknown) => console.error(e))
+    return res.json({ ok: true })
+  } catch (error) {
+    console.error('Erro ao excluir anotação do RH:', error)
+    return res.status(500).json({ error: 'Não foi possível excluir a anotação.' })
+  }
+}
+export const deleteVacation = (req: Request, res: Response) => removeRecord(req, res, 'vacation')
+export const deleteDocument = (req: Request, res: Response) => removeRecord(req, res, 'document')
+export const deleteDiscipline = (req: Request, res: Response) => removeRecord(req, res, 'discipline')

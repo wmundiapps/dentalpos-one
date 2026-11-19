@@ -82,7 +82,7 @@ export default function PayrollTab({ employees }: { employees: Employee[] }) {
         <Box key={c.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 3fr 1fr" }, gap: 1.5, py: 0.9, borderTop: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700 }}>{c.reference}</Typography>
           <Typography variant="body2" color="text.secondary">Bruto {money(c.grossPayroll)} • Descontos {money(c.discounts)} • Encargos {money(c.employerCharges)} • {c.employeeCount} colaborador(es)</Typography>
-          <Typography>{money(c.netPayroll)} • {c.status}</Typography>
+          <Typography>{money(c.netPayroll)} • {({ CALCULATING: "Em cálculo", CLOSED: "Fechada", PAID: "Paga", OPEN: "Aberta", APPROVED: "Aprovada" } as Record<string, string>)[String(c.status)] || c.status}</Typography>
         </Box>
       ))}
     </Box>

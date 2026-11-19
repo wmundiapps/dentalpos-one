@@ -519,6 +519,9 @@ router.post('/hr/payroll-close', requirePermission('hr.sensitive'), hrController
 router.post('/hr/vacations', requirePermission('hr.edit'), hrController.createVacation)
 router.post('/hr/documents', requirePermission('hr.sensitive'), hrController.createDocument)
 router.post('/hr/disciplinary-actions', requirePermission('hr.sensitive'), hrController.createDiscipline)
+router.delete('/hr/vacations/:id', requirePermission('hr.edit'), hrController.deleteVacation)
+router.delete('/hr/documents/:id', requirePermission('hr.sensitive'), hrController.deleteDocument)
+router.delete('/hr/disciplinary-actions/:id', requirePermission('hr.sensitive'), hrController.deleteDiscipline)
 // Ponto eletrônico e justificativas: o funcionário só acessa os próprios dados (sem permissão de RH).
 router.put('/hr/employees/:id/portal-password', requirePermission('hr.edit'), hrTime.portalSetPassword)
 router.post('/hr/timeclock/face-punch', requirePermission('timeclock.view'), hrTime.facePunch)
