@@ -155,7 +155,7 @@ export async function punch(c: TimeCtx, meta: { ip: string; userAgent: string },
 }
 
 // Registra a batida (senha ou rosto): confere local/IP, ordem das 4 batidas e intervalo mínimo.
-export type Place = { id: string; name: string; latitude: number; longitude: number; radiusMeters: number; pending?: boolean; calibrating?: boolean; utcOffsetMinutes?: number }
+export type Place = { id: string; name: string; latitude: number; longitude: number; radiusMeters: number; pending?: boolean; calibrating?: boolean; utcOffsetMinutes?: number; approxLocation?: boolean }
 // Polo: o ponto só vale dentro do raio do local cadastrado do polo (localização obrigatória e bloqueio fora do raio).
 function assertWorkplace(emp: { workplaceId?: string | null }, place?: Place) {
   if (place) { if (emp.workplaceId !== place.id) throw new HrError(403, `Você não está cadastrado no polo ${place.name}. Fale com o RH.`) }
@@ -164,6 +164,10 @@ function assertWorkplace(emp: { workplaceId?: string | null }, place?: Place) {
 
 // Precisão máxima do GPS aceita para bater ponto no polo (metros). Mais que isso o local não é confiável.
 const PUNCH_MAX_ACCURACY = 200
+// Polos liberados para localização aproximada (RH autorizou): aceita qualquer precisão e conta a imprecisão do aparelho no raio (máx. 5 km).
+const APPROX_CAP = 5000
+const accOf = (body: any) => (Number.isFinite(Number(body?.accuracy)) ? Math.min(Math.max(Number(body.accuracy), 0), APPROX_CAP) : 0)
+const radiusFor = (place: Place, body: any) => (place.approxLocation ? place.radiusMeters + accOf(body) : place.radiusMeters)
 
 // Trava do polo: depois que o local foi confirmado no primeiro acesso, NADA do ponto funciona fora do raio dele
 // (consultar CPF, cadastrar rosto ou bater ponto). Enquanto a calibragem está liberada o local ainda está sendo definido, então não trava.
@@ -173,16 +177,16 @@ function assertInsidePlace(place: Place | undefined, body: any) {
   const lat = body?.latitude === undefined || body?.latitude === null ? NaN : Number(body.latitude)
   const lng = body?.longitude === undefined || body?.longitude === null ? NaN : Number(body.longitude)
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new HrError(400, 'Ative a localização do aparelho: o ponto só funciona dentro do polo.')
-  if (Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > PUNCH_MAX_ACCURACY) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
+  if (!place.approxLocation && Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > PUNCH_MAX_ACCURACY) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
   const distance = haversine(place.latitude, place.longitude, lat, lng)
-  if (distance > place.radiusMeters) throw new HrError(403, `Você está a ${Math.round(distance)} m do polo ${place.name}. O ponto só funciona a até ${place.radiusMeters} m do local confirmado do polo.`)
+  if (distance > radiusFor(place, body)) throw new HrError(403, `Você está a ${Math.round(distance)} m do polo ${place.name}. O ponto só funciona a até ${place.radiusMeters} m do local confirmado do polo.`)
 }
 
 async function recordPunch(emp: { id: string; name: string }, c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, method: 'PASSWORD' | 'FACE', extraNote?: string, place?: Place) {
   if (place?.pending) throw new HrError(409, `O local do polo ${place.name} ainda não foi definido. A pessoa responsável pelo polo precisa confirmar o local pelo celular do polo (calibragem liberada pelo RH).`)
   const base = await getTimeSettings(c.clinicId)
-  const s = place ? { ...base, latitude: place.latitude, longitude: place.longitude, radiusMeters: place.radiusMeters, requireLocation: true, blockOutside: true, allowedIps: [] as string[] } : base
-  if (place && Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > PUNCH_MAX_ACCURACY) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
+  const s = place ? { ...base, latitude: place.latitude, longitude: place.longitude, radiusMeters: radiusFor(place, body), requireLocation: true, blockOutside: true, allowedIps: [] as string[] } : base
+  if (place && !place.approxLocation && Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > PUNCH_MAX_ACCURACY) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
   const lat = body?.latitude === undefined || body?.latitude === null ? null : Number(body.latitude)
   const lng = body?.longitude === undefined || body?.longitude === null ? null : Number(body.longitude)
   const hasGeo = lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng)

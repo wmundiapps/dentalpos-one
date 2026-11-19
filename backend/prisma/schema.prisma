@@ -2687,6 +2687,7 @@ model HRWorkplace {
   calibrating  Boolean  @default(false)
   calibratedAt DateTime?
   calibratedAccuracy Int?
+  approxLocation Boolean @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

@@ -74,8 +74,8 @@ export async function setCalibration(c: Org, id: string, on: boolean) {
 const tries = new Map<string, { n: number; until: number }>()
 
 export async function publicInfo(slug: string) {
-  const w = await prisma.hRWorkplace.findFirst({ where: { slug: slug.toLowerCase(), isActive: true }, select: { name: true, pinHash: true, calibrating: true, latitude: true, longitude: true } })
-  return w ? { name: w.name, ready: Boolean(w.pinHash), calibrating: w.calibrating, pending: isPending(w) } : null
+  const w = await prisma.hRWorkplace.findFirst({ where: { slug: slug.toLowerCase(), isActive: true }, select: { name: true, pinHash: true, calibrating: true, latitude: true, longitude: true, approxLocation: true } })
+  return w ? { name: w.name, ready: Boolean(w.pinHash), calibrating: w.calibrating, pending: isPending(w), approxLocation: w.approxLocation } : null
 }
 
 export async function unlock(slug: string, pin: unknown, ip: string) {
@@ -103,7 +103,7 @@ export async function poloAuth(req: PoloReq, res: Response, next: NextFunction) 
     if (p.kind !== 'polo') throw new Error('tipo')
     const w = await prisma.hRWorkplace.findFirst({ where: { id: p.workplaceId, slug: String(req.params.slug).toLowerCase(), isActive: true } })
     if (!w || !w.pinHash || w.pinHash.slice(-8) !== p.v) throw new Error('polo')
-    req.polo = { clinicId: w.clinicId, tenantId: w.tenantId, place: { id: w.id, name: w.name, latitude: w.latitude, longitude: w.longitude, radiusMeters: w.radiusMeters, pending: isPending(w), calibrating: w.calibrating, utcOffsetMinutes: w.utcOffsetMinutes } }
+    req.polo = { clinicId: w.clinicId, tenantId: w.tenantId, place: { id: w.id, name: w.name, latitude: w.latitude, longitude: w.longitude, radiusMeters: w.radiusMeters, pending: isPending(w), calibrating: w.calibrating, utcOffsetMinutes: w.utcOffsetMinutes, approxLocation: w.approxLocation } }
     return next()
   } catch { return res.status(401).json({ code: 'POLO_LOCKED', error: 'Aparelho não liberado. Digite o PIN do polo.' }) }
 }

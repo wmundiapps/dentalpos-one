@@ -14,7 +14,7 @@ const maskCpf = (v: string) => {
 };
 
 // Ponto no celular/tablet fixo da clínica: o colaborador digita o CPF, a câmera confere o rosto com o cadastro e a foto fica como comprovante.
-export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto por rosto", description = "Digite o CPF, olhe para a câmera e o ponto é registrado com a hora, o local e a foto.", embedded = false }: { api?: PunchApi; title?: string; description?: string; embedded?: boolean } = {}) {
+export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto por rosto", description = "Digite o CPF, olhe para a câmera e o ponto é registrado com a hora, o local e a foto.", embedded = false, approx = false }: { api?: PunchApi; title?: string; description?: string; embedded?: boolean; approx?: boolean } = {}) {
   const [cpf, setCpf] = useState("");
   const [step, setStep] = useState<"cpf" | "camera" | "enroll">("cpf");
   const [firstName, setFirstName] = useState("");
@@ -54,7 +54,7 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
     setChecking(true); setProblem("");
     try {
       // Espera o GPS chegar a uma leitura boa (até 20 s) antes de consultar o CPF: o ponto só vale com boa precisão.
-      await loc.waitForFix(150, 20000);
+      await loc.waitForFix(approx ? 5000 : 150, approx ? 4000 : 20000);
       const c = await api.cpfCheck(cpfDigits, geo.current);
       if (c.hasFace) setStep("camera"); else { setFirstName(c.employeeName); setStep("enroll"); }
     } catch (e) { setProblem(e instanceof Error ? e.message : "Não foi possível verificar o CPF."); }
@@ -67,8 +67,8 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
       {loc.status === "denied" && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>A localização está bloqueada neste aparelho. {GEO_HELP}</Alert>}
       {loc.status === "unavailable" && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Este aparelho não conseguiu achar o local. {GEO_HELP}</Alert>}
       {loc.status === "searching" && loc.secondsSearching() >= 6 && <Alert severity="info" sx={{ mb: 2 }} action={loc.secondsSearching() >= 30 ? <Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button> : undefined}>Procurando o sinal de GPS… ({loc.secondsSearching()} s). {loc.secondsSearching() >= 20 ? GEO_HELP : "Pode levar alguns segundos."}</Alert>}
-      {loc.status === "ok" && loc.accuracy !== null && loc.accuracy > COARSE_LIMIT && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Localização aproximada (±{loc.accuracy} m). {COARSE_HELP}</Alert>}
-      {loc.status === "ok" && loc.accuracy !== null && loc.accuracy > 150 && loc.accuracy <= COARSE_LIMIT && <Alert severity="info" sx={{ mb: 2 }}>Melhorando a precisão do GPS (agora ±{loc.accuracy} m; o ponto precisa de ±150 m). Aguarde alguns segundos, perto de uma janela ou área aberta.</Alert>}
+      {!approx && loc.status === "ok" && loc.accuracy !== null && loc.accuracy > COARSE_LIMIT && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Localização aproximada (±{loc.accuracy} m). {COARSE_HELP}</Alert>}
+      {!approx && loc.status === "ok" && loc.accuracy !== null && loc.accuracy > 150 && loc.accuracy <= COARSE_LIMIT && <Alert severity="info" sx={{ mb: 2 }}>Melhorando a precisão do GPS (agora ±{loc.accuracy} m; o ponto precisa de ±150 m). Aguarde alguns segundos, perto de uma janela ou área aberta.</Alert>}
       {result ? (
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 3, textAlign: "center", maxWidth: 520, mx: "auto" }}>
           <Typography variant="h4" sx={{ fontWeight: 900 }}>{result.employeeName}</Typography>
