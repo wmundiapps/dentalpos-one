@@ -469,8 +469,8 @@ function TimeGridView({
   return (
     <Box sx={{ overflow: "auto", maxHeight: maxHeight ?? "calc(100vh - 230px)" }}>
       <Box sx={{ minWidth: view === "week" ? (mergeSunday ? HOUR_GUTTER + 6 * 168 : 1160) : 760 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns, position: "sticky", top: 0, zIndex: 8, bgcolor: "background.paper", boxShadow: "0 2px 4px rgba(0,0,0,.08)" }}>
-          <Box sx={{ borderRight: 1, borderBottom: 1, borderColor: "divider", bgcolor: "action.hover" }} />
+        <Box sx={{ display: "grid", gridTemplateColumns, position: "sticky", top: 0, zIndex: 8, bgcolor: "background.paper", boxShadow: "0 1px 3px rgba(0,0,0,.06)" }}>
+          <Box sx={{ borderBottom: "1px solid #e8edf2" }} />
           {dates.map((dayISO) => (
             <Box
               key={dayISO}
@@ -485,19 +485,22 @@ function TimeGridView({
                 }
               }}
               sx={{
-                p: 1,
+                py: 1,
+                px: 0.5,
                 textAlign: "center",
-                borderRight: 1,
-                borderBottom: 1,
-                borderColor: "divider",
-                bgcolor: "action.hover",
+                borderLeft: "1px solid #eef1f5",
+                borderBottom: "1px solid #e8edf2",
+                bgcolor: "background.paper",
                 cursor: view === "week" ? "pointer" : "default",
                 transition: "background-color .15s ease",
-                "&:hover": view === "week" ? { bgcolor: "action.selected" } : undefined,
+                "&:hover": view === "week" ? { bgcolor: "#f4f8fc" } : undefined,
               }}
             >
-              <Typography variant="caption" sx={{ fontWeight: 900 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 13, color: "text.primary", textTransform: "capitalize" }}>
                 {shortDate(dayISO)}
+              </Typography>
+              <Typography variant="caption" sx={{ display: "block", fontSize: 11, color: "text.secondary" }}>
+                Pacientes: {items.filter((a) => a.dateISO === dayISO && a.status !== "Cancelado" && a.status !== "Desmarcado").length}
               </Typography>
               {mergeSunday && dayISO === weekAll[5] ? (
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: 10 }}>
@@ -507,11 +510,6 @@ function TimeGridView({
               {closedDay(dayISO) ? (
                 <Typography variant="caption" sx={{ display: "block", fontSize: 10, fontWeight: 900, color: "warning.dark" }}>
                   {closedDay(dayISO)!.reason}
-                </Typography>
-              ) : null}
-              {view === "week" ? (
-                <Typography variant="caption" color="primary.main" sx={{ display: "block", fontSize: 10 }}>
-                  Clique para abrir o dia
                 </Typography>
               ) : null}
             </Box>
@@ -564,11 +562,11 @@ function TimeGridView({
                 sx={{
                   position: "relative",
                   height: GRID_HEIGHT,
-                  borderRight: 1,
-                  borderColor: "divider",
+                  borderLeft: "1px solid #eef1f5",
                   cursor: "default",
+                  bgcolor: "rgba(66,165,245,.07)",
                   backgroundImage:
-                    "repeating-linear-gradient(to bottom, transparent 0, transparent 29px, rgba(0,0,0,.08) 30px)",
+                    "repeating-linear-gradient(to bottom, transparent 0, transparent 29px, rgba(100,130,160,.12) 30px)",
                 }}
               >
                 {closedDay(dayISO) ? (
@@ -582,14 +580,14 @@ function TimeGridView({
                   <Typography
                     key={`h-${dayISO}-${hour}`}
                     variant="caption"
-                    color="text.secondary"
+                    
                     sx={{
                       position: "absolute",
                       top: `${((hour * 60 - START_MINUTES) / TOTAL_MINUTES) * 100}%`,
                       left: 4,
                       width: HOUR_GUTTER - 6,
                       zIndex: 2,
-                      fontWeight: 700,
+                      fontWeight: 400, color: "#9aa7b4",
                       fontSize: 11,
                       lineHeight: 1,
                       pointerEvents: "none",
@@ -746,33 +744,37 @@ function TimeGridView({
                               width: `calc((100% - ${gutter + 4}px) / ${lanes.get(appointment.id)!.count} - 2px)`,
                             }),
                         height,
-                        p: 0.7,
-                        border: sunday ? "1px dashed" : 1,
-                        borderColor: appointment.status === "Desmarcado" ? "#9e9e9e" : colorOf(appointment.professionalName),
-                        borderLeft: `6px solid ${appointment.status === "Desmarcado" ? "#9e9e9e" : colorOf(appointment.professionalName)}`,
+                        p: 0.8,
+                        border: sunday ? "1px dashed #b8c4d0" : "1px solid #dde4ec",
+                        borderLeft: `3px solid ${appointment.status === "Desmarcado" ? "#bdbdbd" : colorOf(appointment.professionalName)}`,
                         borderStyle: appointment.status === "Desmarcado" ? "dashed" : undefined,
-                        borderRadius: 1.5,
-                        bgcolor: appointment.status === "Desmarcado" ? "action.disabledBackground" : `${colorOf(appointment.professionalName)}1f`,
+                        borderRadius: 1.25,
+                        bgcolor: appointment.status === "Desmarcado" ? "#f3f4f6" : "#fff",
                         opacity: appointment.status === "Desmarcado" ? 0.85 : 1,
-                        boxShadow: 1,
+                        boxShadow: "0 1px 2px rgba(20,40,70,.08)",
                         overflow: "hidden",
                         cursor: "pointer",
                         zIndex: sunday ? 3 : 2,
-                        "&:hover": { boxShadow: 3 },
+                        "&:hover": { boxShadow: "0 3px 8px rgba(20,40,70,.18)" },
                       }}
                     >
-                      <Typography variant="caption" sx={{ display: "block", fontWeight: 900, lineHeight: 1.15, ...(appointment.status === "Desmarcado" ? { color: "text.disabled", textDecoration: "line-through" } : {}) }}>
+                      <Typography variant="caption" sx={{ display: "block", fontWeight: 600, fontSize: 12, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...(appointment.status === "Desmarcado" ? { color: "text.disabled", textDecoration: "line-through" } : {}) }}>
                         {sunday ? "Dom · " : ""}{appointment.patientName}<MarkerDots backendId={appointment.backendId} />
                       </Typography>
                       {appointment.status === "Desmarcado" ? (
                         <Typography variant="caption" sx={{ display: "block", fontWeight: 800, lineHeight: 1.15, color: "text.secondary" }}>Desmarcou</Typography>
                       ) : null}
-                      {height >= 34 ? (
-                        <Typography variant="caption" sx={{ display: "block", lineHeight: 1.15, mt: 0.3, fontWeight: 800, color: "text.primary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: height >= 72 ? "normal" : "nowrap" }}>
+                      {height >= 32 ? (
+                        <Typography variant="caption" sx={{ display: "block", lineHeight: 1.2, fontSize: 11, color: "text.secondary" }}>
+                          {appointment.time.replace(":00", "")} - {timeFromMinutes(start + duration).replace(":00", "")}h
+                        </Typography>
+                      ) : null}
+                      {height >= 52 ? (
+                        <Typography variant="caption" sx={{ display: "block", lineHeight: 1.2, mt: 0.2, fontSize: 11, fontWeight: 400, color: "text.secondary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: height >= 80 ? "normal" : "nowrap" }}>
                           {appointment.procedure}
                         </Typography>
                       ) : null}
-                      {height >= 48 && badges[0] ? (
+                      {height >= 48 && badges[0] && badges[0].label !== "Financeiro OK" ? (
                         <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />
                       ) : null}
                       {isResizing ? (
