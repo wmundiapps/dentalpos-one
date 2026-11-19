@@ -45,3 +45,7 @@ export function useBestLocation() {
 
 // Texto de ajuda quando o aparelho não acha o local.
 export const GEO_HELP = "Confira: localização do aparelho LIGADA; permissão do navegador para o local (Permitir); sem modo de economia de bateria; e fique perto de uma janela ou área aberta. No iPhone: Ajustes > Privacidade > Serviços de Localização > Safari > \"Ao usar\". Use o celular do polo, não o computador.";
+
+// Precisão pior que isto (1 km) não é GPS: é a localização APROXIMADA da cidade, por internet (IP) ou antena. Computador e celular sem GPS ligado caem aqui.
+export const COARSE_LIMIT = 1000;
+export const COARSE_HELP = "Este aparelho está informando só a localização APROXIMADA da cidade, não o GPS. Computador não tem GPS. No celular: ligue a Localização do aparelho no modo de alta precisão (Android: Configurações > Localização > Serviços de localização > Precisão da localização do Google; iPhone: Ajustes > Privacidade > Serviços de Localização > Safari ou Chrome > \"Localização precisa\"), e quando o navegador perguntar, escolha o local PRECISO (não o aproximado). Se continuar assim, peça ao RH para definir o local do polo manualmente.";

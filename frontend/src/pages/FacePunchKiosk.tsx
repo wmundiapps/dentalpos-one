@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, TextField, Typography } from "@mui/material";
 import PageHeader from "../components/PageHeader";
 import { describeFace, loadFaceApi, snapshot, useCamera } from "../utils/faceCamera";
-import { GEO_HELP, useBestLocation } from "../hooks/useBestLocation";
+import { COARSE_HELP, COARSE_LIMIT, GEO_HELP, useBestLocation } from "../hooks/useBestLocation";
 import { clinicPunchApi, type FacePunchResult, type PunchApi } from "../services/HrFaceApi";
 import { Button as MuiButton, Checkbox, FormControlLabel } from "@mui/material";
 
@@ -67,7 +67,8 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
       {loc.status === "denied" && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>A localização está bloqueada neste aparelho. {GEO_HELP}</Alert>}
       {loc.status === "unavailable" && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Este aparelho não conseguiu achar o local. {GEO_HELP}</Alert>}
       {loc.status === "searching" && loc.secondsSearching() >= 6 && <Alert severity="info" sx={{ mb: 2 }} action={loc.secondsSearching() >= 30 ? <Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button> : undefined}>Procurando o sinal de GPS… ({loc.secondsSearching()} s). {loc.secondsSearching() >= 20 ? GEO_HELP : "Pode levar alguns segundos."}</Alert>}
-      {loc.status === "ok" && loc.accuracy !== null && loc.accuracy > 150 && <Alert severity="info" sx={{ mb: 2 }}>Melhorando a precisão do GPS (agora ±{loc.accuracy} m; o ponto precisa de ±150 m). Aguarde alguns segundos, perto de uma janela ou área aberta.</Alert>}
+      {loc.status === "ok" && loc.accuracy !== null && loc.accuracy > COARSE_LIMIT && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Localização aproximada (±{loc.accuracy} m). {COARSE_HELP}</Alert>}
+      {loc.status === "ok" && loc.accuracy !== null && loc.accuracy > 150 && loc.accuracy <= COARSE_LIMIT && <Alert severity="info" sx={{ mb: 2 }}>Melhorando a precisão do GPS (agora ±{loc.accuracy} m; o ponto precisa de ±150 m). Aguarde alguns segundos, perto de uma janela ou área aberta.</Alert>}
       {result ? (
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 3, textAlign: "center", maxWidth: 520, mx: "auto" }}>
           <Typography variant="h4" sx={{ fontWeight: 900 }}>{result.employeeName}</Typography>
