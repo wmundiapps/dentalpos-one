@@ -14,6 +14,30 @@ export type TimeCtx = { clinicId: string; tenantId: string; userId: string; emai
 const FLAG_KEY = 'HR_TIMECLOCK'
 const BRT_MS = 3 * 60 * 60 * 1000
 export const KINDS = ['ENTRADA', 'SAIDA_ALMOCO', 'VOLTA_ALMOCO', 'SAIDA'] as const
+
+// Qual batida é esta? Segue a jornada do colaborador: se esqueceu alguma, a batida vai para o horário mais próximo
+// entre as que ainda faltam (sempre depois da última já registrada), em vez de só seguir a ordem.
+export function pickKind(
+  emp: { workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null },
+  nowMin: number,
+  doneKinds: string[],
+  fallback: { startTime: string; dailyHours: number } = { startTime: '08:00', dailyHours: 8 },
+): (typeof KINDS)[number] | null {
+  const tm = (t?: string | null) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null }
+  const ws = tm(emp.workStart) ?? tm(fallback.startTime) ?? 480
+  const ls = tm(emp.lunchStart) ?? 720
+  const le = tm(emp.lunchEnd) ?? Math.max(ls + 60, 780)
+  const we = tm(emp.workEnd) ?? ws + Math.round(fallback.dailyHours * 60) + (le - ls)
+  const marks = [ws, ls, le, we]
+  const lastIdx = doneKinds.reduce((mx, k) => Math.max(mx, KINDS.indexOf(k as (typeof KINDS)[number])), -1)
+  let best = -1
+  let bestDiff = Infinity
+  for (let i = lastIdx + 1; i < KINDS.length; i++) {
+    const d = Math.abs(nowMin - marks[i])
+    if (d < bestDiff) { best = i; bestDiff = d }
+  }
+  return best < 0 ? null : KINDS[best]
+}
 const KIND_LABEL: Record<string, string> = { ENTRADA: 'Entrada', SAIDA_ALMOCO: 'Saída para o almoço', VOLTA_ALMOCO: 'Volta do almoço', SAIDA: 'Saída' }
 const JUSTIFIED_STATUS = ['atestado', 'férias', 'ferias', 'folga', 'falta abonada', 'abonada', 'home office']
 
@@ -182,7 +206,7 @@ function assertInsidePlace(place: Place | undefined, body: any) {
   if (distance > radiusFor(place, body)) throw new HrError(403, `Você está a ${Math.round(distance)} m do polo ${place.name}. O ponto só funciona a até ${place.radiusMeters} m do local confirmado do polo.`)
 }
 
-async function recordPunch(emp: { id: string; name: string }, c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, method: 'PASSWORD' | 'FACE', extraNote?: string, place?: Place) {
+async function recordPunch(emp: { id: string; name: string; workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null }, c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, method: 'PASSWORD' | 'FACE', extraNote?: string, place?: Place) {
   if (place?.pending) throw new HrError(409, `O local do polo ${place.name} ainda não foi definido. A pessoa responsável pelo polo precisa confirmar o local pelo celular do polo (calibragem liberada pelo RH).`)
   const base = await getTimeSettings(c.clinicId)
   const s = place ? { ...base, latitude: place.latitude, longitude: place.longitude, radiusMeters: radiusFor(place, body), requireLocation: true, blockOutside: true, allowedIps: [] as string[] } : base
@@ -212,10 +236,11 @@ async function recordPunch(emp: { id: string; name: string }, c: { clinicId: str
   const off = place?.utcOffsetMinutes ?? BRT_OFF
   const today = dayKey(now, off)
   const todays = await prisma.hRTimePunch.findMany({ where: { employeeId: emp.id, punchedAt: { gte: dayStartUtc(today, off), lt: new Date(dayStartUtc(today, off).getTime() + 86400000) } }, orderBy: { punchedAt: 'asc' } })
-  if (todays.length >= KINDS.length) throw new HrError(409, 'As 4 batidas de hoje já foram registradas. Para corrigir, peça ajuste ao RH.')
+  if (todays.length >= KINDS.length || todays.some((p) => p.kind === 'SAIDA')) throw new HrError(409, 'A saída de hoje já foi registrada. Para corrigir, peça ajuste ao RH.')
   const last = todays[todays.length - 1]
   if (last && now.getTime() - last.punchedAt.getTime() < 60000) throw new HrError(409, 'Ponto registrado há instantes. Aguarde 1 minuto.')
-  const kind = KINDS[todays.length]
+  const kind = pickKind(emp, minutesOfDay(now, off), todays.map((p) => p.kind), { startTime: base.startTime, dailyHours: base.dailyHours })
+  if (!kind) throw new HrError(409, 'Não há mais batidas para registrar hoje. Para corrigir, peça ajuste ao RH.')
   const row = await prisma.hRTimePunch.create({
     data: { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, employeeId: emp.id, userId: c.userId, kind, punchedAt: now, ip: meta.ip || null, latitude: hasGeo ? lat : null, longitude: hasGeo ? lng : null, accuracyMeters: body?.accuracy !== undefined && Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null, insideWorkplace: inside, workplaceNote: note, method, userAgent: meta.userAgent.slice(0, 200) },
   })
@@ -269,13 +294,15 @@ export async function myToday(c: TimeCtx) {
   const today = dayKey(new Date(), off)
   const start = dayStartUtc(today, off)
   const rows = await prisma.hRTimePunch.findMany({ where: { employeeId: emp.id, punchedAt: { gte: start, lt: new Date(start.getTime() + 86400000) } }, orderBy: { punchedAt: 'asc' } })
+  const baseS = await getTimeSettings(c.clinicId)
+  const nextK = rows.some((r) => r.kind === 'SAIDA') ? null : pickKind(emp, minutesOfDay(new Date(), off), rows.map((r) => r.kind), { startTime: baseS.startTime, dailyHours: baseS.dailyHours })
   return {
     linked: true as const,
     employee: { id: emp.id, name: emp.name, position: emp.position },
     today,
     punches: rows.map((r) => ({ id: r.id, kind: r.kind, label: KIND_LABEL[r.kind] || r.kind, time: hhmm(r.punchedAt, off), insideWorkplace: r.insideWorkplace })),
-    nextKind: rows.length < KINDS.length ? KINDS[rows.length] : null,
-    nextLabel: rows.length < KINDS.length ? KIND_LABEL[KINDS[rows.length]] : null,
+    nextKind: nextK,
+    nextLabel: nextK ? KIND_LABEL[nextK] : null,
   }
 }
 
@@ -335,12 +362,20 @@ async function buildMonth(emp: { id: string; admissionDate: Date; terminationDat
 
     if (ps.length) {
       const m = ps.map((p) => minutesOfDay(p.punchedAt, off))
+      const at = (k: string) => { const i = ps.findIndex((p) => p.kind === k); return i < 0 ? null : m[i] }
+      const e = at('ENTRADA'), sa = at('SAIDA_ALMOCO'), v = at('VOLTA_ALMOCO'), sd = at('SAIDA')
+      const lunchDur = ls !== null && le !== null && le > ls ? le - ls : 0
       let worked = 0
-      if (ps.length >= 4) worked = (m[1] - m[0]) + (m[3] - m[2])
-      else if (ps.length === 2) worked = m[1] - m[0]
-      else if (ps.length === 3) worked = m[1] - m[0]
+      if (e !== null && sa !== null && v !== null && sd !== null) worked = (sa - e) + (sd - v)
+      else if (e !== null && sa !== null && v === null && sd === null) worked = sa - e
+      else if (e !== null && sd !== null && sa === null && v === null) worked = sd - e - lunchDur // esqueceu o almoço: desconta o intervalo da jornada
+      else if (e !== null && sa !== null && sd !== null) worked = (sa - e) + (sd - Math.max(sa + lunchDur, sa)) // esqueceu a volta
+      else if (e !== null && v !== null && sd !== null) worked = ((ls !== null ? Math.min(Math.max(ls, e), v) : v) - e) + (sd - v) // esqueceu a saída para o almoço
+      else if (ps.length >= 4) worked = (m[1] - m[0]) + (m[3] - m[2])
+      else if (ps.length >= 2) worked = m[1] - m[0]
       row.workedMin = Math.max(0, worked)
-      if (ps.length % 2 === 1 && !(key === today)) { row.status = 'INCOMPLETO'; t.incompletos++ }
+      const missingKind = ps.length < 4 || new Set(ps.map((p) => p.kind)).size < 4
+      if ((ps.length % 2 === 1 || missingKind) && !(key === today)) { row.status = 'INCOMPLETO'; t.incompletos++ }
       const firstEntry = ps.find((p) => p.kind === 'ENTRADA')
       if (firstEntry && expected > 0 && !justified) {
         const late = minutesOfDay(firstEntry.punchedAt, off) - startMin
