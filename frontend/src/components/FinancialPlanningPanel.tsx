@@ -11,6 +11,7 @@ const monthLabel = (ym: string) => { const [y, m] = ym.split("-").map(Number); r
 export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloadKey: number; onChanged: () => void }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
+  const [expanded, setExpanded] = useState(false);
   const [months, setMonths] = useState(6);
   const [reminders, setReminders] = useState<Reminders | null>(null);
   const [debtors, setDebtors] = useState<Debtors | null>(null);
@@ -76,24 +77,27 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
   const high = reminders?.high || 0;
   return (
     <Paper variant="outlined" sx={{ mb: 2, borderRadius: 3, overflow: "hidden" }}>
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: "1px solid", borderColor: "divider", px: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", borderBottom: expanded ? "1px solid" : "none", borderColor: "divider" }}>
+      <Tabs value={tab} onChange={(_, v) => { setTab(v); setExpanded(true); }} variant="scrollable" scrollButtons="auto" sx={{ px: 1, minHeight: 38, flex: 1, "& .MuiTab-root": { minHeight: 38, py: 0.5, fontSize: 13 } }}>
         <Tab label={`Lembretes (${reminders?.total ?? 0})`} sx={{ color: high ? "error.main" : undefined, fontWeight: high ? 800 : undefined }} />
         <Tab label={`Quem est\u00e1 devendo (${debtors?.debtors ?? 0})`} />
         <Tab label={"Previs\u00e3o"} />
         <Tab label={`Contas recorrentes (${bills.filter((b) => b.isActive).length})`} />
       </Tabs>
+      <Button size="small" onClick={() => setExpanded(!expanded)} sx={{ mr: 1, whiteSpace: "nowrap" }}>{expanded ? "Recolher ▲" : "Ver mais ▼"}</Button>
+      </Box>
       {error && <Alert severity="error" sx={{ m: 2 }}>{error}</Alert>}
 
-      {tab === 0 && <Box sx={{ p: 2 }}>
+      {expanded && tab === 0 && <Box sx={{ p: 1.5, maxHeight: 320, overflow: "auto" }}>
         {!reminders ? <Typography color="text.secondary">Carregando...</Typography>
           : reminders.items.length === 0 ? <Alert severity="success">{"Nenhuma pend\u00eancia: as contas do m\u00eas est\u00e3o lan\u00e7adas e em dia."}</Alert>
           : <Box sx={{ display: "grid", gap: 1 }}>{reminders.items.map((r, i) => (
-            <Alert key={i} severity={r.severity === "HIGH" ? "error" : "warning"} action={<Button color="inherit" size="small" onClick={() => void openView(r)}>Ver</Button>}>
+            <Alert key={i} severity={r.severity === "HIGH" ? "error" : "warning"} sx={{ py: 0, "& .MuiAlert-message": { py: 0.5, fontSize: 13 } }} action={<Button color="inherit" size="small" onClick={() => void openView(r)}>Ver</Button>}>
               <b>{r.title}</b>{` \u2014 ${r.detail} \u2022 ${money(r.amount)} \u2022 venc. ${brDate(r.dueDate)}`}
             </Alert>))}</Box>}
       </Box>}
 
-      {tab === 1 && <Box sx={{ p: 2 }}>
+      {expanded && tab === 1 && <Box sx={{ p: 1.5, maxHeight: 320, overflow: "auto" }}>
         {!debtors ? <Typography color="text.secondary">Carregando...</Typography>
           : debtors.list.length === 0 ? <Alert severity="success">{"Nenhum paciente com parcela vencida."}</Alert>
           : <>
@@ -112,7 +116,7 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
           </>}
       </Box>}
 
-      {tab === 2 && <Box sx={{ p: 2 }}>
+      {expanded && tab === 2 && <Box sx={{ p: 1.5, maxHeight: 320, overflow: "auto" }}>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 1, flexWrap: "wrap" }}>
           <TextField select size="small" label="Horizonte" value={months} onChange={(e) => setMonths(Number(e.target.value))} sx={{ width: 160 }}>{[3, 6, 12].map((m) => <MenuItem key={m} value={m}>{`${m} meses`}</MenuItem>)}</TextField>
           <Typography variant="caption" color="text.secondary">{forecast ? `Inclui lan\u00e7amentos em aberto, contas recorrentes e estimativa pela ${forecast.basis.toLowerCase()}. Passe o mouse no valor para ver a composi\u00e7\u00e3o.` : ""}</Typography>
@@ -133,7 +137,7 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
           </Box>}
       </Box>}
 
-      {tab === 3 && <Box sx={{ p: 2 }}>
+      {expanded && tab === 3 && <Box sx={{ p: 1.5, maxHeight: 320, overflow: "auto" }}>
         {bills.length === 0 ? <Alert severity="info">{"Nenhuma conta recorrente. Em \u201cNovo lan\u00e7amento\u201d, marque \u201cConta recorrente\u201d para cadastrar aluguel, energia, sistemas etc."}</Alert>
           : bills.map((b) => (
             <Box key={b.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr auto" }, gap: 1, py: 1.25, borderBottom: "1px solid", borderColor: "divider", alignItems: "center", opacity: b.isActive ? 1 : 0.55 }}>
