@@ -153,7 +153,7 @@ export default function Sidebar(){
     handleItemClick((current||group.items[0]).path);
   }
 
-  const renderGrupo=(group:typeof visibleGroups[number],_aninhado?:boolean)=>{
+  const renderGrupo=(group:typeof visibleGroups[number],plano?:boolean)=>{
         const selected=group.items.some(i=>pathMatches(i.path,location.pathname,location.search));
         const open=Boolean(openGroups[group.label]);
 
@@ -184,7 +184,7 @@ export default function Sidebar(){
         }
 
         return <Box key={group.label} sx={{mb:.25}}>
-          <ListItemButton onClick={()=>setOpenGroups(open?{}:{[group.label]:true})} sx={{
+          {!plano&&<ListItemButton onClick={()=>setOpenGroups(open?{}:{[group.label]:true})} sx={{
             borderRadius:2,minHeight:39,color:selected?"#fff":"#CBD5E1",
             bgcolor:selected?"rgba(25,118,210,.16)":"transparent","&:hover":{bgcolor:"#1E293B"}
           }}>
@@ -192,8 +192,8 @@ export default function Sidebar(){
             <ListItemText primary={<Typography component="span" sx={{fontWeight:selected?800:700,fontSize:13}}>{group.label}</Typography>}/>
             {groupHelp[group.label]&&<MenuHelp titulo={group.label} ajuda={groupHelp[group.label]}/>}
             {open?<ExpandLessIcon fontSize="small"/>:<ExpandMoreIcon fontSize="small"/>}
-          </ListItemButton>
-          <Collapse in={open} timeout="auto" unmountOnExit>
+          </ListItemButton>}
+          <Collapse in={open||Boolean(plano)} timeout="auto" unmountOnExit>
             <List disablePadding sx={{pl:.5}}>
               {group.items.map(it=>{
                 const active=pathMatches(it.path,location.pathname,location.search);
@@ -273,7 +273,7 @@ export default function Sidebar(){
                   <ListItemText primary={<Typography component="span" sx={{fontSize:12.5}}>{c.nome}</Typography>}/>
                 </ListItemButton>)}
               </Box>}
-              {grupos.map(g=>renderGrupo(g,true))}
+              {grupos.map(g=>renderGrupo(g,grupos.length===1&&!setor.cursos))}
             </Box>
           </Collapse>
         </Box>
