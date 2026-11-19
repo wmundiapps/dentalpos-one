@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { loadFinancialEntries, type FinancialEntry } from "../services/FinancialApi";
+import { loadFinancialEntries, settleFinancialEntry, updateFinancialEntry, type FinancialEntry } from "../services/FinancialApi";
 import { deactivateRecurringBill, frequencyLabels, listRecurringBills, loadDebtors, loadForecast, loadReminders, updateRecurringBill, type Debtors, type Forecast, type RecurringBill, type Reminders } from "../services/FinancialPlanningApi";
 
 const money = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -18,11 +18,33 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
   const [bills, setBills] = useState<RecurringBill[]>([]);
   const [error, setError] = useState("");
   const [view, setView] = useState<{ r: Reminders["items"][number]; entry: FinancialEntry | null; bill: RecurringBill | null; loading: boolean } | null>(null);
+  const [ed, setEd] = useState({ amount: "", dueDate: "", method: "PIX", paidAt: "", receipt: "", busy: false, err: "" });
+  const today = () => new Date().toLocaleDateString("sv-SE");
+  const parseMoney = (raw: string) => { const t = raw.replace(/[^\d.,]/g, ""); if (!t) return NaN; const sep = Math.max(t.lastIndexOf(","), t.lastIndexOf(".")); const tail = sep >= 0 ? t.slice(sep + 1) : ""; if (sep >= 0 && tail.length > 0 && tail.length <= 2) return Math.round(Number(`${t.slice(0, sep).replace(/[.,]/g, "")}.${tail}`) * 100) / 100; return Number(t.replace(/[.,]/g, "")); };
+  const initEdit = (e: FinancialEntry | null, r: Reminders["items"][number]) => setEd({ amount: String(e?.amount ?? r.amount).replace(".", ","), dueDate: String(e?.dueDate || r.dueDate).slice(0, 10), method: e?.paymentMethod || "PIX", paidAt: today(), receipt: "", busy: false, err: "" });
+  const saveEntry = async (settle: boolean) => {
+    const e = view?.entry; if (!e) return;
+    const amount = parseMoney(ed.amount);
+    if (!(amount > 0)) { setEd({ ...ed, err: "Informe um valor válido." }); return; }
+    if (settle) {
+      if (!ed.paidAt) { setEd({ ...ed, err: "Informe a data do pagamento." }); return; }
+      if (ed.paidAt > today()) { setEd({ ...ed, err: "A data do pagamento não pode ser futura." }); return; }
+      if (!["Dinheiro", "Permuta"].includes(ed.method) && !ed.receipt.trim()) { setEd({ ...ed, err: "Informe o número do comprovante." }); return; }
+    }
+    setEd({ ...ed, busy: true, err: "" });
+    try {
+      const changed = amount !== Number(e.amount) || ed.dueDate !== String(e.dueDate).slice(0, 10);
+      if (changed) await updateFinancialEntry(e.id, { amount, dueDate: ed.dueDate });
+      if (settle) await settleFinancialEntry(e.id, { paymentMethod: ed.method, paidAt: `${ed.paidAt}T12:00:00-03:00`, paymentReceipt: ed.receipt.trim() || undefined });
+      setView(null); onChanged(); void load();
+    } catch (err) { setEd((cur) => ({ ...cur, busy: false, err: err instanceof Error ? err.message : "Erro ao salvar." })); }
+  };
   const openView = async (r: Reminders["items"][number]) => {
     const bill = r.recurringBillId ? bills.find((b) => b.id === r.recurringBillId) || null : null;
     setView({ r, entry: null, bill, loading: Boolean(r.entryId) });
+    initEdit(null, r);
     if (!r.entryId) return;
-    try { const all = await loadFinancialEntries(); setView({ r, entry: all.find((e) => e.id === r.entryId) || null, bill, loading: false }); }
+    try { const all = await loadFinancialEntries(); const entry = all.find((e) => e.id === r.entryId) || null; initEdit(entry, r); setView({ r, entry, bill, loading: false }); }
     catch { setView({ r, entry: null, bill, loading: false }); }
   };
 
@@ -145,15 +167,37 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
               ["Forma de pagamento", e?.paymentMethod || b?.paymentMethod || "-"],
               ...(b ? [["Recorrência", `${frequencyLabels[b.frequency as keyof typeof frequencyLabels] || b.frequency} • dia ${b.dueDay}${b.autoDebit ? " • débito automático" : ""}`] as [string, string]] : []),
             ];
-            return view.loading ? <Typography color="text.secondary">Carregando...</Typography> : (
-              <Box sx={{ display: "grid", gridTemplateColumns: "150px 1fr", gap: 1, mt: 0.5 }}>
-                {rows.map(([k, v]) => (<><Typography key={`k${k}`} color="text.secondary" variant="body2">{k}</Typography><Typography key={`v${k}`} sx={{ fontWeight: 700 }}>{v}</Typography></>))}
-              </Box>
+            if (view.loading) return <Typography color="text.secondary">Carregando...</Typography>;
+            const open = Boolean(e && e.status === "PENDING");
+            return (
+              <>
+                <Box sx={{ display: "grid", gridTemplateColumns: "150px 1fr", gap: 1, mt: 0.5 }}>
+                  {rows.filter(([k]) => !(open && (k === "Valor" || k === "Vencimento"))).map(([k, v]) => (<><Typography key={`k${k}`} color="text.secondary" variant="body2">{k}</Typography><Typography key={`v${k}`} sx={{ fontWeight: 700 }}>{v}</Typography></>))}
+                </Box>
+                {open ? (
+                  <Box sx={{ display: "grid", gap: 1.5, mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+                    {view.bill?.amountIsVariable ? <Alert severity="warning">Conta de valor variável: informe o valor deste mês.</Alert> : null}
+                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+                      <TextField size="small" label="Valor (R$)" value={ed.amount} onChange={(x) => setEd({ ...ed, amount: x.target.value })} autoFocus={Boolean(view.bill?.amountIsVariable)} />
+                      <TextField size="small" type="date" label="Vencimento" value={ed.dueDate} onChange={(x) => setEd({ ...ed, dueDate: x.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+                    </Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Dar baixa (pagamento / recebimento)</Typography>
+                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+                      <TextField select size="small" label="Forma" value={ed.method} onChange={(x) => setEd({ ...ed, method: x.target.value })}>{["PIX", "Boleto", "Cartão", "Transferência", "Dinheiro", "Cheque", "Promissória", "Permuta"].map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}</TextField>
+                      <TextField size="small" type="date" label="Data do pagamento" value={ed.paidAt} onChange={(x) => setEd({ ...ed, paidAt: x.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+                    </Box>
+                    {!["Dinheiro", "Permuta"].includes(ed.method) ? <TextField size="small" label="Nº do comprovante" value={ed.receipt} onChange={(x) => setEd({ ...ed, receipt: x.target.value })} /> : null}
+                    {ed.err ? <Alert severity="error">{ed.err}</Alert> : null}
+                  </Box>
+                ) : null}
+              </>
             );
           })()}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setView(null)}>Fechar</Button>
+          {view?.entry && view.entry.status === "PENDING" ? <Button variant="outlined" disabled={ed.busy} onClick={() => void saveEntry(false)}>Salvar valor/data</Button> : null}
+          {view?.entry && view.entry.status === "PENDING" ? <Button variant="contained" color="success" disabled={ed.busy} onClick={() => void saveEntry(true)}>{ed.busy ? "Salvando…" : "Dar baixa"}</Button> : null}
           <Button variant="contained" onClick={() => { const t = view?.entry?.description || view?.r.detail.split(" - ")[0] || ""; setView(null); goTo(t); }}>Abrir no financeiro</Button>
         </DialogActions>
       </Dialog>
