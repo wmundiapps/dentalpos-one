@@ -46,6 +46,7 @@ export const HrApi = {
   setWorkplacePin: (id: string, pin: string) => req<{ ok: boolean }>(`/hr/workplaces/${id}/pin`, { method: "PUT", json: { pin } }),
   saveEmployee: (id: string | null, body: Record<string, unknown>) => id ? req<Employee>(`/hr/employees/${id}`, { method: "PUT", json: body }) : req<Employee>("/hr/employees", { method: "POST", json: body }),
   timesheet: (ref: string) => req<{ ref: string; settings: TimeSettings; employees: Array<{ employeeId: string; name: string; position: string; department: string; email: string | null; totals: Totals }> }>(`/hr/timesheet?ref=${ref}`),
+  dayReport: (date: string, workplaceId?: string) => req<DayReportData>(`/hr/timeclock/day?date=${encodeURIComponent(date)}${workplaceId ? `&workplaceId=${encodeURIComponent(workplaceId)}` : ""}`),
   employeeMonth: (id: string, ref: string) => req<{ ref: string; employee: { id: string; name: string; position: string }; days: DayRow[]; totals: Totals; audit: Array<{ id: string; method: string; date: string; time: string; kind: string; ip: string | null; inside: boolean | null; note: string | null }> }>(`/hr/timesheet/${id}?ref=${ref}`),
   settings: () => req<TimeSettings>("/hr/timeclock/settings"),
   saveSettings: (b: Omit<Partial<TimeSettings>, "allowedIps"> & { allowedIps?: string[] | string }) => req<TimeSettings>("/hr/timeclock/settings", { method: "PUT", json: b }),
@@ -83,3 +84,14 @@ export const fmtMin = (min: number) => {
 export const money = (v: number | string) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v) || 0);
 export const fmtDate = (v: string) => { const d = v.slice(0, 10).split("-"); return d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : v; };
 export const STATUS_LABEL: Record<string, string> = { OK: "Normal", ATRASO: "Atraso", FALTA: "Falta", ABONADA: "Abonada", INCOMPLETO: "Batida incompleta", FOLGA: "Folga", AGUARDANDO: "Aguardando", PENDENTE: "Em análise", NAO_ABONADA: "Não abonada", SANCIONADA: "Sanção aplicada" };
+
+export type DayStatus = "BATEU" | "NAO_BATEU" | "AINDA_NAO" | "JUSTIFICADO" | "SEM_EXPEDIENTE" | "FUTURO";
+export interface DayReportRow {
+  employeeId: string; name: string; position: string; workplace: string; workStart: string; status: DayStatus; detail: string; open: boolean;
+  punches: Array<{ kind: string; label: string; time: string; inside: boolean | null }>;
+}
+export interface DayReportData {
+  date: string; expectedDay: boolean;
+  totals: { total: number; bateu: number; naoBateu: number; ainda: number; justificado: number; semExpediente: number; incompletas: number };
+  rows: DayReportRow[];
+}

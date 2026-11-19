@@ -51,6 +51,7 @@ export const faceRemove = wrap(async (req, res) => res.json(await hrFace.removeF
 // ---- RH, administração e gestor ----
 export const settingsGet = wrap(async (req, res) => res.json(await hr.getTimeSettings(req.user!.clinicId)))
 export const settingsSave = wrap(async (req, res) => res.json(await hr.saveTimeSettings(orgCtx(req), req.body)))
+export const dayReport = wrap(async (req, res) => res.json(await hr.dayReport(orgCtx(req), String(req.query.date || hr.dayKey(new Date())), req.query.workplaceId ? String(req.query.workplaceId) : undefined)))
 export const timesheet = wrap(async (req, res) => res.json(await hr.timesheet(orgCtx(req), refOf(req))))
 export const employeeMonth = wrap(async (req, res) => res.json(await hr.employeeMonth(orgCtx(req), String(req.params.employeeId), refOf(req))))
 export const suggestions = wrap(async (req, res) => res.json(await hr.payrollSuggestions(orgCtx(req), refOf(req))))

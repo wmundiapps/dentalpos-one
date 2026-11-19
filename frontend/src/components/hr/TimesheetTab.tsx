@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, MenuItem, TextField, Typography } from "@mui/material";
 import { HrApi, STATUS_LABEL, fmtDate, fmtMin, type Employee, type TimeSettings } from "../../services/HrApi";
 import { punchPhoto } from "../../services/HrFaceApi";
+import DayReport from "./DayReport";
 
 type Sheet = Awaited<ReturnType<typeof HrApi.timesheet>>;
 type Detail = Awaited<ReturnType<typeof HrApi.employeeMonth>>;
@@ -51,6 +52,7 @@ export default function TimesheetTab({ employees, canEdit }: { employees: Employ
     <Box sx={{ p: 2 }}>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
       {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
+      <DayReport />
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
         <TextField select size="small" label="Mês" value={ref} onChange={(e) => setRef(e.target.value)} sx={{ minWidth: 150 }}>{months().map((m) => <MenuItem key={m} value={m}>{m.split("-").reverse().join("/")}</MenuItem>)}</TextField>
         <Box sx={{ flex: 1 }} />
