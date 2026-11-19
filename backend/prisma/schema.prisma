@@ -3307,6 +3307,7 @@ model PatientSurvey {
   createdAt      DateTime @default(now()) @db.Timestamp(3)
 
   @@index([clinicId, createdAt])
+}
 
 // Estoque: ligação entre procedimento e consumo de material, uso registrado e histórico de duração por reposição.
 model StockProcedureRule {
