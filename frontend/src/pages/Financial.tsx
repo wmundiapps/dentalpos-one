@@ -127,7 +127,7 @@ const settleUserLabel=[settleUser?.firstName,settleUser?.lastName].filter(Boolea
    const matchesSearch=!search||`${e.description} ${e.personName} ${e.category} ${e.origin||""}`.toLowerCase().includes(search.toLowerCase());
    const matchesQuick=!quick||(quick==="RECEBER"?(e.type==="INCOME"&&e.status!=="PAID"&&e.status!=="CANCELLED"):quick==="PAGAR"?(e.type==="EXPENSE"&&e.status!=="PAID"&&e.status!=="CANCELLED"):quick==="CAIXA"?e.status==="PAID":quick==="VENCIDO"?status==="Vencido":true);
    return matchesFilter&&matchesSearch&&matchesQuick;
- }),[entries,filter,search,quick,scope,month]);
+ }).sort((x,y)=>{const rank=(e:FinancialEntry)=>{const st=displayStatus(e);return st==="Vencido"?0:st==="Pendente"?1:st==="Pago"?2:3};return rank(x)-rank(y)||ymd(x.dueDate).localeCompare(ymd(y.dueDate))||x.description.localeCompare(y.description)}),[entries,filter,search,quick,scope,month]);
  const scopeStats=useMemo(()=>{const calc=(t:"INCOME"|"EXPENSE")=>{const open=entries.filter(e=>e.type===t&&e.status!=="PAID"&&e.status!=="CANCELLED");const over=open.filter(e=>displayStatus(e)==="Vencido");return{open:open.length,overdue:over.length,overdueTotal:over.reduce((a,e)=>a+e.amount,0),openTotal:open.reduce((a,e)=>a+e.amount,0)}};return{INCOME:calc("INCOME"),EXPENSE:calc("EXPENSE")}},[entries]);
 
  const parseBRL=(raw:string):number=>{const s=raw.replace(/[^\d.,]/g,"");if(!s)return NaN;const sep=Math.max(s.lastIndexOf(","),s.lastIndexOf("."));const tail=sep>=0?s.slice(sep+1):"";if(sep>=0&&tail.length>0&&tail.length<=2)return Math.round(Number(`${s.slice(0,sep).replace(/[.,]/g,"")}.${tail}`)*100)/100;return Number(s.replace(/[.,]/g,""));};
