@@ -441,6 +441,7 @@ router.post('/budgets', requirePermission('finance.create'), budgetController.st
 router.put('/budget/:id', requirePermission('finance.edit'), budgetController.update)
 router.post('/budget/:id/approve', requirePermission('finance.approve'), budgetController.approve)
 router.put('/budget/:id/due-dates', requirePermission('finance.approve'), budgetController.updateDueDates)
+router.post('/budget/:id/boletos', requirePermission('finance.approve'), budgetController.issueBoletos)
 router.delete('/budget/:id', requirePermission('finance.approve'), budgetController.remove)
 router.delete('/budget/:id/permanent', requirePermission('finance.approve'), budgetController.destroy)
 

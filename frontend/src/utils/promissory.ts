@@ -1,5 +1,5 @@
 import { loadBrandKit } from "../services/BrandKitApi";
-import { KIT_CSS, footer, letterhead } from "./brandKit/templates";
+import { KIT_CSS } from "./brandKit/templates";
 import type { BackendPatient } from "../services/PatientApi";
 
 export interface PromissoryLine { installment: number; amount: number; dueDate: string }
@@ -43,14 +43,12 @@ export function reaisPorExtenso(v: number): string {
 export async function printPromissories(win: Window | null, patient: BackendPatient, lines: PromissoryLine[]) {
   const w = win || window.open("", "_blank", "width=900,height=1000");
   if (!w) return false;
-  let clinicName = "Credor", clinicCnpj = "", city = "", head = "", foot = "";
+  let clinicName = "Credor", clinicCnpj = "", city = "";
   try {
     const r = await loadBrandKit();
     const c = r.clinic; const k = r.kit || {};
     const kc = { name: c.displayName || c.name, tagline: k.tagline || "", logo: c.logo || "", color: c.primaryColor || "#1565C0", rtName: k.rtName || "", rtCro: k.rtCro || "", cnpj: c.cnpj || "", phone: c.phone || "", whatsapp: k.whatsapp || "", email: c.email || "", address: c.address || "", city: [c.city, c.state].filter(Boolean).join(" – "), site: k.site || "", instagram: k.instagram || "", logoMm: Math.min(k.logoWidthMm || 35, 25) };
     clinicName = kc.name; clinicCnpj = kc.cnpj; city = c.city || "";
-    head = `<div class="bkit"><div style="--b:${esc(kc.color)}">${letterhead(kc)}</div></div>`;
-    foot = `<div class="bkit rodape"><div style="--b:${esc(kc.color)}">${footer(kc)}</div></div>`;
   } catch { /* sem identidade */ }
   const total = lines.length;
   const issued = new Date();
@@ -65,16 +63,16 @@ export async function printPromissories(win: Window | null, patient: BackendPati
     </section>`;
   };
   const pages: string[] = [];
-  for (let i = 0; i < lines.length; i += 3) pages.push(`<div class="pg">${i === 0 ? head : ""}${lines.slice(i, i + 3).map(note).join("")}</div>`);
+  for (let i = 0; i < lines.length; i += 3) pages.push(`<div class="pg">${lines.slice(i, i + 3).map(note).join("")}</div>`);
   w.document.open();
   w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Promissórias — ${esc(patient.fullName)}</title><style>${KIT_CSS}
 body{font-family:Arial,sans-serif;margin:0;color:#111;font-size:12px}.rodape{position:fixed;left:0;right:0;bottom:0;background:#fff;padding:4px 40px 8px}.rodape .df{margin-top:0}
-.pg{padding:24px 40px 30mm;page-break-after:always}.pg:last-child{page-break-after:auto}
+.pg{padding:24px 40px;page-break-after:always}.pg:last-child{page-break-after:auto}
 .np{border:1.5px solid #222;border-radius:6px;padding:12px 16px;margin:12px 0;page-break-inside:avoid}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #999;padding-bottom:6px;font-size:13px}.top .val{font-size:17px;font-weight:800;border:1.5px solid #222;padding:2px 10px}
 .np p{margin:8px 0;line-height:1.55}.ass{display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;gap:24px}.ass .ln{border-top:1px solid #000;min-width:260px;text-align:center;padding-top:3px;font-size:11px}
 .noprint{position:fixed;top:10px;right:14px}.noprint button{font:600 14px Arial;padding:8px 16px;border:0;border-radius:8px;background:#1565c0;color:#fff;cursor:pointer}@media print{.noprint{display:none}}
-</style></head><body><div class="noprint"><button onclick="window.print()">Imprimir</button></div>${foot}${pages.join("")}</body></html>`);
+</style></head><body><div class="noprint"><button onclick="window.print()">Imprimir</button></div>${pages.join("")}</body></html>`);
   w.document.close();
   const imgs = Array.from(w.document.images);
   await Promise.all(imgs.map((i) => (i.complete ? Promise.resolve() : new Promise<void>((r) => { i.onload = () => r(); i.onerror = () => r(); }))));

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { listBudgets, type BudgetRow } from "../../services/BudgetApi";
+import { emitBudgetBoletos } from "../../utils/boletoPdf";
 import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Menu, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import ChargeDialog, { type ChargeEntry } from "../ChargeDialog";
 import NewChargeDialog, { type ChargeMethod } from "./NewChargeDialog";
@@ -33,6 +35,22 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
   const [debtOpen, setDebtOpen] = useState(false);
+  const [openBudgets, setOpenBudgets] = useState<Array<{ id: string; description: string; open: number }>>([]);
+  const [bolBusy, setBolBusy] = useState("");
+  useEffect(() => {
+    listBudgets().then((all) => setOpenBudgets((all as Array<BudgetRow & { payments?: Array<{ installment: number; status: string; paidDate?: string | null }> }>)
+      .filter((b) => b.patientId === patient.id && b.status === "APPROVED")
+      .map((b) => ({ id: b.id, description: b.description, open: (b.payments || []).filter((p) => p.installment >= 1 && p.status !== "PAID" && p.status !== "RECEIVED" && !p.paidDate).length }))
+      .filter((b) => b.open > 0))).catch(() => setOpenBudgets([]));
+  }, [patient.id]);
+  const emitAll = async (id: string) => {
+    const pdf = window.open("", "_blank");
+    pdf?.document.write('<p style="font-family:Arial;padding:40px">Emitindo boletos…</p>');
+    setBolBusy(id); setError("");
+    try { const warn = await emitBudgetBoletos(id, pdf); if (warn) setError(warn); load(); }
+    catch (e) { pdf?.close(); setError(e instanceof Error ? e.message : "Erro ao emitir boletos."); }
+    finally { setBolBusy(""); }
+  };
   const [filter, setFilter] = useState<"" | "Recebido" | "Atrasado" | "A vencer" | "A pagar ao paciente">("");
   const matches = (r: Row) => {
     if (!filter) return true;
@@ -101,6 +119,7 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
         <Typography variant="h6" sx={{ fontWeight: 800 }}>Histórico financeiro (contas a receber e a pagar)</Typography>
         {(rows || []).some((r) => r.type !== "EXPENSE" && situation(r).label === "Atrasado") && <Button size="small" variant="outlined" color="error" onClick={() => setDebtOpen(true)}>Relatório de débitos (cartório)</Button>}
         {filter && <Chip color="primary" label={`Filtrando: ${filter} (${rows.filter(matches).length}) — limpar`} onClick={() => setFilter("")} onDelete={() => setFilter("")} />}
+        {openBudgets.map((b) => <Button key={b.id} size="small" variant="contained" disabled={Boolean(bolBusy)} onClick={() => void emitAll(b.id)}>{bolBusy === b.id ? "Emitindo…" : `Gerar todos os boletos (PDF) • ${b.description.slice(0, 28)} • ${b.open} parc.`}</Button>)}
         <Button size="small" variant="outlined" onClick={() => navigate(`/financeiro?paciente=${encodeURIComponent(patient.fullName)}`)}>Abrir financeiro completo</Button>
       </Box>
       {rows.length > 0 && rows.filter(matches).length === 0 ? <Typography color="text.secondary">Nenhum lançamento nesta situação. Clique no quadro de novo para ver todos.</Typography> : rows.length === 0 ? <Typography color="text.secondary">Nenhum lançamento para este paciente ainda. Use os botões acima para gerar o primeiro financeiro.</Typography> : (

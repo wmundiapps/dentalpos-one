@@ -8,6 +8,7 @@ import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { createTreatmentItem, getTreatmentPlan, importOdontogram, updateTreatmentItem, type TreatmentPlanItem } from "../services/TreatmentPlanApi";
 import { printPromissories } from "../utils/promissory";
+import { emitBudgetBoletos } from "../utils/boletoPdf";
 import { approveBudget, cancelBudget, deleteBudget, updateBudgetDueDates, createBudget, listBudgets, type BudgetRow } from "../services/BudgetApi";
 import { createClinicalDocument } from "../services/ClinicalDocumentService";
 import { readSessionUser } from "../services/DemoAccess";
@@ -227,6 +228,16 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
     const t = new Date(); d.setDate(Math.min(d.getDate(), 28));
     setFirstDue(hasEntry ? iso(new Date(t.getFullYear(), t.getMonth() + 1, t.getDate())) : iso(d)); setEntryDue(iso(t)); setDueFor(b);
   };
+  const emitBoletos = async (id: string) => {
+    const pdf = window.open("", "_blank");
+    pdf?.document.write('<p style="font-family:Arial;padding:40px">Emitindo boletos…</p>');
+    setBusy(true); setError("");
+    try {
+      const warn = await emitBudgetBoletos(id, pdf);
+      if (warn) setError(warn); else setNotice("Boletos emitidos em PDF.");
+    } catch (e) { pdf?.close(); setError(e instanceof Error ? e.message : "Erro ao emitir boletos."); }
+    finally { setBusy(false); }
+  };
   const approveAndPrepare = async (b: BudgetExtra, dues?: { firstDueDate?: string; entryDueDate?: string }) => {
     const wantsNotes = ["Boleto", "Promissória"].includes(String(b.paymentMethod || "")) && b.installments > 0;
     const pre = wantsNotes ? window.open("", "_blank", "width=900,height=1000") : null;
@@ -234,6 +245,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
     let approved: (BudgetExtra & { payments?: Array<{ installment: number; amount: number; dueDate: string }> }) | null = null;
     await run(async () => { approved = (await approveBudget(b.id, dues)) as typeof approved; if (wantsNotes) await generateContractQuiet(b); window.dispatchEvent(new Event(PATIENT_STAGE_EVENT)); }, wantsNotes ? "Orçamento aprovado. Contrato gerado como rascunho em Documentos e Contratos e promissórias abertas para impressão." : "Orçamento aprovado.");
     if (wantsNotes && approved) await printNotes(approved, pre); else pre?.close();
+    if (String(b.paymentMethod || "") === "Boleto" && approved) await emitBoletos(b.id);
   };
   const generateContractQuiet = async (b: BudgetExtra) => {
     const ids = Array.isArray(b.optionsJson?.treatmentItemIds) ? (b.optionsJson?.treatmentItemIds as string[]) : [];
@@ -368,6 +380,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
                     <Chip size="small" label={BUDGET_STATUS[b.status] || b.status} color={b.status === "APPROVED" ? "success" : b.status === "CANCELLED" ? "default" : "warning"} />
                     {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => askDue(b)}>Aprovar</Button>}
                     {b.status === "APPROVED" && <Button size="small" disabled={busy} onClick={() => void printNotes(b)}>Imprimir promissórias</Button>}
+                    {b.status === "APPROVED" && <Button size="small" disabled={busy} onClick={() => void emitBoletos(b.id)}>Boletos (PDF)</Button>}
                     {b.status === "APPROVED" && <Button size="small" disabled={busy} onClick={() => { const pays = ((b as BudgetExtra & { payments?: Array<{ installment: number; amount: number; dueDate: string; status: string; paidDate?: string | null }> }).payments || []).slice().sort((x, y) => x.installment - y.installment); setEditDue({ id: b.id, rows: pays.map((p) => ({ installment: p.installment, amount: Number(p.amount), dueDate: String(p.dueDate).slice(0, 10), paid: p.status === "PAID" || p.status === "RECEIVED" || Boolean(p.paidDate) })) }); }}>Editar vencimentos</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "share")}>Enviar PDF</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "download")}>Baixar PDF</Button>}

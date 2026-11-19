@@ -10,3 +10,6 @@ export const cancelBudget=(id:string)=>req<BudgetRow>(`/budget/${id}`,{method:'D
 export const deleteBudget=(id:string)=>req<{ok:boolean}>(`/budget/${id}/permanent`,{method:'DELETE'});
 
 export const updateBudgetDueDates=(id:string,dues:Array<{installment:number;dueDate:string}>)=>req<BudgetRow>(`/budget/${id}/due-dates`,{method:'PUT',body:JSON.stringify({dues})});
+
+export type BoletoIssue={boletos:Array<{installment:number;amount:number;dueDate:string;bankSlipUrl:string|null;digitableLine:string|null;error?:string}>;pdfBase64:string|null;patientName:string};
+export const issueBudgetBoletos=(id:string)=>req<BoletoIssue>(`/budget/${id}/boletos`,{method:'POST',body:'{}'});
