@@ -335,6 +335,9 @@ export default function Agenda() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(((new URLSearchParams(window.location.search).get("status")) || "Todos") as StatusFilter);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<IntegratedAppointment | null>(null);
+  const [moveReq, setMoveReq] = useState<{ appointment: IntegratedAppointment; dateISO: string; time: string } | null>(null);
+  const [moveReason, setMoveReason] = useState("");
+  const [moveBusy, setMoveBusy] = useState(false);
   const refreshAfterQuickAction = async () => {
     const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
     saveAppointments(refreshed);
@@ -1307,6 +1310,7 @@ export default function Agenda() {
             }}
             maxHeight="calc(100vh - 190px)"
             onNew={(prefill) => openNew(prefill)}
+            onMove={(appointment, dateISO, time) => { if (appointment.dateISO === dateISO && appointment.time === time) return; setMoveReq({ appointment, dateISO, time }); setMoveReason(""); }}
             onResize={async (appointment, durationMinutes) => {
               if (!appointment.backendId) return;
               await updateBackendAppointment(appointment.backendId, { durationMinutes, reason: "Duração ajustada na agenda (arrastando a borda)", requestedBy: backendRequestedBy("Clínica") });
@@ -1319,6 +1323,37 @@ export default function Agenda() {
           </AgendaMarkersContext.Provider>
         </Paper>
       </Box>
+
+      <Dialog open={Boolean(moveReq)} onClose={() => !moveBusy && setMoveReq(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Mover agendamento</DialogTitle>
+        <DialogContent>
+          {moveReq ? (
+            <Box sx={{ display: "grid", gap: 1.5, mt: 0.5 }}>
+              <Typography sx={{ fontWeight: 800 }}>{moveReq.appointment.patientName}</Typography>
+              <Typography variant="body2">De <b>{new Date(`${moveReq.appointment.dateISO}T12:00:00`).toLocaleDateString("pt-BR")} às {moveReq.appointment.time}</b> para <b>{new Date(`${moveReq.dateISO}T12:00:00`).toLocaleDateString("pt-BR")} às {moveReq.time}</b></Typography>
+              <TextField size="small" label="Motivo da remarcação" value={moveReason} onChange={(e) => setMoveReason(e.target.value)} autoFocus />
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={moveBusy} onClick={() => setMoveReq(null)}>Cancelar</Button>
+          <Button variant="contained" disabled={moveBusy || moveReason.trim().length < 3} onClick={async () => {
+            if (!moveReq?.appointment.backendId) return;
+            const when = new Date(`${moveReq.dateISO}T${moveReq.time}:00`);
+            if (Number.isNaN(when.getTime())) { toast.error("Data ou horário inválido."); return; }
+            setMoveBusy(true);
+            try {
+              await updateBackendAppointment(moveReq.appointment.backendId, { scheduledAt: when.toISOString(), reason: moveReason.trim(), requestedBy: backendRequestedBy("Clínica") });
+              const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
+              saveAppointments(refreshed);
+              setItems(refreshed);
+              toast.success("Agendamento remarcado.");
+              setMoveReq(null);
+            } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível remarcar."); }
+            finally { setMoveBusy(false); }
+          }}>Confirmar</Button>
+        </DialogActions>
+      </Dialog>
 
       <LabServiceOrderDialog
         open={Boolean(labOrderPrefill)}
