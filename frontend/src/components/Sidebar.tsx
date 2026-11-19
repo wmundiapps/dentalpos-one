@@ -11,6 +11,7 @@ import { MANAGER_URL } from "./DentalPosManagerButton";
 import { fetchManagerAccess, openManagerReset, type ManagerAccess } from "./ManagerResetLink";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
+import AlertsMenu from "./alerts/AlertsMenu";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
@@ -100,6 +101,8 @@ export default function Sidebar(){
   },[activeGroup]);
   useEffect(()=>{localStorage.setItem(OPEN_GROUPS_KEY,JSON.stringify(openGroups))},[openGroups]);
 
+  const [menuOpen,setMenuOpen]=useState(()=>{try{return localStorage.getItem("dentalpos.menu.open")==="1"}catch{return false}});
+  useEffect(()=>{try{localStorage.setItem("dentalpos.menu.open",menuOpen?"1":"0")}catch{/* sem armazenamento */}},[menuOpen]);
   const sidebarWidth=collapsed?58:224;
   const initials=`${sessionUser?.firstName?.[0]||""}${sessionUser?.lastName?.[0]||""}`.toUpperCase()||"DP";
   const displayName=[sessionUser?.firstName,sessionUser?.lastName].filter(Boolean).join(" ")||"Usuário";
@@ -166,7 +169,15 @@ export default function Sidebar(){
     </Box>
     <Divider sx={{borderColor:"#334155"}}/>
 
-    <List sx={{mt:.5,px:collapsed?.4:.7}}>
+    {/* Menu em hambúrguer: a lista de grupos só aparece ao tocar. Logo abaixo ficam os alertas críticos. */}
+    {!collapsed&&<ListItemButton onClick={()=>setMenuOpen(v=>!v)} sx={{flexGrow:0,flexShrink:0,mx:1,mt:.8,borderRadius:2,minHeight:40,color:"#fff",bgcolor:"#1E293B","&:hover":{bgcolor:"#273449"}}}>
+      <ListItemIcon sx={{color:"inherit",minWidth:34}}><MenuIcon fontSize="small"/></ListItemIcon>
+      <ListItemText primary={<Typography component="span" sx={{fontWeight:800,fontSize:13}}>Menu</Typography>}/>
+      {menuOpen?<ExpandLessIcon fontSize="small"/>:<ExpandMoreIcon fontSize="small"/>}
+    </ListItemButton>}
+    <AlertsMenu collapsed={collapsed}/>
+
+    {(collapsed||menuOpen)&&<List sx={{mt:.5,px:collapsed?.4:.7}}>
       {visibleGroups.map(group=>{
         const selected=group.items.some(i=>pathMatches(i.path,location.pathname,location.search));
         const open=Boolean(openGroups[group.label]);
@@ -223,7 +234,7 @@ export default function Sidebar(){
           </Collapse>
         </Box>
       })}
-    </List>
+    </List>}
 
     <Box sx={{flexGrow:1}}/>
 

@@ -131,9 +131,9 @@ export default function PatientFile() {
   const [patient, setPatient] = useState<BackendPatient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const abaInicial = (): string => { const a = searchParams.get("aba") || ""; return ["cobranca", "financeiro"].includes(a) ? "cobranca" : ["odontograma", "prontuario"].includes(a) ? "prontuario" : a === "historico" ? "historico" : a === "executados" ? "executados" : a === "escaneamentos" ? "prontuario" : "resumo"; };
+  const abaInicial = (): string => { const a = searchParams.get("aba") || ""; return ["cobranca", "financeiro"].includes(a) ? "cobranca" : ["odontograma", "prontuario"].includes(a) ? "prontuario" : a === "historico" ? "historico" : a === "executados" ? "executados" : a === "escaneamentos" || a === "fotos" ? "prontuario" : a === "laboratorio" ? "laboratorio" : a === "dados" ? "dados" : "resumo"; };
   const [tab, setTab] = useState(abaInicial());
-  const [clinicalSub, setClinicalSub] = useState(searchParams.get("aba") === "escaneamentos" ? "escaneamentos" : ["odontograma", "prontuario"].includes(searchParams.get("aba") || "") ? "odontograma" : "ficha");
+  const [clinicalSub, setClinicalSub] = useState(searchParams.get("aba") === "fotos" ? "exames" : searchParams.get("aba") === "escaneamentos" ? "escaneamentos" : ["odontograma", "prontuario"].includes(searchParams.get("aba") || "") ? "odontograma" : "ficha");
   const [scanCount, setScanCount] = useState<number | null>(null);
   const loadScanCount = useCallback(() => { if (patientId) listClinicalFiles(patientId).then((r) => setScanCount(r.filter(isScanFile).length)).catch(() => setScanCount(null)); }, [patientId]);
   useEffect(() => { loadScanCount(); }, [loadScanCount]);
