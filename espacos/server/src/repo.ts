@@ -100,6 +100,7 @@ function toListing(r: any): Listing {
     blockedDates: r.blocked_dates ?? [], active: r.active, createdAt: iso(r.created_at)!,
     packageDiscountPct: Number(r.package_discount_pct ?? 0),
     brokerId: opt(r.broker_id), caretakerId: opt(r.caretaker_id), caretakerFee: r.caretaker_fee == null ? undefined : Number(r.caretaker_fee),
+    acceptsAdvance: r.accepts_advance !== false,
   };
 }
 
@@ -423,7 +424,7 @@ export const notificationsForUser = async (db: Db, userId: string): Promise<Noti
   }));
 
 export async function getPaymentByBooking(db: Db, bookingId: string, forUpdate = false) {
-  const r = await one<{ id: string }>(db, 'SELECT id FROM payments WHERE booking_id = $1', [bookingId]);
+  const r = await one<{ id: string }>(db, 'SELECT id FROM payments WHERE booking_id = $1 ORDER BY created_at LIMIT 1', [bookingId]);
   return getPayment(db, r?.id, forUpdate);
 }
 

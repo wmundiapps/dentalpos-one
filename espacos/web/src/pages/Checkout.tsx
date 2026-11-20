@@ -1,3 +1,4 @@
+import { BOOKING_LIMITS } from '../../../shared/rules';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, type ErrorAction } from '../api';
@@ -13,7 +14,8 @@ import { ActionButton } from '../components/ActionAlert';
 import { formatDate, money } from '../format';
 import { NextStep } from '../components/NextStep';
 
-type Quote = { price: PriceBreakdown; errors: Array<{ code: string; params?: Record<string, string | number> }>; guarantorRequired: boolean; guarantorLiabilityCap: number };
+type Quote = { price: PriceBreakdown; errors: Array<{ code: string; params?: Record<string, string | number> }>; guarantorRequired: boolean; guarantorLiabilityCap: number;
+  advance?: { available: boolean; maxInstallments: number; discountRate: number; schedule?: Array<{ seq: number; dueDate: string; amount: number; partnerFees: number }> } };
 
 export default function Checkout() {
   const { id } = useParams();
@@ -41,10 +43,18 @@ export default function Checkout() {
   const [lic, setLic] = useState({ body: '', number: '', region: '' });
   const [pay, setPay] = useState<{ url: string; id: string } | null>(null);
 
+  // Reserva antecipada parcelada: obrigatória depois de 180 dias; opcional a partir de 30 dias
+  const farAhead = useMemo(() => occurrences.some((o) => Date.parse(`${o.date}T12:00:00-03:00`) - Date.now() > BOOKING_LIMITS.maxAdvanceDays * 86400000), [occurrences]);
+  const [advanceOpt, setAdvanceOpt] = useState(false);
+  const [installments, setInstallments] = useState(0);
+  const advance = farAhead || advanceOpt;
   useEffect(() => {
     api<{ listing: ListingSummary }>(`/listings/${id}`).then((d) => setListing(d.listing)).catch(() => setError(t('err.listing_not_found')));
-    api<Quote>(`/listings/${id}/quote`, { body: { occurrences } }).then(setQuote).catch((e) => setError(errorText(e, t)));
-  }, [id, occurrences, t]);
+  }, [id, t]);
+  useEffect(() => {
+    api<Quote>(`/listings/${id}/quote`, { body: { occurrences, advance: advance || undefined, installments: advance && installments ? installments : undefined } })
+      .then(setQuote).catch((e) => setError(errorText(e, t)));
+  }, [id, occurrences, advance, installments, t]);
   // Registra a intenção de reserva (lembrete por e-mail se não concluir)
   useEffect(() => {
     if (me && id) api(`/checkout-intents`, { body: { listingId: id, query: params.toString().slice(0, 2000) } }).catch(() => {});
@@ -71,7 +81,7 @@ export default function Checkout() {
   const soonest = Math.min(...occurrences.map((o) => Date.parse(`${o.date}T${o.start}:00-03:00`)));
   const boletoOk = soonest - Date.now() >= 3 * 86400000;
   const holdText = (m: string) => m === 'pix' ? t('pay.holdPix') : m === 'boleto' ? t('pay.holdBoleto') : t('pay.holdCard');
-  const methods = useAsaas ? country.paymentMethods.filter((m) => ['pix', 'card', 'boleto'].includes(m)) : country.paymentMethods;
+  const methods = advance ? country.paymentMethods.filter((m) => m === 'pix' || m === 'card') : useAsaas ? country.paymentMethods.filter((m) => ['pix', 'card', 'boleto'].includes(m)) : country.paymentMethods;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,6 +90,7 @@ export default function Checkout() {
       const b = await api<{ id: string; status: string; payment?: { checkoutUrl?: string } }>('/bookings', {
         body: {
           listingId: listing!.id, occurrences, guests, purpose, paymentMethod: method, acceptRules: accept, isConsumer,
+          advance: advance || undefined, installments: advance ? (installments || quote!.advance?.maxInstallments) : undefined,
           provider: provider || undefined, payerTaxId: useAsaas ? taxId : undefined,
           license: licenseMissing ? { body: lic.body, number: lic.number, region: lic.region || undefined } : undefined,
           clientReviewsEnabled: clientReviews, message: message || undefined,
@@ -138,6 +149,24 @@ export default function Checkout() {
           <section className="section">
             <h2>{t('checkout.payment')}</h2>
             <p className="muted small">{t('checkout.paymentCurrency', { currency: listing.currency })}</p>
+            {quote.advance?.available && (
+              <div className="panel">
+                {farAhead ? <p><strong>Reserva antecipada parcelada</strong></p> : (
+                  <label className="check"><input type="checkbox" checked={advanceOpt} onChange={(e) => { setAdvanceOpt(e.target.checked); setMethod(''); }} /> <span><strong>Reserva antecipada parcelada: {Math.round(quote.advance.discountRate * 100)}% de desconto</strong></span></label>
+                )}
+                <p className="muted small">Garanta a data agora e pague em até {quote.advance.maxInstallments} parcelas mensais por Pix ou cartão, com {Math.round(quote.advance.discountRate * 100)}% de desconto na locação. Taxas de corretor e zelador, se houver, vêm na última parcela. <Link to="/regras/advance-booking" target="_blank">Condições e reembolso</Link></p>
+                {advance && <>
+                  <label>Parcelas<select value={installments || quote.advance.maxInstallments} onChange={(e) => setInstallments(Number(e.target.value))}>
+                    {Array.from({ length: quote.advance.maxInstallments }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}x</option>)}
+                  </select></label>
+                  {quote.advance.schedule && <table className="table small"><tbody>{quote.advance.schedule.map((x) => (
+                    <tr key={x.seq}><td>{x.seq}ª</td><td>{x.seq === 1 ? 'hoje' : x.dueDate.split('-').reverse().join('/')}</td><td style={{ textAlign: 'end' }}>{x.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}{x.partnerFees ? ' *' : ''}</td></tr>
+                  ))}</tbody></table>}
+                  {quote.advance.schedule?.some((x) => x.partnerFees) && <p className="muted small">* inclui as taxas de corretor/zelador.</p>}
+                </>}
+              </div>
+            )}
+            {farAhead && !quote.advance?.available && <p className="notice warn">Para datas a mais de 6 meses, só com reserva antecipada parcelada, e este espaço não aceita.</p>}
             {providers.length > 1 && (
               <div className="pay-providers" role="radiogroup" aria-label={t('checkout.whereToPay')}>
                 <p className="small"><strong>{t('checkout.whereToPay')}</strong></p>

@@ -14,13 +14,14 @@ import { pruneSecurity } from './security.js';
 import { sendPackageRenewals } from './packages.js';
 import { runSequence } from './prospecting.js';
 import { partnerJobs } from './partners.js';
+import { advanceJobs } from './advance.js';
 import { flushInstantQueue } from './messaging.js';
 
 export async function runJobs() {
   const out: Record<string, string> = {};
   for (const [name, job] of [['bookings', () => tick()], ['verifications', async () => { await resumePendingVerifications(); await identityJobs(); }], ['assistant', () => emailIdleConversations()], ['cart', async () => { await sendCartReminders(); await sendVerifyReminders(); }], ['email', () => flushEmailQueue()], ['push', () => flushPushQueue()],
     ['documents', async () => { await encryptLegacyDocuments(); await purgeExpiredDocuments(); await rotateDocumentKey(); }],
-    ['mp_tokens', async () => { if (marketplaceEnabled()) await refreshExpiringTokens(); }], ['security', () => pruneSecurity()], ['packages', () => sendPackageRenewals()], ['prospecting', () => runSequence()], ['partners', async () => { await partnerJobs(); await flushInstantQueue(); }]] as const) {
+    ['mp_tokens', async () => { if (marketplaceEnabled()) await refreshExpiringTokens(); }], ['security', () => pruneSecurity()], ['packages', () => sendPackageRenewals()], ['prospecting', () => runSequence()], ['partners', async () => { await partnerJobs(); await flushInstantQueue(); }], ['advance', () => advanceJobs()]] as const) {
     try { await job(); out[name] = 'ok'; } catch (e) { out[name] = (e as Error).message; console.error(`[job ${name}]`, e); }
   }
   return out;

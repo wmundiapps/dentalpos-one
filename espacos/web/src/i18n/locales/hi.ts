@@ -619,6 +619,11 @@ const hi: Dict = {
   'err.not_found': 'नहीं मिला।',
   'err.validation': 'कृपया फ़ील्ड जाँचें',
   'err.internal': 'कुछ गड़बड़ हो गई। कृपया फिर से प्रयास करें।',
+  'err.advance_not_eligible': 'Advance booking needs at least {days} days ahead.',
+  'err.advance_pix_or_card': 'Advance booking is paid by Pix or card.',
+  'err.installments_paid': 'All installments are paid.',
+  'price.advanceDiscount': 'Advance booking discount (7%)',
+  'legal.advance-booking': 'Advance Booking in Installments',
   'err.network': 'कनेक्शन विफल। अपना इंटरनेट जाँचें।',
   // प्रदाता पर भुगतान, व्यावसायिक पंजीकरण, फ़ोटो, ऐप की रेटिंग
   'status.pending_payment': 'भुगतान की प्रतीक्षा',

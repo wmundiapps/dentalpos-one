@@ -27,7 +27,7 @@ export const BOOKING_LIMITS = {
   maxPackageDays: 30,            // duração máxima do pacote (do primeiro ao último dia)
   maxPackageOccurrences: 15,     // 3 dias × 5 semanas parciais dentro de 30 dias
   maxPackageDiscountPct: 30,     // desconto máximo que o anfitrião pode dar para pacotes
-  maxAdvanceDays: 180,           // antecedência máxima
+  maxAdvanceDays: 180,           // antecedência máxima (reserva antecipada parcelada: até 18 meses, ADVANCE_RULES)
   minAdvanceMinutes: 60,         // reservar com pelo menos 1 h de antecedência
   maxHoursPer30DaysPerListing: 120, // teto por locatário, por espaço, em janela móvel de 30 dias
   maxActiveSeriesPerListing: 2,  // séries recorrentes simultâneas por locatário no mesmo espaço
@@ -71,6 +71,72 @@ export const PARTNER_RULES = {
 /** Taxa do corretor: o maior entre R$ 100 e 10% do valor total da locação (valor base + limpeza), uma vez por reserva. */
 export function brokerFee(rentalTotal: number, currency: string): number {
   return roundMoney(Math.max(PARTNER_RULES.brokerMinFee, rentalTotal * PARTNER_RULES.brokerRate), currency);
+}
+
+// ───────────── Reserva antecipada parcelada ─────────────
+// Reserve a data com até 18 meses e pague em até 10 parcelas mensais, com 7% de desconto na locação.
+// Cada parcela passa pelo split (o anfitrião recebe direto): o SpaceHour não guarda dinheiro do locatário.
+// Corretor e zelador: sem desconto, cobrados junto com a última parcela.
+export const ADVANCE_RULES = {
+  discountRate: 0.07,
+  maxAdvanceDays: 548,       // 18 meses
+  minLeadDays: 30,           // a partir de 30 dias de antecedência
+  maxInstallments: 10,
+  intervalDays: 30,
+  lastDueBeforeDays: 7,      // última parcela vence até 7 dias antes do primeiro uso
+  graceDays: 5,              // tolerância de atraso; depois, cancela
+  withdrawalDays: 7,         // arrependimento (CDC art. 49)
+} as const;
+
+/** Quantas parcelas cabem até 7 dias antes do primeiro uso (1 a 10). */
+export function advanceMaxInstallments(firstStart: Date, now: Date = new Date()) {
+  const usable = firstStart.getTime() - ADVANCE_RULES.lastDueBeforeDays * 86400000 - now.getTime();
+  return Math.max(1, Math.min(ADVANCE_RULES.maxInstallments, Math.floor(usable / (ADVANCE_RULES.intervalDays * 86400000)) + 1));
+}
+
+/** Preço da reserva antecipada: 7% de desconto na locação; anfitrião com 80% do valor com desconto. */
+export function applyAdvanceDiscount(price: PriceBreakdown): PriceBreakdown {
+  const cur = price.currency;
+  const rental = price.baseAmount + price.cleaningFee;
+  const discount = roundMoney(rental * ADVANCE_RULES.discountRate, cur);
+  const net = roundMoney(rental - discount, cur);
+  const rate = price.hostServiceFeeRate ?? FEES.hostServiceFeeRate;
+  const hostServiceFee = roundMoney(net * rate, cur);
+  return {
+    ...price, advanceDiscount: discount, total: roundMoney(price.total - discount, cur),
+    hostServiceFee, hostPayout: roundMoney(net - hostServiceFee, cur),
+  };
+}
+
+export interface InstallmentPlan { seq: number; dueDate: string; amount: number; partnerFees: number; hostShare: number }
+/** Parcelas: a primeira hoje, as demais a cada 30 dias; corretor e zelador entram na última. */
+export function advanceSchedule(price: PriceBreakdown, n: number, today: string): InstallmentPlan[] {
+  const cur = price.currency;
+  const fees = partnerFeesOf(price);
+  const rental = roundMoney(price.total - fees, cur);
+  const each = Math.floor((rental / n) * 100) / 100;
+  const hostEach = Math.floor((price.hostPayout / n) * 100) / 100;
+  return Array.from({ length: n }, (_, i) => {
+    const last = i === n - 1;
+    const amount = last ? roundMoney(rental - each * (n - 1), cur) : each;
+    return {
+      seq: i + 1, dueDate: addDays(today, i * ADVANCE_RULES.intervalDays),
+      amount: roundMoney(amount + (last ? fees : 0), cur), partnerFees: last ? fees : 0,
+      hostShare: last ? roundMoney(price.hostPayout - hostEach * (n - 1), cur) : hostEach,
+    };
+  });
+}
+
+/**
+ * Desistência da reserva antecipada. Até 7 dias do 1º pagamento: tudo de volta. Depois: o que pagou menos o desconto de 7%
+ * (o desconto vale para quem leva a reserva até o fim). Perto da data, se a política do espaço devolver menos, vale ela.
+ * policyRate = quanto a política do espaço devolveria (0 a 1) se a reserva fosse comum.
+ */
+export function advanceRefund(p: { paid: number; discount: number; firstPaidAt: Date; policyRate: number }, now: Date = new Date()) {
+  if (now.getTime() - p.firstPaidAt.getTime() <= ADVANCE_RULES.withdrawalDays * 86400000) return { amount: roundMoney(p.paid, 'BRL'), rule: 'withdrawal' as const };
+  const early = Math.max(0, p.paid - p.discount);
+  const policy = p.paid * p.policyRate;
+  return policy < early ? { amount: roundMoney(policy, 'BRL'), rule: 'policy' as const } : { amount: roundMoney(early, 'BRL'), rule: 'early_exit' as const };
 }
 
 // ───────────── Política de cancelamento (locatário) ─────────────
@@ -299,6 +365,7 @@ export interface ValidationContext {
   guestHoursLast30Days: number;                  // horas já reservadas pelo locatário neste espaço (janela ±30 dias)
   guestActiveSeries: number;
   seriesCooldownUntil?: string;                   // YYYY-MM-DD: fim do intervalo após uma série de 12 semanas
+  maxAdvanceDays?: number;                         // reserva antecipada parcelada: até 18 meses
 }
 
 export type ValidationError = { code: string; params?: Record<string, string | number> };
@@ -337,7 +404,8 @@ export function validateOccurrences(listing: Listing, occurrences: Occurrence[],
 
   const sorted = [...occurrences].sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
   const today = todayInZone(listing.timezone, now);
-  const lastAllowed = addDays(today, L.maxAdvanceDays);
+  const maxAdvance = ctx.maxAdvanceDays ?? L.maxAdvanceDays;
+  const lastAllowed = addDays(today, maxAdvance);
 
   const dates = sorted.map((o) => o.date);
   if (new Set(dates).size !== dates.length) errors.push({ code: 'duplicate_date' });
@@ -369,7 +437,7 @@ export function validateOccurrences(listing: Listing, occurrences: Occurrence[],
     if (dur < Math.max(L.minBookingMinutes, listing.minHours * 60)) errors.push({ code: 'min_duration', params: { date: o.date, hours: Math.max(1, listing.minHours) } });
     if (dur > L.maxHoursPerOccurrence * 60) errors.push({ code: 'max_duration', params: { date: o.date, hours: L.maxHoursPerOccurrence } });
     if (s < toMinutes(L.earliestStart) || e > toMinutes(L.latestEnd)) errors.push({ code: 'outside_platform_hours', params: { date: o.date } });
-    if (o.date > lastAllowed) errors.push({ code: 'too_far_ahead', params: { days: L.maxAdvanceDays } });
+    if (o.date > lastAllowed) errors.push({ code: 'too_far_ahead', params: { days: maxAdvance } });
     if (occurrenceStartUtc(listing, o).getTime() - now.getTime() < L.minAdvanceMinutes * 60000) errors.push({ code: 'too_soon', params: { date: o.date } });
     if (listing.blockedDates.includes(o.date)) errors.push({ code: 'date_blocked', params: { date: o.date } });
 

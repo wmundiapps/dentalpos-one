@@ -11,13 +11,13 @@ import { DayTimeline } from '../components/DayTimeline';
 import type { ListingSummary } from '../components/ListingCard';
 import { useMercadoPagoPrompt } from '../components/MercadoPagoPrompt';
 import { COUNTRY_BY_CODE } from '../../../shared/countries';
-import { BOOKING_LIMITS, CATEGORY_ICONS, addDays, todayInZone } from '../../../shared/rules';
+import { ADVANCE_RULES, BOOKING_LIMITS, CATEGORY_ICONS, addDays, todayInZone } from '../../../shared/rules';
 import type { Occurrence, PriceBreakdown, PublicUser, Review, Weekday } from '../../../shared/types';
 import { countryName, flag, formatDate, money, timeSlots, placeLine } from '../format';
 import type { DictKey } from '../i18n';
 
 type Detail = { listing: ListingSummary; host: PublicUser; reviews: Review[] };
-type Quote = { price: PriceBreakdown; errors: Array<{ code: string; params?: Record<string, string | number> }>; guarantorRequired: boolean; guarantorLiabilityCap: number };
+type Quote = { price: PriceBreakdown; errors: Array<{ code: string; params?: Record<string, string | number> }>; guarantorRequired: boolean; guarantorLiabilityCap: number; advance?: { available: boolean; maxInstallments: number } };
 type Mode = 'single' | 'consecutive' | 'weekly' | 'package';
 
 export function buildOccurrences(mode: Mode, date: string, start: string, end: string, count: number, days: number[] = []): Occurrence[] {
@@ -100,7 +100,9 @@ export default function ListingPage() {
   useEffect(() => {
     if (!data || !occurrences.length) { setQuote(null); return; }
     const h = setTimeout(() => {
-      api<Quote>(`/listings/${id}/quote`, { body: { occurrences } }).then(setQuote).catch(() => setQuote(null));
+      // Depois de 6 meses, só reserva antecipada parcelada (até 18 meses)
+      const far = occurrences.some((o) => Date.parse(`${o.date}T12:00:00-03:00`) - Date.now() > BOOKING_LIMITS.maxAdvanceDays * 86400000);
+      api<Quote>(`/listings/${id}/quote`, { body: { occurrences, advance: far || undefined } }).then(setQuote).catch(() => setQuote(null));
     }, 250);
     return () => clearTimeout(h);
   }, [data, id, occurrences]);
@@ -272,7 +274,7 @@ export default function ListingPage() {
               </div>
             )}
             <div className="form-grid">
-              <label className="span2">{t('search.date')}<input type="date" value={date} min={todayInZone(l.timezone)} max={addDays(todayInZone(l.timezone), BOOKING_LIMITS.maxAdvanceDays)} onChange={(e) => setDate(e.target.value)} /></label>
+              <label className="span2">{t('search.date')}<input type="date" value={date} min={todayInZone(l.timezone)} max={addDays(todayInZone(l.timezone), l.acceptsAdvance === false ? BOOKING_LIMITS.maxAdvanceDays : ADVANCE_RULES.maxAdvanceDays)} onChange={(e) => setDate(e.target.value)} /></label>
               <label>{t('search.from')}<select value={start} onChange={(e) => setStart(e.target.value)}>{slots.map((s) => <option key={s}>{s}</option>)}</select></label>
               <label>{t('search.to')}<select value={end} onChange={(e) => setEnd(e.target.value)}>{slots.map((s) => <option key={s}>{s}</option>)}</select></label>
               {mode !== 'single' && mode !== 'package' && (
@@ -311,6 +313,7 @@ export default function ListingPage() {
             </button>
             <p className="muted small center">{t('book.notChargedYet')}</p>
             {quote && <PriceLines p={quote.price} />}
+            {quote?.advance?.available && <p className="small notice">📅 Reserva antecipada: {Math.round(ADVANCE_RULES.discountRate * 100)}% de desconto e pagamento em até {quote.advance.maxInstallments}x por Pix ou cartão.</p>}
             {quote?.guarantorRequired && <p className="small notice">🤝 {t('book.guarantorNeeded')}</p>}
           </div>
         </aside>

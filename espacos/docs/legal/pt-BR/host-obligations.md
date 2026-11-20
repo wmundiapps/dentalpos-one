@@ -137,3 +137,13 @@ Versão 2026-11-20 · Vigência a partir de 20/11/2026
 17.7. **Nenhum pagamento direto.** O Anfitrião não paga ao Parceiro valores relativos às Reservas nem pede ao Parceiro que cobre algo do Locatário. Serviços que o Anfitrião contratar com a mesma empresa sem relação com as Reservas (por exemplo, limpeza periódica) devem ser declarados na Plataforma e não podem substituir nem duplicar as Taxas de Parceiro (Regras de Conduta e Atendimento (Parceiros), cláusula 8.1).
 
 17.8. **Conflito de interesses.** O Anfitrião declara na Plataforma se o Parceiro é seu parente até o 2º grau, cônjuge, companheiro, sócio ou empregado. O Anfitrião, seus sócios, administradores e empregados não podem ser Corretor Parceiro com direito à Taxa de Intermediação em seus próprios Anúncios (Termo de Parceria, cláusula 7.3).
+
+## 18. Reserva Antecipada Parcelada
+
+18.1. **Aceitação por Anúncio.** Cada Anúncio aceita, **por padrão**, Reservas Antecipadas Parceladas, com até 18 meses de antecedência e desconto de 7% sobre o Valor Base mais a Taxa de Limpeza. Ao publicar o Anúncio, o Anfitrião é informado e aceita essas condições, e pode desativá-las ou reativá-las a qualquer tempo, Anúncio por Anúncio; a desativação vale para novas Reservas e mantém as já feitas. O Anfitrião deve manter o calendário atualizado para todo o período de 18 meses (cláusula 6).
+
+18.2. **Recebimento por Parcela.** O Anfitrião recebe **80% de cada Parcela** do preço com desconto, creditados pelo processador diretamente na sua conta conectada, no momento em que cada Parcela é paga (Pagamentos, cláusula 14). O desconto é suportado proporcionalmente pelo Anfitrião e pela Operadora. O Anfitrião deve manter a conta de recebimento conectada e ativa até a última Ocorrência (Reserva Antecipada Parcelada — Condições e Política de Reembolso, cláusula 9.2).
+
+18.3. **Reembolsos debitados da conta do Anfitrião.** Desistências e cancelamentos são reembolsados por estorno das Parcelas, e o processador **debita da conta do Anfitrião** a parte dele (80% do valor estornado da locação). O Anfitrião aceita esse débito ao publicar o Anúncio e deve manter saldo suficiente; quando o saldo não comportar o estorno, o valor pode ser cobrado dele ou compensado (Pagamentos, cláusula 5.3).
+
+18.4. **Cancelamento pelo Anfitrião.** O Anfitrião que cancelar uma Reserva Antecipada Parcelada sujeita-se ao reembolso integral ao Locatário e às consequências da cláusula 14.

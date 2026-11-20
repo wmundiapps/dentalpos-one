@@ -188,3 +188,17 @@ As Taxas de Parceiro não integram a base de cálculo do Valor do Anfitrião nem
 13.5. **Compensação.** Reembolsos, contestações (*chargebacks*) e valores devidos pelo Parceiro após o repasse são compensados com repasses futuros (Termo de Parceria, cláusula 12.5).
 
 13.6. As demais regras do repasse estão no Termo de Parceria — Corretor e Zelador Parceiros, cláusula 10.
+
+## 14. Reserva Antecipada Parcelada
+
+14.1. **O que é.** Reserva de Espaço, datas e horários determinados com até **18 meses** de antecedência, com **desconto de 7%** sobre a locação (Valor Base + Taxa de Limpeza) e pagamento em **1 a 10 Parcelas mensais**, por Pix ou cartão. É opcional para Reservas cuja primeira Ocorrência esteja a 30 dias ou mais e obrigatória acima de 180 dias. As condições completas estão em Reserva Antecipada Parcelada — Condições e Política de Reembolso (`advance-booking`).
+
+14.2. **Parcelas.** A 1ª Parcela é paga na Reserva e as demais a cada 30 dias; a última vence pelo menos 7 dias antes da primeira Ocorrência. O preço fica congelado na data da Reserva.
+
+14.3. **Divisão de cada Parcela.** Cada Parcela passa pela mesma divisão automática (*split*) da cláusula 4: **80% direto para a conta do Anfitrião** e **20% para a Operadora**. A Operadora não guarda o dinheiro do Locatário: trata-se de pagamento antecipado de serviço determinado, e não de crédito pré-pago.
+
+14.4. **Taxas de Parceiro.** A Taxa de Intermediação e a Taxa de Atendimento não têm desconto, são calculadas sobre a locação sem desconto e cobradas **junto com a última Parcela**, discriminadas, com repasse aos Parceiros após o check-out (cláusula 13).
+
+14.5. **Atraso.** Carência de 5 dias após o vencimento da Parcela, com lembretes por e-mail e WhatsApp; depois, cancelamento automático, tratado como desistência do Locatário.
+
+14.6. **Reembolsos.** Feitos por estorno de cada Parcela pelo meio original. A parte do Anfitrião no estorno é debitada pelo processador da conta do Anfitrião (cláusula 5.2), e a cláusula 5.3 aplica-se quando o saldo não for suficiente.

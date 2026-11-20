@@ -619,6 +619,11 @@ const es: Dict = {
   'err.not_found': 'No encontrado.',
   'err.validation': 'Revisa los campos',
   'err.internal': 'Algo salió mal. Inténtalo de nuevo.',
+  'err.advance_not_eligible': 'Advance booking needs at least {days} days ahead.',
+  'err.advance_pix_or_card': 'Advance booking is paid by Pix or card.',
+  'err.installments_paid': 'All installments are paid.',
+  'price.advanceDiscount': 'Advance booking discount (7%)',
+  'legal.advance-booking': 'Advance Booking in Installments',
   'err.network': 'Falla de conexión. Verifica tu internet.',
   // Pago en el proveedor, matrícula profesional, fotos, valoración de la app
   'status.pending_payment': 'Pendiente de pago',

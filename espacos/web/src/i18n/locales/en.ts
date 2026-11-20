@@ -619,6 +619,11 @@ const en: Dict = {
   'err.not_found': 'Not found.',
   'err.validation': 'Please check the fields',
   'err.internal': 'Something went wrong. Please try again.',
+  'err.advance_not_eligible': 'Advance booking needs at least {days} days ahead.',
+  'err.advance_pix_or_card': 'Advance booking is paid by Pix or card.',
+  'err.installments_paid': 'All installments are paid.',
+  'price.advanceDiscount': 'Advance booking discount (7%)',
+  'legal.advance-booking': 'Advance Booking in Installments',
   'err.network': 'Connection failure. Check your internet.',
   // Provider payment, professional license, photos, app feedback
   'status.pending_payment': 'Awaiting payment',

@@ -145,3 +145,5 @@ Versão 2026-11-20 · Vigência a partir de 20/11/2026
 10.2. Dúvidas ou divergências sobre o cálculo do reembolso podem ser apresentadas pela Central de Resolução e Disputas.
 
 10.3. **Falha de Parceiro.** Quando o Locatário for prejudicado por falha do Corretor Parceiro ou do Zelador Parceiro (por exemplo, falta de acesso por ausência do Zelador), recebe o mesmo reembolso previsto para a falha do Anfitrião correspondente (Penalidades e Medidas, cláusula 8), sem prejuízo da responsabilidade do Parceiro perante o Anfitrião e a Operadora.
+
+10.4. **Reserva Antecipada Parcelada.** A desistência e o cancelamento de Reservas Antecipadas Parceladas seguem o documento Reserva Antecipada Parcelada — Condições e Política de Reembolso, cláusulas 7 a 10: reembolso integral em até 7 dias do pagamento da 1ª Parcela; depois, reembolso do valor pago menos o desconto de 7% concedido na Reserva, ou o reembolso menor resultante da política do Anúncio quando as datas estiverem próximas; Taxas de Parceiro na mesma proporção do reembolso da locação; e reembolso de 100% em caso de cancelamento pelo Anfitrião.

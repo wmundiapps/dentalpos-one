@@ -1,6 +1,8 @@
 # Regras de Reserva e Uso
 
-Versão 2026-10-12 · Vigência a partir de 12/10/2026
+> Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
+
+Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 ## 1. Objeto e finalidade
 
@@ -25,7 +27,7 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 | Recorrência semanal | No máximo **12 semanas** por série (mesmo dia da semana) |
 | Pacote recorrente | Ocorrências em no máximo **3 dias da semana** distintos, dentro de um período de até **30 dias** entre a primeira e a última Ocorrência, com no máximo **15 Ocorrências** |
 | Ocorrências por Reserva | No máximo **12** (dias consecutivos e recorrência semanal) ou **15** (pacote recorrente) |
-| Antecedência máxima | **180 dias** contados da data atual no Fuso do Espaço |
+| Antecedência máxima | **180 dias** contados da data atual no Fuso do Espaço; até **18 meses** somente por Reserva Antecipada Parcelada (cláusula 2.7) |
 | Antecedência mínima | **1 hora** antes do início da Ocorrência |
 | Teto de horas | **120 horas** por Locatário, por Espaço, em janela de **30 dias** |
 | Séries recorrentes ou pacotes ativos | No máximo **2** simultâneos por Locatário no mesmo Espaço (séries semanais e pacotes são contados em conjunto) |
@@ -45,6 +47,8 @@ Não são aceitas datas duplicadas nem combinações que não se enquadrem nesse
 2.5. **Diária.** Se o Anfitrião oferecer preço de diária (turno completo), ele é aplicado automaticamente a Ocorrências de 6 horas ou mais sempre que for mais vantajoso para o Locatário do que o preço por hora.
 
 2.6. **Tentativas de contornar os limites.** É proibido fracionar Reservas, usar contas de terceiros, criar múltiplas contas ou combinar Reservas entre Espaços do mesmo Anfitrião com o objetivo de obter ocupação contínua ou exclusiva. Tal conduta constitui violação de regras e pode configurar cessão indevida a terceiro ou uso indevido, com as consequências previstas em Penalidades e Medidas.
+
+2.7. **Reserva Antecipada Parcelada.** Reservas cuja primeira Ocorrência esteja a **30 dias ou mais** podem ser feitas como Reserva Antecipada Parcelada, com desconto de 7% e pagamento em até 10 parcelas, e Reservas cuja primeira Ocorrência esteja a **mais de 180 dias**, até **18 meses**, só podem ser feitas dessa forma, nos termos do documento Reserva Antecipada Parcelada — Condições e Política de Reembolso. Todos os demais limites da cláusula 2.1 continuam valendo: cada série recorrente tem no máximo 12 semanas, e séries sucessivas respeitam o intervalo de 14 dias, o teto de horas e o limite de séries simultâneas. A Reserva Antecipada Parcelada é cessão de uso por horário e não confere posse, exclusividade nem direito de renovação.
 
 ## 3. Usos expressamente proibidos
 
@@ -72,7 +76,7 @@ Não são aceitas datas duplicadas nem combinações que não se enquadrem nesse
 
 4.5. **Reserva por solicitação.** Nos demais casos, após a aprovação do pagamento (e do Fiador, quando exigido), a Reserva fica com o status "aguardando anfitrião". O Anfitrião tem **24 horas** para aceitar ou recusar, prazo que nunca ultrapassa o início da primeira Ocorrência. Sem resposta, a solicitação **expira automaticamente** e o valor pago é **integralmente estornado**. Recusas não podem se fundar em critério discriminatório.
 
-4.6. **Situações da Reserva.** Uma Reserva pode estar: aguardando pagamento; aguardando fiador; aguardando anfitrião; confirmada; em uso (check-in realizado); concluída; cancelada pelo Locatário; cancelada pelo Anfitrião; recusada; expirada; ou não comparecimento.
+4.6. **Situações da Reserva.** Uma Reserva pode estar: aguardando pagamento; parcelas em andamento (Reserva Antecipada Parcelada); aguardando fiador; aguardando anfitrião; confirmada; em uso (check-in realizado); concluída; cancelada pelo Locatário; cancelada pelo Anfitrião; recusada; expirada; ou não comparecimento.
 
 ## 5. Intervalo de limpeza (buffer)
 

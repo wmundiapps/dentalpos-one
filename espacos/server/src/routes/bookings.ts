@@ -10,6 +10,7 @@ import {
   refundPreview, reportIncident, resolveIncident, respondGuarantor, respondIncident, revealReviewsIfBoth, reviewWindowOpen,
 } from '../bookings.js';
 import { publicListing } from './listings.js';
+import { installmentsOf, isAdvance, payInstallment } from '../advance.js';
 import { latestLicenseCheck } from '../verification.js';
 import { notify } from '../notify.js';
 import { REVIEW_RULES } from '../../../shared/rules.js';
@@ -61,6 +62,7 @@ async function bookingView(db: Db, b: Booking, viewer: User) {
     reviews,
     incidents: await repo.findIncidents(db, 'booking_id = $1', [b.id]),
     clientInvites: !isHost ? await repo.invitesForBooking(db, b.id) : undefined,
+    installments: isAdvance(b) ? (await installmentsOf(db, b.id)).map(({ payment_id: _p, reminded_at: _r, ...x }) => x) : undefined,
   };
 }
 
@@ -72,6 +74,8 @@ bookingsRouter.post('/bookings', requireAuth, async (req: AuthedRequest, res) =>
     purpose: z.string().min(3).max(500),
     paymentMethod: z.string(),
     provider: z.enum(['asaas', 'mercadopago']).optional(),
+    advance: z.boolean().optional(),
+    installments: z.number().int().min(1).max(10).optional(),
     payerTaxId: z.string().max(20).optional(),
     license: z.object({ body: z.string().min(2).max(120), number: z.string().min(2).max(40), region: z.string().max(40).optional() }).optional(),
     acceptRules: z.boolean(),
@@ -333,3 +337,9 @@ bookingsRouter.post('/notifications/read', requireAuth, async (req: AuthedReques
   res.status(204).end();
 });
 
+
+// Reserva antecipada: pagar a próxima parcela (Pix ou cartão)
+bookingsRouter.post('/bookings/:id/installments/pay', requireAuth, async (req: AuthedRequest, res) => {
+  const { method } = z.object({ method: z.enum(['pix', 'card']) }).parse(req.body);
+  res.json(await payInstallment(req.user!, req.params.id, method));
+});

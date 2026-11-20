@@ -619,6 +619,11 @@ const ar: Dict = {
   'err.not_found': 'غير موجود.',
   'err.validation': 'يرجى مراجعة الحقول',
   'err.internal': 'حدث خطأ ما. يرجى المحاولة مرة أخرى.',
+  'err.advance_not_eligible': 'Advance booking needs at least {days} days ahead.',
+  'err.advance_pix_or_card': 'Advance booking is paid by Pix or card.',
+  'err.installments_paid': 'All installments are paid.',
+  'price.advanceDiscount': 'Advance booking discount (7%)',
+  'legal.advance-booking': 'Advance Booking in Installments',
   'err.network': 'فشل في الاتصال. تحقق من اتصالك بالإنترنت.',
   // الدفع لدى مزوّد الخدمة، الترخيص المهني، الصور، تقييم التطبيق
   'status.pending_payment': 'بانتظار الدفع',

@@ -619,6 +619,11 @@ const ptBR = {
   'err.not_found': 'Não encontrado.',
   'err.validation': 'Verifique os campos',
   'err.internal': 'Algo deu errado. Tente novamente.',
+  'err.advance_not_eligible': 'A reserva antecipada vale a partir de {days} dias de antecedência e só em espaços que aceitam.',
+  'err.advance_pix_or_card': 'A reserva antecipada é paga por Pix ou cartão.',
+  'err.installments_paid': 'Todas as parcelas já foram pagas.',
+  'price.advanceDiscount': 'Desconto da reserva antecipada (7%)',
+  'legal.advance-booking': 'Reserva Antecipada Parcelada',
   'err.network': 'Falha de conexão. Verifique sua internet.',
 
   // Pagamento no provedor, registro profissional, fotos, avaliação do app

@@ -11,6 +11,7 @@ export function PriceLines({ p, showHost, hideDeposit }: { p: PriceBreakdown; sh
       {!!p.packageDiscount && <div className="small"><dt>{t('price.packageDiscount')}</dt><dd>−{m(p.packageDiscount)}</dd></div>}
       {p.days > 0 && <div className="muted small"><dt>{t('price.dailyApplied', { n: p.days })}</dt><dd /></div>}
       {p.cleaningFee > 0 && <div><dt>{t('price.cleaning')}</dt><dd>{m(p.cleaningFee)}</dd></div>}
+      {!!p.advanceDiscount && <div><dt>{t('price.advanceDiscount')}</dt><dd>−{m(p.advanceDiscount)}</dd></div>}
       {p.guestServiceFee > 0 && <div><dt>{t('price.serviceFee')}</dt><dd>{m(p.guestServiceFee)}</dd></div>}
       {!!p.brokerFee && <div><dt>{t('price.brokerFee')}</dt><dd>{m(p.brokerFee)}</dd></div>}
       {!!p.caretakerFee && <div><dt>{t('price.caretakerFee')}</dt><dd>{m(p.caretakerFee)}</dd></div>}

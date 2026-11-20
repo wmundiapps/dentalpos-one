@@ -9,6 +9,7 @@ import { ACTIVE_STATUSES } from './repo.js';
 import { HttpError, addStrike, assertCanTransact } from './auth.js';
 import { notify } from './notify.js';
 import { onBookingCancelled, onBookingCompleted, onBookingConfirmed } from './partners.js';
+import { applyInstallmentUpdate, bookingForInstallment, cancelAdvance, fullyPaid, installmentOfPayment, installmentPaid, insertInstallments, isAdvance } from './advance.js';
 import {
   type Gateway, type PaymentUpdate, capturePayment, chargeExtra, gatewayForBooking, gatewayOf, holdDeposit, markFailed, markPaid, newPayment,
   payHost, refundPayment, releaseDeposit, startCheckout, supportsHold, voidPayment,
@@ -18,7 +19,7 @@ import {
   BOOKING_LIMITS, FEES, addDays, GUARANTOR_RULES, INCIDENT_RESPONSE_HOURS, OVERSTAY, PENALTIES, REVIEW_RULES, RULES_VERSION, spouseConsentRequired,
   computeGuestRefund, computePrice, daysBetween, guarantorRequired, hostCancellationPenalty, occurrenceEndUtc,
   occurrenceHours, occurrenceStartUtc, roundMoney, suggestedPenalty, validateOccurrences,
-  bookingPattern, partnerFeesOf,
+  bookingPattern, partnerFeesOf, ADVANCE_RULES, advanceMaxInstallments, advanceSchedule, applyAdvanceDiscount, todayInZone,
 } from '../../shared/rules.js';
 import { getCountry } from '../../shared/countries.js';
 import { isLaunched } from './launch.js';
@@ -97,12 +98,25 @@ export async function validationContext(db: Db, listing: Listing, guestId: strin
   return { existing: active, guestHoursLast30Days: guestHours, guestActiveSeries: series, seriesCooldownUntil };
 }
 
-export async function quote(db: Db, listing: Listing, occurrences: Occurrence[], guest?: User) {
-  const errors = validateOccurrences(listing, occurrences, await validationContext(db, listing, guest?.id, occurrences));
-  const price = computePrice(listing, occurrences);
+export async function quote(db: Db, listing: Listing, occurrences: Occurrence[], guest?: User, opts: { advance?: boolean; installments?: number } = {}) {
+  const ctx = await validationContext(db, listing, guest?.id, occurrences);
+  // Reserva antecipada parcelada: até 18 meses, a partir de 30 dias de antecedência, com 7% de desconto
+  const firstStart = occurrences.length ? Math.min(...occurrences.map((o) => occurrenceStartUtc(listing, o).getTime())) : Date.now();
+  const advanceOk = listing.acceptsAdvance !== false && firstStart - Date.now() >= ADVANCE_RULES.minLeadDays * 86400000;
+  const maxInstallments = advanceMaxInstallments(new Date(firstStart));
+  const errors = validateOccurrences(listing, occurrences, opts.advance ? { ...ctx, maxAdvanceDays: ADVANCE_RULES.maxAdvanceDays } : ctx);
+  if (opts.advance && !advanceOk) errors.push({ code: 'advance_not_eligible', params: { days: ADVANCE_RULES.minLeadDays } });
+  let price = computePrice(listing, occurrences);
+  let schedule: ReturnType<typeof advanceSchedule> | undefined;
+  if (opts.advance) {
+    price = applyAdvanceDiscount(price);
+    const n = Math.max(1, Math.min(maxInstallments, Math.round(opts.installments ?? maxInstallments)));
+    schedule = advanceSchedule(price, n, todayInZone(listing.timezone));
+  }
   return {
     price,
     errors,
+    advance: { available: advanceOk, maxInstallments, discountRate: ADVANCE_RULES.discountRate, schedule },
     guarantorRequired: guarantorRequired(listing.guarantorPolicy, price.total, listing.guarantorThreshold),
     guarantorLiabilityCap: roundMoney(price.total * GUARANTOR_RULES.defaultLiabilityMultiple, price.currency),
   };
@@ -125,6 +139,9 @@ export interface CreateBookingInput {
   clientReviewsEnabled?: boolean;
   guarantor?: { name: string; email: string; phone?: string; documentNumber: string; relationship?: string };
   message?: string;
+  /** Reserva antecipada parcelada (até 18 meses, até 10 parcelas, 7% de desconto). */
+  advance?: boolean;
+  installments?: number;
 }
 
 export function createBooking(guest: User, input: CreateBookingInput): Promise<Booking> {
@@ -153,7 +170,8 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     const country = getCountry(listing.countryCode);
     if (!country.paymentMethods.includes(input.paymentMethod as never)) throw new HttpError(422, 'payment_method_unavailable');
 
-    const q = await quote(tx, listing, input.occurrences, guest);
+    const q = await quote(tx, listing, input.occurrences, guest, { advance: input.advance, installments: input.installments });
+    if (input.advance && !['pix', 'card'].includes(input.paymentMethod)) throw new HttpError(422, 'advance_pix_or_card');
     if (q.errors.length) throw new HttpError(422, 'invalid_occurrences', q.errors);
 
     // Boleto compensa em até 3 dias úteis: só para reservas que começam daqui a pelo menos 3 dias
@@ -186,7 +204,8 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     if (input.guarantor) {
       booking.guarantor = { ...input.guarantor, token: token(), status: 'invited', liabilityCap: q.guarantorLiabilityCap };
     }
-    const payment = newPayment(booking, gateway, sellerRef);
+    const first = q.advance.schedule?.[0];
+    const payment = newPayment(first ? bookingForInstallment(booking, { amount: first.amount, host_share: first.hostShare, seq: 1 }, '') : booking, gateway, sellerRef);
     booking.paymentId = payment.id;
     if (!gateway.instant) {
       // Segura o horário enquanto o locatário paga no checkout do provedor
@@ -195,15 +214,17 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
       booking.paymentDeadline = new Date(Math.min(now.getTime() + paymentWindowMinutes(input.paymentMethod) * 60000, firstStart(listing, booking))).toISOString();
     }
     await repo.saveBooking(tx, booking);
+    if (q.advance.schedule) await insertInstallments(tx, booking, q.advance.schedule, payment.id);
     if (input.message?.trim()) {
       await repo.insertMessage(tx, { id: id('msg'), bookingId: booking.id, senderId: guest.id, text: input.message.trim().slice(0, 2000), createdAt: nowIso() });
     }
     if (gateway.instant) {
       markPaid(payment, false);
       await repo.savePayment(tx, payment);
+      if (q.advance.schedule) await tx.query("UPDATE booking_installments SET status = 'paid', paid_at = now() WHERE booking_id = $1 AND seq = 1", [booking.id]);
       await afterPaid(tx, gateway, booking, listing, payment, now);
     } else {
-      await startCheckout(gateway, payment, booking, listing, payer, checkoutUrls(booking));
+      await startCheckout(gateway, payment, first ? bookingForInstallment(booking, { amount: first.amount, host_share: first.hostShare, seq: 1 }, booking.paymentDeadline!) : booking, listing, payer, checkoutUrls(booking));
       await repo.savePayment(tx, payment);
       await notify(tx, { userId: guest.id }, 'payment_pending',
         `Seu horário em "${listing.title}" (${whenText(booking)}) está guardado até ${deadlineText(booking.paymentDeadline!)}. ${PAY_HOW[input.paymentMethod] ?? 'Conclua o pagamento para confirmar a reserva.'}`,
@@ -247,6 +268,9 @@ export function applyPaymentUpdate(update: PaymentUpdate): Promise<void> {
     const p = (await repo.getPayment(tx, pre.id, true))!;
     const l = await getListing(tx, b.listingId);
     const gateway = await gw(l, p);
+    // Reserva antecipada: parcelas depois da primeira têm fluxo próprio
+    const inst = await installmentOfPayment(tx, p.id);
+    if (inst && inst.seq > 1) return applyInstallmentUpdate(tx, p, b, l, inst, update.outcome, { providerRef: update.providerRef });
     if (update.outcome === 'authorized' || update.outcome === 'captured') {
       if (b.status !== 'pending_payment') {
         // Pago depois de expirar/cancelar: devolve na hora
@@ -259,6 +283,7 @@ export function applyPaymentUpdate(update: PaymentUpdate): Promise<void> {
       }
       if (!markPaid(p, update.outcome === 'captured', update)) return;
       await repo.savePayment(tx, p);
+      if (inst) await installmentPaid(tx, b, l, inst);
       const value = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: p.currency }).format(p.amount);
       await notify(tx, { userId: b.guestId }, 'payment_confirmed', `Pagamento recebido: ${value} pela reserva em "${l.title}" (${whenText(b)}). Obrigado!`, `/reservas/${b.id}`);
       await notify(tx, { userId: b.hostId }, 'payment_received', `Pagamento confirmado da reserva em "${l.title}" (${whenText(b)}).`, `/anfitriao/reservas/${b.id}`);
@@ -328,7 +353,7 @@ async function confirm(tx: Db, b: Booking, l: Listing) {
   await notify(tx, { userId: b.guestId }, 'booking_confirmed', `Reserva confirmada: "${l.title}" — ${whenText(b)}. O endereço completo e o mapa já estão disponíveis na reserva.`, `/reservas/${b.id}`);
   await notify(tx, { userId: b.hostId }, 'booking_confirmed', `Reserva confirmada em "${l.title}" — ${whenText(b)}.`, `/anfitriao/reservas/${b.id}`);
   // Corretor e zelador: valor a repassar e troca de contatos com o locatário
-  await onBookingConfirmed(tx, b, l);
+  if (!isAdvance(b) || (await fullyPaid(tx, b.id))) await onBookingConfirmed(tx, b, l);
 }
 
 async function voidBookingPayment(tx: Db, b: Booking, l: Pick<Listing, 'countryCode'>) {
@@ -445,6 +470,10 @@ export function guestCancel(guest: User, bookingId: string, reason: string, now 
       b.paymentDeadline = undefined;
     } else {
       const r = refundPreview(l, b, now);
+      if (isAdvance(b)) {
+        // Reserva antecipada: 7 dias = tudo; depois, pago − desconto (ou a política do espaço, se devolver menos)
+        b.refundAmount = (await cancelAdvance(tx, b, l, 'guest', now)).refund;
+      } else {
       b.refundAmount = p ? await refundPayment(await gw(l, p), p, r.total, `guest_cancel:${r.rule}`) : r.total;
       if (p) {
         await releaseDeposit(await gw(l, p), p);
@@ -453,6 +482,7 @@ export function guestCancel(guest: User, bookingId: string, reason: string, now 
         if (p.payoutAmount <= 0) p.payoutStatus = 'cancelled';
       }
       await onBookingCancelled(tx, b, r.refundPartnerFees ?? 0);
+      }
       await notify(tx, { userId: b.hostId }, 'booking_cancelled', `O locatário cancelou a reserva em "${l.title}".`, `/anfitriao/reservas/${b.id}`);
     }
     b.status = 'cancelled_guest';
@@ -471,7 +501,8 @@ export function hostCancel(host: User, bookingId: string, reason: string, extenu
     // Dúvida fundada sobre o registro profissional do locatário: cancelar é dever do anfitrião, sem multa nem advertência
     if (licenseDoubt && !l.requiresLicense) throw new HttpError(422, 'license_doubt_not_applicable');
     const p = await paymentOf(tx, b, true);
-    if (p) {
+    if (isAdvance(b)) await cancelAdvance(tx, b, l, 'host', now); // devolve todas as parcelas pagas
+    else if (p) {
       await refundPayment(await gw(l, p), p, p.amount - p.refunded, 'host_cancel');
       await releaseDeposit(await gw(l, p), p);
       p.payoutStatus = 'cancelled';

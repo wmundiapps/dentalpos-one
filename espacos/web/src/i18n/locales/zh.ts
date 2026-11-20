@@ -619,6 +619,11 @@ const zh: Dict = {
   'err.not_found': '未找到。',
   'err.validation': '请检查各字段内容',
   'err.internal': '发生错误，请重试。',
+  'err.advance_not_eligible': 'Advance booking needs at least {days} days ahead.',
+  'err.advance_pix_or_card': 'Advance booking is paid by Pix or card.',
+  'err.installments_paid': 'All installments are paid.',
+  'price.advanceDiscount': 'Advance booking discount (7%)',
+  'legal.advance-booking': 'Advance Booking in Installments',
   'err.network': '连接失败，请检查您的网络。',
   // 支付服务商付款、专业执业资格、照片、应用评价
   'status.pending_payment': '待付款',

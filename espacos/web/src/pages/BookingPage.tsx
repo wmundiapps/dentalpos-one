@@ -26,6 +26,7 @@ type View = Omit<Booking, 'guarantor'> & {
   payment?: { status: string; method: string; provider?: string; checkoutUrl?: string; amount: number; refunded: number; depositHold: number; depositStatus: string; extraCharges: Array<{ amount: number; reason: string }>; payoutStatus?: string; payoutAmount?: number };
   refundPreview?: { total: number; rule: string };
   reviewWindowOpen: boolean; myReview?: Review; reviews: Review[]; incidents: Incident[]; clientInvites?: ClientReviewInvite[];
+  installments?: Array<{ id: string; seq: number; due_date: string; amount: number; partner_fees: number; status: string; paid_at: string | null }>;
 };
 
 const HOST_TYPES: IncidentType[] = ['damage', 'extra_cleaning', 'rule_violation', 'over_capacity', 'unauthorized_activity', 'sublet', 'smoking_substances', 'building_fine', 'harassment', 'off_platform_payment', 'no_show', 'overstay', 'illegal_practice'];
@@ -162,6 +163,7 @@ export default function BookingPage() {
           {panel === 'incident' && <IncidentPanel b={b} types={isHost ? HOST_TYPES : GUEST_TYPES} onDone={() => { setPanel(null); load(); }} />}
           {panel === 'invites' && <InvitesPanel b={b} onDone={load} />}
 
+          {b.installments && <Installments b={b} isHost={isHost} onChange={load} />}
           {['confirmed', 'checked_in', 'completed'].includes(b.status) && <BookingPartners bookingId={b.id} isGuest={!isHost} />}
 
           {b.incidents.length > 0 && (
@@ -411,5 +413,40 @@ function LicenseCheckBox({ guest, checked, onChange }: { guest: View['guest']; c
       {lc && lc.reasons.length > 0 && <ul className="small muted">{lc.reasons.slice(0, 4).map((r, i) => <li key={i}>{r}</li>)}</ul>}
       <label className="check"><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /> {t('booking.licenseConfirm')}</label>
     </div>
+  );
+}
+
+// Reserva antecipada parcelada: parcelas, status e pagamento da próxima
+function Installments({ b, isHost, onChange }: { b: View; isHost: boolean; onChange: () => void }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const list = b.installments!;
+  const next = list.find((x) => x.status === 'pending');
+  const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const ST: Record<string, string> = { pending: 'A pagar', paid: 'Paga', void: 'Cancelada', refunded: 'Devolvida' };
+  async function pay(method: 'pix' | 'card') {
+    setBusy(true); setErr('');
+    try {
+      const r = await api<{ paid: boolean; checkoutUrl?: string }>(`/bookings/${b.id}/installments/pay`, { body: { method } });
+      if (r.checkoutUrl) window.location.href = r.checkoutUrl; else onChange();
+    } catch (e) { setErr(errorText(e, t)); } finally { setBusy(false); }
+  }
+  return (
+    <section className="section">
+      <h2>Parcelas da reserva antecipada</h2>
+      <table className="table small"><tbody>{list.map((x) => (
+        <tr key={x.id}><td>{x.seq}ª</td><td>{x.due_date.split('-').reverse().join('/')}</td><td style={{ textAlign: 'end' }}>{brl(x.amount)}{x.partner_fees ? ' *' : ''}</td><td>{ST[x.status] ?? x.status}</td></tr>
+      ))}</tbody></table>
+      {list.some((x) => x.partner_fees) && <p className="muted small">* inclui as taxas de corretor/zelador.</p>}
+      {!isHost && next && b.status === 'confirmed' && (
+        <div className="row gap wrap">
+          <button className="btn btn-primary small" disabled={busy} onClick={() => pay('pix')}>Pagar {next.seq}ª parcela com Pix</button>
+          <button className="btn btn-outline small" disabled={busy} onClick={() => pay('card')}>Pagar com cartão</button>
+        </div>
+      )}
+      {!isHost && next && <p className="muted small">Vence em {next.due_date.split('-').reverse().join('/')}. Depois de 5 dias de atraso a reserva é cancelada. <Link to="/regras/advance-booking">Condições e reembolso</Link></p>}
+      {err && <p className="errors small">{err}</p>}
+    </section>
   );
 }

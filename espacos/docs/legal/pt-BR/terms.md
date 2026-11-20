@@ -14,7 +14,7 @@ Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 1.4. O aceite é registrado eletronicamente, com data, hora e versão dos Termos vigentes, e cada Reserva registra também o aceite das Regras de Reserva e Uso e das normas do Espaço na versão aplicável.
 
-1.5. Integram estes Termos, como anexos com a mesma força vinculante, os seguintes 10 (dez) documentos:
+1.5. Integram estes Termos, como anexos com a mesma força vinculante, os seguintes 11 (onze) documentos:
 - (a) Regras de Reserva e Uso (`booking-rules`);
 - (b) Política de Cancelamento e Reembolso (`cancellation-refunds`);
 - (c) Penalidades e Medidas (`penalties`);
@@ -24,7 +24,8 @@ Versão 2026-11-20 · Vigência a partir de 20/11/2026
 - (g) Pagamentos (`payments`);
 - (h) Obrigações do Anfitrião (`host-obligations`);
 - (i) Central de Resolução e Disputas (`disputes`);
-- (j) Política de Privacidade (`privacy`).
+- (j) Política de Privacidade (`privacy`);
+- (k) Reserva Antecipada Parcelada — Condições e Política de Reembolso (`advance-booking`).
 
 1.6. Em caso de conflito entre documentos, prevalece, nesta ordem: (i) a norma legal cogente aplicável; (ii) o documento específico sobre o tema; (iii) estes Termos. As normas internas publicadas pelo Anfitrião no Anúncio complementam, mas não podem contrariar, os documentos da Plataforma.
 
@@ -55,6 +56,7 @@ Versão 2026-11-20 · Vigência a partir de 20/11/2026
 | **Taxa de Intermediação** | Valor pago pelo Locatário, uma vez por Reserva, quando o Anúncio tiver Corretor Parceiro vinculado: o maior entre R$ 100,00 e 10% do valor total da locação (Valor Base + Taxa de Limpeza) da Reserva (Pagamentos, cláusula 12.2). |
 | **Taxa de Atendimento** | Valor fixo pago pelo Locatário, uma vez por Reserva, quando o Anúncio tiver Zelador Parceiro vinculado, definido pela Operadora para cada Anúncio e exibido antes do pagamento (Pagamentos, cláusula 12.3). |
 | **Taxas de Parceiro** | A Taxa de Intermediação e a Taxa de Atendimento, em conjunto. São recebidas pela Operadora e repassadas aos Parceiros, e são reembolsadas na mesma proporção do Valor Base (Política de Cancelamento e Reembolso, cláusula 5.4). |
+| **Reserva Antecipada Parcelada** | Reserva de Espaço, datas e horários determinados com até 18 meses de antecedência, com desconto de 7% sobre o Valor Base mais a Taxa de Limpeza e pagamento em até 10 parcelas mensais, cada uma dividida no ato entre Anfitrião (80%) e Operadora (20%); obrigatória para primeira Ocorrência a mais de 180 dias (Reserva Antecipada Parcelada — Condições e Política de Reembolso). |
 | **Caução** | Valor de garantia definido pelo Anfitrião no Anúncio, limitado a 3 vezes o Valor Base, destinado a garantir danos e penalidades. Enquanto nenhum meio de pagamento disponível permitir pré-autorização pela Plataforma, a Caução é substituída pela exigência de Fiador (documento Fiança e Caução). |
 | **Incidente** | Registro formal, aberto na Central de Resolução, de um fato ocorrido em uma Reserva que pode gerar cobrança, Advertência ou outra medida (por exemplo, atraso na saída ou dano). Não se confunde com Ocorrência, que designa o período reservado. |
 | **Advertência** | Anotação no histórico do Usuário decorrente de infração, com efeitos previstos no documento Penalidades e Medidas. |

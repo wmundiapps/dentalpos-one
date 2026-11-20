@@ -619,6 +619,11 @@ const de: Dict = {
   'err.not_found': 'Nicht gefunden.',
   'err.validation': 'Bitte überprüfen Sie die Felder',
   'err.internal': 'Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
+  'err.advance_not_eligible': 'Advance booking needs at least {days} days ahead.',
+  'err.advance_pix_or_card': 'Advance booking is paid by Pix or card.',
+  'err.installments_paid': 'All installments are paid.',
+  'price.advanceDiscount': 'Advance booking discount (7%)',
+  'legal.advance-booking': 'Advance Booking in Installments',
   'err.network': 'Verbindungsfehler. Überprüfen Sie Ihre Internetverbindung.',
   // Zahlung beim Anbieter, berufliche Zulassung, Fotos, App-Bewertung
   'status.pending_payment': 'Zahlung ausstehend',

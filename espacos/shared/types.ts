@@ -92,6 +92,7 @@ export interface Listing {
   brokerId?: string;
   caretakerId?: string;
   caretakerFee?: number;
+  acceptsAdvance?: boolean; // aceita reserva antecipada parcelada (padrão: sim)
   minHours: number;
   cleaningFee: number;
   securityDeposit: number;  // caução (pré-autorização), 0 = sem caução
@@ -153,6 +154,7 @@ export interface PriceBreakdown {
   brokerFee?: number;       // taxa do corretor parceiro (paga pelo locatário, uma por reserva)
   caretakerFee?: number;    // taxa do zelador parceiro (paga pelo locatário, uma por reserva)
   partners?: Array<{ role: PartnerRole; userId: string; amount: number }>;
+  advanceDiscount?: number; // reserva antecipada parcelada: 7% de desconto na locação
 }
 
 export type PartnerRole = 'broker' | 'caretaker';

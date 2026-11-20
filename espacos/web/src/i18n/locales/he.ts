@@ -619,6 +619,11 @@ const he: Dict = {
   'err.not_found': 'לא נמצא.',
   'err.validation': 'בדקו את השדות',
   'err.internal': 'משהו השתבש. נסו שוב.',
+  'err.advance_not_eligible': 'Advance booking needs at least {days} days ahead.',
+  'err.advance_pix_or_card': 'Advance booking is paid by Pix or card.',
+  'err.installments_paid': 'All installments are paid.',
+  'price.advanceDiscount': 'Advance booking discount (7%)',
+  'legal.advance-booking': 'Advance Booking in Installments',
   'err.network': 'תקלת חיבור. בדקו את חיבור האינטרנט שלכם.',
   // תשלום אצל ספק התשלומים, רישיון מקצועי, תמונות, דירוג האפליקציה
   'status.pending_payment': 'ממתין לתשלום',

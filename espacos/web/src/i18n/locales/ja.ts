@@ -619,6 +619,11 @@ const ja: Dict = {
   'err.not_found': '見つかりません。',
   'err.validation': '入力内容をご確認ください',
   'err.internal': '問題が発生しました。もう一度お試しください。',
+  'err.advance_not_eligible': 'Advance booking needs at least {days} days ahead.',
+  'err.advance_pix_or_card': 'Advance booking is paid by Pix or card.',
+  'err.installments_paid': 'All installments are paid.',
+  'price.advanceDiscount': 'Advance booking discount (7%)',
+  'legal.advance-booking': 'Advance Booking in Installments',
   'err.network': '接続エラーです。インターネット接続をご確認ください。',
   // 決済代行での支払い、専門資格、写真、アプリの評価
   'status.pending_payment': '支払い待ち',
