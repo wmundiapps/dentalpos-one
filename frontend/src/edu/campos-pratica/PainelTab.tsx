@@ -1,4 +1,5 @@
 import { Box, Button, Chip, Typography } from "@mui/material";
+import VisibilidadeAluno from "./VisibilidadeAluno";
 import { Acoes, Btn, COLORS, Kpi, KpiRow, LoadBox, Section, cp, corSeveridade, perfil, useCp, useRunner, useToast } from "./kit";
 
 const NUCLEO: Record<string, string> = { ESTAGIOS: "estagios", AGRONOMIA: "agro" };
@@ -12,6 +13,7 @@ export default function PainelTab({ onGo }: { onGo: (secao: string) => void }) {
   return (
     <>
       {node}
+      {pf.gestor && <VisibilidadeAluno />}
       <Section title="Visão geral dos campos de prática" actions={pf.gestor ? <Btn onClick={() => run(() => cp("POST", "/jobs/executar"), "Alertas e lembretes atualizados.")}>Atualizar alertas</Btn> : undefined}>
         <LoadBox loading={p.loading} error={p.error} onRetry={p.reload}>
           {d && (

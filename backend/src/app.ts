@@ -109,6 +109,7 @@ const authLimiterConta = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: Number(process.env.AUTH_RATE_LIMIT_MAX || 10),
   keyGenerator: (req: any) => `${req.ip}|${contaDoPedido(req)}`,
+  skipSuccessfulRequests: true, // só tentativas que falham contam: login legítimo repetido não bloqueia ninguém
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.' }

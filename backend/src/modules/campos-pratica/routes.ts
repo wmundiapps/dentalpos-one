@@ -11,10 +11,38 @@ import { jobLembretesVacina, mountAnimal } from './animal'
 import { alertasEstagios, jobAlertasEstagios, mountEstagios } from './estagios'
 import { mountPacientes } from './pacientes'
 import { DIA, GESTAO, LEITURA, OPERACAO, getConfig } from './servico'
+import { swrCache } from '../../lib/swrCache'
 
 // Módulo "campos-pratica" (prefixo Cpr): estágios, clínicas-escola, núcleo de agronomia e núcleo animal.
 // Rotas autenticadas em /api/edu/campos-pratica. Ver README.md.
 const router = Router()
+
+// ---- Chaves do coordenador: o que o ALUNO pode ver neste módulo ----
+// Padrão: estágios (vagas e convênios) liberados; clínicas, agronomia e núcleo animal ocultos.
+export const SECOES_ALUNO = ['estagios', 'clinicas', 'agro', 'animal'] as const
+const PADRAO_ALUNO: Record<string, boolean> = { estagios: true, clinicas: false, agro: false, animal: false }
+const visibilidadeCache = swrCache<Record<string, boolean>>(30_000, 120_000, async (tenantId) => {
+  const c = await getConfig(tenantId)
+  const salvo = (c.visibilidadeAluno && typeof c.visibilidadeAluno === 'object' ? c.visibilidadeAluno : {}) as Record<string, unknown>
+  return Object.fromEntries(SECOES_ALUNO.map((k) => [k, typeof salvo[k] === 'boolean' ? (salvo[k] as boolean) : PADRAO_ALUNO[k]]))
+})
+router.use(asyncHandler(async (req: AuthenticatedRequest, res: Response, next) => {
+  if (String(req.user?.role || '').toUpperCase() !== 'STUDENT') return next()
+  const secao = req.path.split('/')[1] ?? ''
+  if (!(SECOES_ALUNO as readonly string[]).includes(secao)) return next()
+  const vis = await visibilidadeCache.get(getTenantId(req))
+  if (!vis[secao]) return res.status(403).json({ error: 'Esta área não está liberada para alunos pela coordenação.' })
+  next()
+}))
+router.get('/visibilidade-aluno', requireRole(...LEITURA), asyncHandler(async (req: AuthenticatedRequest, res: Response) => { res.json(await visibilidadeCache.get(getTenantId(req))) }))
+router.put('/visibilidade-aluno', requireRole(...GESTAO), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = getTenantId(req)
+  const b = parseBody(z.object({ estagios: z.boolean(), clinicas: z.boolean(), agro: z.boolean(), animal: z.boolean() }), req.body)
+  await getConfig(tenantId)
+  await prisma.cprConfig.update({ where: { tenantId }, data: { visibilidadeAluno: b } })
+  visibilidadeCache.clear()
+  res.json(b)
+}))
 
 router.get('/config', requireRole(...LEITURA), asyncHandler(async (req: AuthenticatedRequest, res: Response) => { res.json(await getConfig(getTenantId(req))) }))
 router.put('/config', requireRole(...GESTAO), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

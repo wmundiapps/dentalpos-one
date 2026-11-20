@@ -21,6 +21,7 @@ model CprConfig {
   consentimentoVersao      String   @default("2026.1")
   diasAlertaColheita       Int      @default(15)
   diasLembreteVacina       Int      @default(7)
+  visibilidadeAluno        Json?    // chaves do coordenador: o que o aluno pode ver (estagios, clinicas, agro, animal)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 }
