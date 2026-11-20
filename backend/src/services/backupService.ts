@@ -55,8 +55,12 @@ function libpqUrl(dbName?: string) {
 }
 
 function pgBin(name: string) {
-  const v17 = `/usr/lib/postgresql/17/bin/${name}`
-  return fs.existsSync(v17) ? v17 : name
+  // usa o cliente mais novo instalado (pg_dump precisa ter versão >= a do servidor)
+  for (const v of [19, 18, 17]) {
+    const p = `/usr/lib/postgresql/${v}/bin/${name}`
+    if (fs.existsSync(p)) return p
+  }
+  return name
 }
 
 function run(cmd: string, args: string[], input?: string) {
