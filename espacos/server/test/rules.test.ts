@@ -33,9 +33,10 @@ test('preço (20/11/2026): locatário paga base + limpeza; anfitrião recebe 80%
   assert.equal(p.partners, undefined);
 });
 
-test('parceiros: corretor R$ 50 ou 10% do total da locação (uma vez por reserva) e zelador fixo por reserva, por fora da divisão', () => {
-  assert.equal(brokerFee(300, 'BRL'), 50);
+test('parceiros: corretor R$ 100 ou 10% do total da locação (uma vez por reserva) e zelador fixo por reserva, por fora da divisão', () => {
+  assert.equal(brokerFee(300, 'BRL'), 100);
   assert.equal(brokerFee(1000, 'BRL'), 100);
+  assert.equal(brokerFee(3000, 'BRL'), 300);
   // Exemplo do Robson: locação de R$ 1.000 em 10 dias; corretor 100, zelador 150 → locatário paga 1.250; anfitrião 800; SpaceHour 450 (repassa 250)
   const withPartners = { ...listing, pricePerHour: 50, cleaningFee: 0, brokerId: 'usr_b', caretakerId: 'usr_c', caretakerFee: 150 };
   const occ = [1, 2, 3, 4, 5].flatMap((n) => [{ date: d(n), start: '08:00', end: '10:00' }]).concat([8, 9, 10, 11, 12].map((n) => ({ date: d(n), start: '08:00', end: '10:00' })));
@@ -46,8 +47,8 @@ test('parceiros: corretor R$ 50 ou 10% do total da locação (uma vez por reserv
   assert.equal(p.total, 1250);
   assert.equal(p.hostPayout, 800);
   assert.equal(p.total - p.hostPayout, 450, 'SpaceHour recebe 200 + 250 dos parceiros e repassa 250');
-  // Locação pequena: mínimo de R$ 50
-  assert.equal(computePrice(withPartners, [{ date: d(10), start: '08:00', end: '10:00' }], NEW).brokerFee, 50);
+  // Locação pequena: mínimo de R$ 100
+  assert.equal(computePrice(withPartners, [{ date: d(10), start: '08:00', end: '10:00' }], NEW).brokerFee, 100);
   // Cancelamento com devolução integral devolve também as taxas dos parceiros
   const r = computeGuestRefund({ listing: withPartners, policy: 'flexible', occurrences: occ, price: p, bookedAt: new Date(Date.now() - 3600000) });
   assert.equal(r.refundPartnerFees, 250);

@@ -76,12 +76,12 @@ test('reserva paga: taxas por fora da divisão, valor do parceiro retido até o 
   const date = nextDate(1);
   const b = await B.createBooking(guest, { listingId: listing.id, occurrences: [{ date, start: '09:00', end: '11:00' }], guests: 1, purpose: 'Psicoterapia', paymentMethod: 'pix', acceptRules: true, isConsumer: false });
   assert.equal(b.status, 'confirmed');
-  assert.equal(b.price.brokerFee, 50);
+  assert.equal(b.price.brokerFee, 100);
   assert.equal(b.price.caretakerFee, 60);
-  assert.equal(b.price.total, Math.round((b.price.baseAmount + b.price.cleaningFee + b.price.guestServiceFee + b.price.taxOnServiceFee + 110) * 100) / 100);
+  assert.equal(b.price.total, Math.round((b.price.baseAmount + b.price.cleaningFee + b.price.guestServiceFee + b.price.taxOnServiceFee + 160) * 100) / 100);
   assert.equal(b.price.hostPayout, Math.round((b.price.baseAmount + b.price.cleaningFee) * (1 - feesAt().hostServiceFeeRate) * 100) / 100);
   const earn = await rows<{ role: string; amount: number; status: string }>(pool, 'SELECT role, amount, status FROM partner_earnings WHERE booking_id = $1 ORDER BY role', [b.id]);
-  assert.deepEqual(earn, [{ role: 'broker', amount: 50, status: 'held' }, { role: 'caretaker', amount: 60, status: 'held' }]);
+  assert.deepEqual(earn, [{ role: 'broker', amount: 100, status: 'held' }, { role: 'caretaker', amount: 60, status: 'held' }]);
   const toPartner = await one<{ text: string }>(pool, "SELECT text FROM notifications WHERE user_id = $1 AND kind = 'partner_booking' ORDER BY created_at DESC LIMIT 1", [partner.id]);
   assert.match(toPartner!.text, new RegExp(guest.name));
   const toGuest = await one<{ text: string }>(pool, "SELECT text FROM notifications WHERE user_id = $1 AND kind = 'booking_contacts' ORDER BY created_at DESC LIMIT 1", [guest.id]);
@@ -112,7 +112,7 @@ test('vistoria: mínimo de fotos para parceiro; locatário de fora não vê', as
   await P.onBookingCompleted(pool, (await repo.getBooking(pool, b.id))!);
   const due = await P.payoutReport();
   const mine = due.find((d) => d.user_id === partner.id)!;
-  assert.equal(mine.amount, 110);
+  assert.equal(mine.amount, 160);
   await P.markPaid(host, mine.ids as string[], 'Pix E2E123');
   assert.equal((await P.payoutReport()).length, 0);
 });
