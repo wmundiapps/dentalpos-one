@@ -138,6 +138,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Cobranças","/pagamentos",<CreditCardIcon/>),
       item("Gerar financeiro","/pacientes?acao=financeiro",<PaymentsIcon/>),
       item("Recebimentos online","/recebimentos-online",<PaymentsIcon/>),
+      item("Assinatura do paciente","/assinaturas",<CreditCardIcon/>),
       item("Digitalizar Financeiro","/financeiro/digitalizar",<ReceiptLongIcon/>),
       item("Fechamento de caixa","/fechamento-caixa",<PaymentsIcon/>),
       item("Rateio do condomínio","/rateio-condominio",<AccountBalanceIcon/>),

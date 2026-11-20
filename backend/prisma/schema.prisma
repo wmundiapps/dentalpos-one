@@ -3362,3 +3362,80 @@ model StockCycle {
   @@index([clinicId, productId, endedAt])
   @@index([tenantId])
 }
+
+// Assinatura do paciente: mensalidade vira crédito; usar o crédito dá desconto (padrão 10%).
+model MembershipPlan {
+  id            String   @id @default(cuid())
+  clinicId      String
+  tenantId      String
+  name          String
+  description   String?
+  monthlyPrice  Decimal  @db.Decimal(12, 2)
+  monthlyCredit Decimal  @db.Decimal(12, 2)
+  discountPct   Decimal  @default(10) @db.Decimal(5, 2)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @db.Timestamp(3)
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamp(3)
+
+  @@index([clinicId])
+}
+
+model Membership {
+  id          String    @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  patientId   String
+  planId      String
+  status      String    @default("AGUARDANDO_PAGAMENTO")
+  balance     Decimal   @default(0) @db.Decimal(12, 2)
+  billingDay  Int       @default(5)
+  startedAt   DateTime  @default(now()) @db.Timestamp(3)
+  cancelledAt DateTime? @db.Timestamp(3)
+  notes       String?
+  createdAt   DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamp(3)
+
+  @@index([clinicId, status])
+  @@index([patientId])
+}
+
+model MembershipInvoice {
+  id               String    @id @default(cuid())
+  clinicId         String
+  tenantId         String
+  memberId         String
+  competence       String
+  amount           Decimal   @db.Decimal(12, 2)
+  creditAmount     Decimal   @db.Decimal(12, 2)
+  dueDate          DateTime  @db.Date
+  status           String    @default("PENDENTE")
+  financialEntryId String?
+  invoiceUrl       String?
+  pixCopyPaste     String?
+  paidAt           DateTime? @db.Timestamp(3)
+  creditedAt       DateTime? @db.Timestamp(3)
+  createdAt        DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt        DateTime  @default(now()) @updatedAt @db.Timestamp(3)
+
+  @@unique([memberId, competence])
+  @@index([clinicId, status])
+  @@index([financialEntryId])
+}
+
+model MembershipLedger {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  memberId       String
+  movement       String
+  amount         Decimal  @db.Decimal(12, 2)
+  balanceAfter   Decimal  @db.Decimal(12, 2)
+  procedureValue Decimal? @db.Decimal(12, 2)
+  discountAmount Decimal? @db.Decimal(12, 2)
+  description    String
+  actorId        String?
+  idempotencyKey String?  @unique
+  createdAt      DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([memberId, createdAt])
+}
