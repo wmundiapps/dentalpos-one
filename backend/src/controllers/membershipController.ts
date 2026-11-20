@@ -30,7 +30,7 @@ export async function savePlan(req: AuthRequest, res: Response) {
     if (!name) return res.status(400).json({ error: 'Informe o nome do plano.' })
     if (!(price > 0)) return res.status(400).json({ error: 'Informe a mensalidade.' })
     if (!(credit > 0)) return res.status(400).json({ error: 'Informe o crédito mensal.' })
-    if (!(pct >= 0 && pct <= 50)) return res.status(400).json({ error: 'O desconto deve ficar entre 0% e 50%.' })
+    if (!(pct >= 5 && pct <= 10)) return res.status(400).json({ error: 'O desconto deve ficar entre 5% e 10%.' })
     const data = { name, description: b.description ? String(b.description).slice(0, 400) : null, monthlyPrice: price, monthlyCredit: credit, discountPct: pct, ...(b.active !== undefined ? { active: Boolean(b.active) } : {}) }
     if (req.params.id) {
       const done = await prisma.membershipPlan.updateMany({ where: { id: String(req.params.id), clinicId: c.clinicId, tenantId: c.tenantId }, data })

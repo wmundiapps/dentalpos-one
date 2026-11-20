@@ -156,7 +156,7 @@ export default function Membership() {
           <TextField label="Nome do plano" value={planDlg?.name || ""} onChange={(e) => setPlanDlg({ ...planDlg, name: e.target.value })} />
           <TextField label="Mensalidade (R$)" value={planDlg?.monthlyPrice ?? ""} onChange={(e) => setPlanDlg({ ...planDlg, monthlyPrice: e.target.value })} />
           <TextField label="Crédito liberado por mês (R$)" helperText="Se ficar vazio, vira o valor da mensalidade." value={planDlg?.monthlyCredit ?? ""} onChange={(e) => setPlanDlg({ ...planDlg, monthlyCredit: e.target.value })} />
-          <TextField label="Desconto ao usar o crédito (%)" value={planDlg?.discountPct ?? 10} onChange={(e) => setPlanDlg({ ...planDlg, discountPct: e.target.value })} />
+          <TextField label="Desconto ao usar o crédito (%)" helperText="De 5% a 10%." value={planDlg?.discountPct ?? 10} onChange={(e) => setPlanDlg({ ...planDlg, discountPct: e.target.value })} />
           <TextField label="Descrição (opcional)" value={planDlg?.description || ""} onChange={(e) => setPlanDlg({ ...planDlg, description: e.target.value })} />
           {planDlg?.id && <TextField select label="Situação" value={planDlg.active ? "1" : "0"} onChange={(e) => setPlanDlg({ ...planDlg, active: e.target.value === "1" })}><MenuItem value="1">Ativo</MenuItem><MenuItem value="0">Desativado (não aceita novos)</MenuItem></TextField>}
         </DialogContent>

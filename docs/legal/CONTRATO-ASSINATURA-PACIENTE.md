@@ -12,7 +12,7 @@ Pontos que a revisão jurídica deve confirmar: enquadramento do crédito (não 
 
 **CONTRATANTE:** [NOME DO PACIENTE], CPF [CPF], e-mail [E-MAIL], WhatsApp [TELEFONE]. ("Paciente")
 
-**PLANO ESCOLHIDO:** [NOME DO PLANO] — mensalidade de R$ [VALOR], que gera R$ [CRÉDITO MENSAL] de crédito por mês, com desconto de [10]% ao usar o crédito. Vencimento todo dia [DIA].
+**PLANO ESCOLHIDO:** [NOME DO PLANO] — mensalidade de R$ [VALOR], que gera R$ [CRÉDITO MENSAL] de crédito por mês, com desconto de [5 a 10]% ao usar o crédito. Vencimento todo dia [DIA].
 
 ### 1. Objeto
 1.1. O Paciente paga uma mensalidade à Clínica. A cada mensalidade paga, o valor do crédito do plano é somado ao **saldo** do Paciente.
@@ -26,7 +26,7 @@ Pontos que a revisão jurídica deve confirmar: enquadramento do crédito (não 
 2.4. Os valores dos planos podem ser reajustados pela Clínica, com aviso prévio de 30 (trinta) dias, sem afetar o saldo já pago.
 
 ### 3. Uso do crédito e desconto
-3.1. Ao usar o saldo num procedimento, o desconto de [10]% é aplicado sobre o valor do procedimento e **só o valor já com desconto é debitado do saldo**.
+3.1. Ao usar o saldo num procedimento, o desconto de [5 a 10]% é aplicado sobre o valor do procedimento e **só o valor já com desconto é debitado do saldo**.
    Exemplo: procedimento de R$ 100,00 com desconto de 10% → debita R$ 90,00 do saldo.
 3.2. O desconto vale somente quando o procedimento é pago com o saldo da assinatura. Não se acumula com outras promoções, salvo se a Clínica informar o contrário por escrito.
 3.3. Se o saldo for menor que o valor com desconto, o Paciente pode pagar a diferença por outra forma, a critério da Clínica.
