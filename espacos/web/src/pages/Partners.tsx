@@ -18,7 +18,8 @@ const REF_KEY = 'sh_partner_ref';
 const ERR: Record<string, string> = {
   partner_terms_required: 'Para continuar, aceite os termos de parceria.',
   partner_role_required: 'Escolha se você quer ser corretor, zelador ou os dois.',
-  partner_invalid_tax_id: 'CPF ou CNPJ inválido. Confira os números.',
+  partner_invalid_tax_id: 'CNPJ inválido. Confira os números.',
+  partner_cnpj_required: 'A parceria é só entre empresas (PJ–PJ): informe o CNPJ da sua empresa ou MEI. CPF não é aceito.',
   partner_invalid_phone: 'Informe um celular com DDD (11 números), de preferência com WhatsApp.',
   partner_creci_required: 'Para ser corretor, informe o número e o estado do seu CRECI.',
   partner_pix_required: 'Informe uma chave Pix no seu nome.',
@@ -69,13 +70,13 @@ export function PartnersLanding() {
         <section className="lp-benefits">
           <div className="panel">
             <h3>🏢 Corretor Parceiro</h3>
-            <p><b>{brl(PARTNER_RULES.brokerMinFee)} ou {PARTNER_RULES.brokerDayRate * 100}% da diária</b> (o que for maior) em <b>toda reserva</b> dos espaços que você captou, enquanto durar a parceria. Paga pelo locatário, sem tirar nada do proprietário.</p>
-            <p className="muted small">Precisa de CRECI ativo (Lei 6.530/78).</p>
+            <p><b>{brl(PARTNER_RULES.brokerMinFee)} ou {PARTNER_RULES.brokerRate * 100}% do valor da locação</b> (o que for maior) em <b>toda reserva</b> dos espaços que você captou, enquanto durar a parceria. Paga pelo locatário, sem tirar nada do proprietário.</p>
+            <p className="muted small">Só para empresas (CNPJ) com CRECI ativo (Lei 6.530/78). Parceria sempre entre empresas (PJ–PJ).</p>
           </div>
           <div className="panel">
             <h3>🔑 Zelador Parceiro</h3>
             <p>Entregue o acesso, faça a vistoria de entrada e de saída com fotos e atenda o locatário durante a reserva. Você recebe uma <b>taxa fixa por reserva</b>, combinada com o anfitrião para cada espaço.</p>
-            <p className="muted small">A mesma pessoa pode ser corretor e zelador.</p>
+            <p className="muted small">Só para empresas (CNPJ, pode ser MEI). A mesma empresa pode ser corretor e zelador.</p>
           </div>
           <div className="panel">
             <h3>💸 Exemplo</h3>
@@ -136,11 +137,11 @@ function PartnerSignup({ current, onSaved }: { current?: PartnerRow | null; onSa
         <label className="check"><input type="checkbox" checked={f.caretaker} onChange={(e) => set('caretaker', e.target.checked)} /> Zelador Parceiro (chaves, vistoria e atendimento)</label>
       </div>
       <div className="form-grid">
-        <label>CPF ou CNPJ<input inputMode="numeric" value={f.taxId} onChange={(e) => set('taxId', e.target.value)} /></label>
+        <label>CNPJ da empresa (PJ ou MEI)<input inputMode="numeric" value={f.taxId} onChange={(e) => set('taxId', e.target.value)} /></label>
         <label>Celular com WhatsApp<input inputMode="tel" placeholder="(44) 99999-9999" value={f.phone} onChange={(e) => set('phone', e.target.value)} /></label>
-        {f.broker && <label>CRECI<input value={f.creci} placeholder="F12345 ou J1234" onChange={(e) => set('creci', e.target.value)} /></label>}
+        {f.broker && <label>CRECI da empresa (jurídico)<input value={f.creci} placeholder="J1234" onChange={(e) => set('creci', e.target.value)} /></label>}
         {f.broker && <label>Estado do CRECI<input maxLength={2} value={f.creciUf} onChange={(e) => set('creciUf', e.target.value.toUpperCase())} /></label>}
-        <label>Chave Pix (no seu nome)<input value={f.pixKey} onChange={(e) => set('pixKey', e.target.value)} /></label>
+        <label>Chave Pix da empresa (do mesmo CNPJ)<input value={f.pixKey} onChange={(e) => set('pixKey', e.target.value)} /></label>
         <label>Cidades em que atende<input placeholder="Maringá, Sarandi, Paiçandu" value={f.cities} onChange={(e) => set('cities', e.target.value)} /></label>
         <label className="span2">Sobre você (opcional)<textarea value={f.about} onChange={(e) => set('about', e.target.value)} /></label>
       </div>
@@ -150,7 +151,7 @@ function PartnerSignup({ current, onSaved }: { current?: PartnerRow | null; onSa
       {msg && msg !== 'ok' && <p className="errors">{msg}</p>}
       {msg === 'ok' && <p className="notice success">Dados salvos.</p>}
       <button className="btn btn-primary" disabled={busy} onClick={save}>{current ? 'Salvar' : 'Enviar cadastro'}</button>
-      {current && <p className="muted small">Se mudar o CPF/CNPJ, a chave Pix, o CRECI ou pedir uma função nova, o cadastro volta para análise.</p>}
+      {current && <p className="muted small">Se mudar o CNPJ, a chave Pix, o CRECI ou pedir uma função nova, o cadastro volta para análise.</p>}
     </div>
   );
 }
@@ -209,7 +210,7 @@ export function PartnerDashboard() {
           <span>A receber: <b>{brl(d.totals?.due ?? 0)}</b></span>
           <span>Já pago: <b>{brl(d.totals?.paid ?? 0)}</b></span>
         </div>
-        <p className="muted small">Repasse por Pix ({p.pix_key}) até o dia {PARTNER_RULES.payoutDay} do mês seguinte ao check-out, descontado o que voltou ao locatário em cancelamento. Emita nota fiscal (MEI/empresa) ou receba por RPA.</p>
+        <p className="muted small">Repasse por Pix ({p.pix_key}) até o dia {PARTNER_RULES.payoutDay} do mês seguinte ao check-out, descontado o que voltou ao locatário em cancelamento. Emita nota fiscal da sua empresa (CNPJ) para cada repasse.</p>
         {!!d.earnings?.length && <table className="table small"><tbody>{d.earnings.map((e) => (
           <tr key={e.id}><td>{e.title}</td><td>{ROLE[e.role]}</td><td>{brl(e.amount)}</td><td>{EARN[e.status]}{e.paid_ref ? ` (${e.paid_ref})` : ''}</td></tr>
         ))}</tbody></table>}
@@ -341,7 +342,7 @@ export function ListingPartners({ listingId }: { listingId: string }) {
   return (
     <section className="panel" id="parceiros">
       <h2>Parceiros (corretor e zelador)</h2>
-      <p className="muted small">O corretor ganha {brl(PARTNER_RULES.brokerMinFee)} ou {PARTNER_RULES.brokerDayRate * 100}% da diária por reserva; o zelador, a taxa combinada. As duas taxas são pagas pelo locatário e <b>não saem da sua parte</b>. Você continua responsável pelo espaço perante o locatário. <Link to="/parceiros">Como funciona</Link></p>
+      <p className="muted small">O corretor ganha {brl(PARTNER_RULES.brokerMinFee)} ou {PARTNER_RULES.brokerRate * 100}% do valor da locação por reserva (o que for maior); o zelador, a taxa combinada. As duas taxas são pagas pelo locatário e <b>não saem da sua parte</b>. Você continua responsável pelo espaço perante o locatário. <Link to="/parceiros">Como funciona</Link></p>
       {msg && <p className="notice">{msg}</p>}
       {list.map((l) => (
         <div key={l.id} className="row between wrap gap">
@@ -395,7 +396,7 @@ export function PartnersAdmin() {
       {list.map((p) => (
         <div key={p.user_id} className="panel">
           <b>{p.name}</b> · {p.email} · {p.roles.map((r) => ROLE[r]).join(' e ')} · <span className="badge">{STATUS[p.status]}</span>
-          <p className="small">CPF/CNPJ {p.tax_id} · Celular {p.phone} · Pix {p.pix_key} · {p.cities}{p.creci && <> · <b>CRECI {p.creci}/{p.creci_uf}</b> (<a href="https://www.crecipr.gov.br/" target="_blank" rel="noreferrer">conferir no CRECI-PR</a>)</>} · {p.active_links} espaço(s)</p>
+          <p className="small">CNPJ {p.tax_id} · Celular {p.phone} · Pix {p.pix_key} · {p.cities}{p.creci && <> · <b>CRECI {p.creci}/{p.creci_uf}</b> (<a href="https://www.crecipr.gov.br/" target="_blank" rel="noreferrer">conferir no CRECI-PR</a>)</>} · {p.active_links} espaço(s)</p>
           {p.about && <p className="small muted">{p.about}</p>}
           <div className="row gap">
             {p.status !== 'approved' && <button className="btn btn-primary small" onClick={() => decide(p.user_id, 'approved')}>Aprovar</button>}

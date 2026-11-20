@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../state';
 import { track } from '../tracking';
-import { NEW_FEES_FROM, feesAt } from '../../../shared/rules';
+import { feesAt } from '../../../shared/rules';
 
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-// Taxas vigentes hoje (até 19/12/2026: 15% + 5%; a partir de 20/12/2026: só 20% do anfitrião)
+// Taxas vigentes (20/11/2026: só 20% do anfitrião; quem aluga não paga taxa de serviço)
 const FEES = feesAt();
 const NEW_MODEL = FEES.guestServiceFeeRate === 0;
-const CHANGE_NOTE = NEW_MODEL ? '' : ` A partir de ${new Date(NEW_FEES_FROM).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}, quem aluga deixa de pagar taxa de serviço e a taxa do SpaceHour passa a 20% do valor do anfitrião.`;
+const CHANGE_NOTE = '';
 const pay100 = brl(100 * (1 + FEES.guestServiceFeeRate));
 const net100 = (n: number) => brl(Math.round(100 * (1 - FEES.hostServiceFeeRate) * (1 - n)));
 

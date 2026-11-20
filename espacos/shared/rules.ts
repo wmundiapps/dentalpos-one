@@ -37,16 +37,13 @@ export const BOOKING_LIMITS = {
 } as const;
 
 // ───────────── Taxas da plataforma ─────────────
-// Modelo novo (aprovado em 20/11/2026), em vigor depois do aviso de 30 dias aos anfitriões (Termos, 14.1):
-// o locatário deixa de pagar taxa de serviço sobre a locação e a comissão do SpaceHour passa a 20% (anfitrião fica com 80%).
-// Reservas criadas antes da data seguem 15% (locatário) + 5% (anfitrião).
-export const NEW_FEES_FROM = '2026-12-20T03:00:00.000Z'; // 20/12/2026 00:00 em Brasília
-export const OLD_FEES = { guestServiceFeeRate: 0.15, hostServiceFeeRate: 0.05 } as const;
-export function feesAt(now: Date = new Date()) {
-  return now.getTime() >= Date.parse(NEW_FEES_FROM) ? { guestServiceFeeRate: FEES.guestServiceFeeRate, hostServiceFeeRate: FEES.hostServiceFeeRate } : OLD_FEES;
+// Modelo aprovado em 20/11/2026 (sem reservas nem anfitriões ativos até então, vale já):
+// o locatário não paga taxa de serviço sobre a locação e a comissão do SpaceHour é de 20% (anfitrião fica com 80%).
+export function feesAt(_now: Date = new Date()) {
+  return { guestServiceFeeRate: FEES.guestServiceFeeRate, hostServiceFeeRate: FEES.hostServiceFeeRate };
 }
 export const FEES = {
-  guestServiceFeeRate: 0,     // a partir de 20/12/2026 o locatário não paga taxa de serviço sobre a locação
+  guestServiceFeeRate: 0,     // o locatário não paga taxa de serviço sobre a locação
   hostServiceFeeRate: 0.20,   // comissão do SpaceHour: 20% da locação (anfitrião recebe 80%), tributos incluídos
   payoutDelayHours: 24,       // repasse ao anfitrião 24 h após o início da (primeira) ocorrência
   depositReleaseHours: 72,    // caução liberada 72 h após o check-out se não houver ocorrência
@@ -58,8 +55,8 @@ export const FEES = {
 // Taxas pagas pelo locatário "por fora" da locação, uma vez por reserva (independente do número de dias).
 // O SpaceHour recebe junto com a comissão e repassa ao parceiro até o dia 10 do mês seguinte ao check-out.
 export const PARTNER_RULES = {
-  brokerMinFee: 50,              // corretor: R$ 50 ou 10% da diária mais cara da reserva, o que for maior
-  brokerDayRate: 0.10,
+  brokerMinFee: 50,              // corretor: R$ 50 ou 10% do valor total da locação, o que for maior
+  brokerRate: 0.10,
   caretakerMinFee: 20,           // zelador: valor fixo por reserva, definido por anúncio (cidade, tamanho)
   caretakerMaxFee: 500,
   payoutDay: 10,                 // repasse ao parceiro até o dia 10 do mês seguinte
@@ -71,10 +68,9 @@ export const PARTNER_RULES = {
   dataRetentionDays: 90,         // parceiro deixa de ver os dados do locatário 90 dias após o check-out
 } as const;
 
-/** Taxa do corretor: o maior entre R$ 50 e 10% do valor do dia mais caro da reserva. */
-export function brokerFee(dayValues: number[], currency: string): number {
-  const maxDay = dayValues.length ? Math.max(...dayValues) : 0;
-  return roundMoney(Math.max(PARTNER_RULES.brokerMinFee, maxDay * PARTNER_RULES.brokerDayRate), currency);
+/** Taxa do corretor: o maior entre R$ 50 e 10% do valor total da locação (valor base + limpeza), uma vez por reserva. */
+export function brokerFee(rentalTotal: number, currency: string): number {
+  return roundMoney(Math.max(PARTNER_RULES.brokerMinFee, rentalTotal * PARTNER_RULES.brokerRate), currency);
 }
 
 // ───────────── Política de cancelamento (locatário) ─────────────
@@ -255,7 +251,6 @@ export function computePrice(listing: Listing, occurrences: Occurrence[], now: D
   let base = 0;
   let hours = 0;
   let days = 0;
-  const perDate = new Map<string, number>();
   for (const o of occurrences) {
     const h = occurrenceHours(o);
     hours += h;
@@ -264,7 +259,6 @@ export function computePrice(listing: Listing, occurrences: Occurrence[], now: D
     const value = listing.pricePerDay && h >= 6 && listing.pricePerDay < hourly ? listing.pricePerDay : hourly;
     if (value !== hourly) days += 1;
     base += value;
-    perDate.set(o.date, (perDate.get(o.date) ?? 0) + value);
   }
   const discountRate = packageDiscountRate(listing, occurrences);
   const packageDiscount = roundMoney(base * discountRate, cur);
@@ -274,7 +268,7 @@ export function computePrice(listing: Listing, occurrences: Occurrence[], now: D
   const taxOnServiceFee = roundMoney(guestServiceFee * country.taxRate, cur);
   // Parceiros do anúncio: uma taxa de cada por reserva, paga pelo locatário
   const partners: NonNullable<PriceBreakdown['partners']> = [];
-  if (listing.brokerId) partners.push({ role: 'broker', userId: listing.brokerId, amount: brokerFee([...perDate.values()].map((v) => v * (1 - discountRate)), cur) });
+  if (listing.brokerId) partners.push({ role: 'broker', userId: listing.brokerId, amount: brokerFee(base + cleaningFee, cur) });
   if (listing.caretakerId && listing.caretakerFee) {
     const fee = Math.min(Math.max(listing.caretakerFee, PARTNER_RULES.caretakerMinFee), PARTNER_RULES.caretakerMaxFee);
     partners.push({ role: 'caretaker', userId: listing.caretakerId, amount: roundMoney(fee, cur) });

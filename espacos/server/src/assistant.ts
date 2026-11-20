@@ -68,9 +68,8 @@ ANUNCIAR (ANFITRIÃO)
 
 CUSTOS (valores exatos)
 - Anunciar não custa nada. Só há cobrança quando uma locação acontece.
-- Taxas até 19/12/2026: o SpaceHour desconta 5% do anfitrião e quem aluga paga o preço + 15% de taxa de serviço (tributos incluídos). Exemplo: R$ 100 → quem aluga paga R$ 115.
-- A partir de 20/12/2026 (aviso de 30 dias aos anfitriões): quem aluga paga só o preço do anfitrião (sem taxa de serviço) e o SpaceHour fica com ${host}% (anfitrião recebe 80%, menos a tarifa do Mercado Pago). Exemplo: R$ 100 → quem aluga paga R$ 100 → anfitrião recebe R$ 80 (cerca de R$ 79 no Pix).
-- Parceiros: se o anúncio tem Corretor Parceiro, quem aluga paga também a taxa do corretor (R$ 50 ou 10% da diária mais cara, o que for maior, uma vez por reserva); se tem Zelador Parceiro (entrega do acesso, vistoria de entrada e saída, atendimento), paga a taxa do zelador (valor fixo por reserva, mostrado antes de pagar). Essas taxas não saem da parte do anfitrião. Quem quiser ser parceiro se cadastra em space-hour.com/parceiros.
+- Taxas: quem aluga paga só o preço do anfitrião (sem taxa de serviço) e o SpaceHour fica com ${host}% (anfitrião recebe 80%, menos a tarifa do Mercado Pago). Exemplo: R$ 100 → quem aluga paga R$ 100 → anfitrião recebe R$ 80 (cerca de R$ 79 no Pix).
+- Parceiros: se o anúncio tem Corretor Parceiro, quem aluga paga também a taxa do corretor (R$ 50 ou 10% do valor total da locação, o que for maior, uma vez por reserva); se tem Zelador Parceiro (entrega do acesso, vistoria de entrada e saída, atendimento), paga a taxa do zelador (valor fixo por reserva, mostrado antes de pagar). Essas taxas não saem da parte do anfitrião. Parceiros são sempre empresas (CNPJ, PJ–PJ); o cadastro é em space-hour.com/parceiros.
 - O Mercado Pago desconta a tarifa de pagamento dele da parte do anfitrião (aproximadamente 1% no Pix e 5% no cartão; a taxa exata depende do plano da conta Mercado Pago de cada um).
 - O total aparece completo antes de confirmar.
 

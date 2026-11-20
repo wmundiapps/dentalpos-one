@@ -1,7 +1,7 @@
 // Parceiros do SpaceHour: Corretor Parceiro (capta o espaço e recebe a chancela do anúncio) e Zelador
 // Parceiro (entrega o acesso, vistoria a entrada e a saída com fotos e atende durante a reserva).
 // Regras (shared/rules.ts PARTNER_RULES e docs/legal/pt-BR/partner-*.md):
-// - cadastro aprovado pela equipe; corretor só com CRECI; aceite dos termos com data, IP e versão;
+// - só empresas (CNPJ, PJ–PJ); cadastro aprovado pela equipe; corretor só com CRECI; aceite dos termos com data, IP e versão;
 // - vínculo com o anúncio sempre com o "sim" das duas partes (anfitrião e parceiro);
 // - taxas pagas pelo locatário, uma por reserva; o SpaceHour repassa até o dia 10 do mês seguinte ao check-out,
 //   descontado o que voltou ao locatário em cancelamento;
@@ -71,6 +71,8 @@ export async function registerPartner(user: User, input: PartnerInput, ip?: stri
   if (!input.acceptTerms) throw new HttpError(422, 'partner_terms_required');
   const roles = [...new Set(input.roles)].filter((r): r is PartnerRole => r === 'broker' || r === 'caretaker');
   if (!roles.length) throw new HttpError(422, 'partner_role_required');
+  // Parceria sempre entre empresas (PJ–PJ): só CNPJ (empresa ou MEI), mesmo para corretor
+  if (digits(input.taxId).length !== 14) throw new HttpError(422, 'partner_cnpj_required');
   if (!validTaxId(input.taxId)) throw new HttpError(422, 'partner_invalid_tax_id');
   const phone = digits(input.phone).replace(/^55(?=\d{10,11}$)/, '');
   if (phone.length !== 11 || phone[2] !== '9') throw new HttpError(422, 'partner_invalid_phone');

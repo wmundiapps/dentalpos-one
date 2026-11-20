@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS partners (
   user_id            TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   roles              TEXT[] NOT NULL,                      -- broker | caretaker
   status             TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','suspended')),
-  tax_id             TEXT NOT NULL,                        -- CPF ou CNPJ (só dígitos)
+  tax_id             TEXT NOT NULL,                        -- CNPJ (só dígitos): parceria sempre PJ–PJ
   phone              TEXT NOT NULL,                        -- celular com WhatsApp (só dígitos, sem 55)
   creci              TEXT,                                 -- obrigatório para corretor (Lei 6.530/78)
   creci_uf           CHAR(2),

@@ -41,9 +41,10 @@ const nextDate = (weekday: number) => {
   throw new Error('no date');
 };
 
-test('cadastro: CPF válido, celular, CRECI obrigatório para corretor e aceite dos termos', async () => {
-  const base = { roles: ['broker', 'caretaker'] as const, taxId: '529.982.247-25', phone: '(44) 99999-1234', creci: 'F12345', creciUf: 'PR', pixKey: 'lucas@pix.com', cities: 'Maringá', acceptTerms: true };
-  await assert.rejects(P.registerPartner(partner, { ...base, roles: [...base.roles], taxId: '111.111.111-11' }), /partner_invalid_tax_id/);
+test('cadastro: só CNPJ (PJ–PJ), válido, celular, CRECI obrigatório para corretor e aceite dos termos', async () => {
+  const base = { roles: ['broker', 'caretaker'] as const, taxId: '11.222.333/0001-81', phone: '(44) 99999-1234', creci: 'F12345', creciUf: 'PR', pixKey: 'lucas@pix.com', cities: 'Maringá', acceptTerms: true };
+  await assert.rejects(P.registerPartner(partner, { ...base, roles: [...base.roles], taxId: '529.982.247-25' }), /partner_cnpj_required/, 'CPF não: sempre PJ');
+  await assert.rejects(P.registerPartner(partner, { ...base, roles: [...base.roles], taxId: '11.222.333/0001-82' }), /partner_invalid_tax_id/);
   await assert.rejects(P.registerPartner(partner, { ...base, roles: [...base.roles], creci: '' }), /partner_creci_required/);
   await assert.rejects(P.registerPartner(partner, { ...base, roles: [...base.roles], phone: '4433334444' }), /partner_invalid_phone/);
   const p = await P.registerPartner(partner, { ...base, roles: [...base.roles] }, '1.2.3.4');

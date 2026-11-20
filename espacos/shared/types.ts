@@ -149,7 +149,7 @@ export interface PriceBreakdown {
   hostPayout: number;
   securityDeposit: number;
   packageDiscount?: number; // desconto de pacote já abatido do baseAmount
-  hostServiceFeeRate?: number; // comissão do anfitrião vigente na data da reserva (0,05 até 19/12/2026; 0,20 depois)
+  hostServiceFeeRate?: number; // comissão do anfitrião gravada na reserva
   brokerFee?: number;       // taxa do corretor parceiro (paga pelo locatário, uma por reserva)
   caretakerFee?: number;    // taxa do zelador parceiro (paga pelo locatário, uma por reserva)
   partners?: Array<{ role: PartnerRole; userId: string; amount: number }>;
