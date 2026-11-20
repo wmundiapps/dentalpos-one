@@ -1,12 +1,13 @@
 import { prisma } from '../../lib/prisma'
 import { FAIXAS, FAIXA_ROTULO, Faixa, diaBRT, round2, toCsv } from './calculo'
-import { LinhaDevedor, infoAlunos, montarCarteira } from './carteira'
+import { LinhaDevedor, infoAlunos, montarCarteira, montarCarteiraRecente } from './carteira'
 import { DIA_MS } from './calculo'
 
 const db = prisma as any
 
-export async function painel(tenantId: string, now = new Date()) {
-  const cart = await montarCarteira(tenantId, now)
+export async function painel(tenantId: string, nowArg?: Date) {
+  const now = nowArg ?? new Date()
+  const cart = nowArg ? await montarCarteira(tenantId, now) : await montarCarteiraRecente(tenantId)
   const t = cart.totais
   const d30 = new Date(now.getTime() - 30 * DIA_MS)
   const hoje0 = new Date(Math.floor((now.getTime() - 3 * 3_600_000) / DIA_MS) * DIA_MS + 3 * 3_600_000)

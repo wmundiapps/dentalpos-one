@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from 'express'
 import { academicErrorHandler } from '../academico/middleware'
 import { registerEduJob } from '../core/jobs'
 import { jobCobranca } from './motor'
+import { invalidarCarteiraRecente } from './carteira'
 import acordos from './rotas-acordos'
 import carteira from './rotas-carteira'
 import config from './rotas-config'
@@ -13,6 +14,8 @@ import escalonamento from './rotas-escalonamento'
 // Autenticado em /api/edu/cobranca. Não há rotas públicas: aceite do aluno é registrado pelo atendente.
 const router = Router()
 
+// Qualquer gravação na cobrança invalida o cache curto da carteira (telas de leitura).
+router.use((req, res, next) => { if (req.method !== 'GET') res.on('finish', invalidarCarteiraRecente); next() })
 router.use(config)
 router.use(carteira)
 router.use(acordos)

@@ -7,7 +7,7 @@ import { audit } from '../core/notify'
 import { contatosDeAlunos } from '../comunicacao/campanhas'
 import { registrarPreferencia } from '../comunicacao/store'
 import { calcularEncargos, round2, toCsv } from './calculo'
-import { LinhaDevedor, montarCarteira, politicaPara, sincronizarCasos } from './carteira'
+import { LinhaDevedor, montarCarteira, montarCarteiraRecente, politicaPara, sincronizarCasos, sincronizarCasosRecente } from './carteira'
 import { calcularPagamento, FORMAS, registrarPagamentoTitulo } from './pagamentos'
 import { COLUNAS_INAD, csvInadimplentes, filtrarLinhas, nomesDeUsuarios, painel, ranking, recebimentos } from './relatorios'
 import { LE_PAINEL_COB, OPERA_COB } from './roles'
@@ -34,8 +34,8 @@ function filtroDe(q: any) {
 // Planilha de TODOS os inadimplentes (aging, saldo, encargos, último contato, promessa, responsável, status).
 router.get('/inadimplentes', requireRole(...OPERA_COB), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
-  const cart = await montarCarteira(tenantId)
-  if (qs(req.query.formato) !== 'csv') await sincronizarCasos(tenantId, cart) // garante casoId para ações na tela
+  const cart = await montarCarteiraRecente(tenantId)
+  if (qs(req.query.formato) !== 'csv') await sincronizarCasosRecente(tenantId, cart) // garante casoId para ações na tela (no máximo 1x por minuto)
   const f = filtroDe(req.query)
   const todas = filtrarLinhas(cart.linhas, f)
   const resp = await nomesDeUsuarios(tenantId, todas.map((l) => l.responsavelUserId ?? ''))

@@ -1,3 +1,4 @@
+import { swrCache } from '../../lib/swrCache'
 import { CobPolitica } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
 import { FAIXAS, Faixa, agingVazio, faixaDeAtraso, round2, saldoDoTitulo } from './calculo'
@@ -192,11 +193,17 @@ export async function montarCarteira(tenantId: string, now = new Date(), opts: {
   const ids = [...new Set(titulosDb.map((t) => t.studentId as string))]
   const info = await infoAlunos(tenantId, ids, now)
   const rids = titulosDb.map((t) => t.id as string)
+  // O banco aceita no máximo ~32 mil parâmetros por consulta: listas grandes (40 mil alunos) são consultadas em lotes.
+  const emLotes = async <T>(lista: string[], buscar: (lote: string[]) => Promise<T[]>): Promise<T[]> => {
+    const out: T[] = []
+    for (const lote of quebra(lista, 5000)) out.push(...(await buscar(lote)))
+    return out
+  }
   const [cobertos, aloc, casos, promessas] = await Promise.all([
-    rids.length ? prisma.cobAcordoTitulo.findMany({ where: { tenantId, receivableId: { in: rids } } }) : [],
-    rids.length ? prisma.cobAlocacao.findMany({ where: { tenantId, receivableId: { in: rids } } }) : [],
-    ids.length ? prisma.cobCaso.findMany({ where: { tenantId, studentId: { in: ids } } }) : [],
-    ids.length ? prisma.cobPromessa.findMany({ where: { tenantId, studentId: { in: ids }, status: 'ABERTA' }, orderBy: { dataPrometida: 'asc' } }) : [],
+    emLotes(rids, (l) => prisma.cobAcordoTitulo.findMany({ where: { tenantId, receivableId: { in: l } } })),
+    emLotes(rids, (l) => prisma.cobAlocacao.findMany({ where: { tenantId, receivableId: { in: l } } })),
+    emLotes(ids, (l) => prisma.cobCaso.findMany({ where: { tenantId, studentId: { in: l } } })),
+    emLotes(ids, (l) => prisma.cobPromessa.findMany({ where: { tenantId, studentId: { in: l }, status: 'ABERTA' }, orderBy: { dataPrometida: 'asc' } })),
   ])
   const acordoIds = [...new Set(cobertos.map((c) => c.acordoId))]
   const acordosAtivos = acordoIds.length ? await prisma.cobAcordo.findMany({ where: { tenantId, id: { in: acordoIds }, status: 'ATIVO' } }) : []
@@ -294,6 +301,23 @@ export async function montarCarteira(tenantId: string, now = new Date(), opts: {
   // só entra na planilha quem tem algo vencido (fora ou dentro de acordo)
   const planilha = linhas.filter((l) => l.titulosVencidos > 0 || l.emAcordoValor > 0)
   return { escopo: opts.studentId, linhas: planilha, titulos, politicas, info, totais }
+}
+
+const carteirasRecentes = swrCache<Carteira>(30_000, 300_000, (tenantId) => montarCarteira(tenantId))
+/**
+ * Carteira com cache curto (30 s, recalculada em segundo plano) para as telas de LEITURA (painel, planilha de inadimplentes):
+ * com 40 mil alunos montar a carteira leva alguns segundos e todos os usuários da cobrança pedem a mesma coisa.
+ * Qualquer gravação na cobrança invalida o cache (ver routes.ts).
+ */
+export function montarCarteiraRecente(tenantId: string): Promise<Carteira> { return carteirasRecentes.get(tenantId) }
+const ultimaSincronizacao = new Map<string, number>()
+export function invalidarCarteiraRecente() { carteirasRecentes.clear(); ultimaSincronizacao.clear() }
+/** Sincroniza os casos no máximo 1x por minuto por instituição (a planilha de inadimplentes é aberta por vários usuários). */
+export async function sincronizarCasosRecente(tenantId: string, cart: Carteira) {
+  const ultima = ultimaSincronizacao.get(tenantId) ?? 0
+  if (Date.now() - ultima < 60_000) return
+  ultimaSincronizacao.set(tenantId, Date.now())
+  await sincronizarCasos(tenantId, cart)
 }
 
 /** Mantém CobCaso coerente com a carteira (abre, reabre, quita). Idempotente. */

@@ -1,6 +1,7 @@
 import { Router, Response } from 'express'
 import { AuthenticatedRequest, asyncHandler, getTenantId } from '../academico/middleware'
-import { coletarAlertas as coletarTodos, documentosRelacionados } from './rules'
+import { coletarAlertas as coletarTodosDireto, documentosRelacionados } from './rules'
+import { swrCache } from '../../lib/swrCache'
 
 // Alertas críticos por departamento — /api/edu/alertas. Leitura para qualquer perfil de equipe (alunos e professores não veem).
 const router = Router()
@@ -18,6 +19,9 @@ const COMPETENCIA: Record<string, string[]> = {
   CONTADOR: ['Contabilidade'],
   ANALISTA_CONTABIL: ['Contabilidade'],
 }
+// Os alertas são calculados no máximo a cada 30 s por instituição (todos os usuários consultam o resumo a cada minuto).
+const alertasRecentes = swrCache(30_000, 300_000, (tenantId) => coletarTodosDireto(tenantId))
+const coletarTodos = (tenantId: string) => alertasRecentes.get(tenantId)
 async function coletarAlertas(req: AuthenticatedRequest) {
   const todos = await coletarTodos(getTenantId(req))
   const cargo = String(req.user?.role || '').toUpperCase()

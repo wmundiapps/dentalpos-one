@@ -6,7 +6,7 @@ import { parseBody, qs } from '../core/crud'
 import { audit } from '../core/notify'
 import { renderTemplate } from '../comunicacao/pure'
 import { validarMensagemCobranca } from './calculo'
-import { carregarPoliticas, montarCarteira, politicaPara, POLITICA_DEFAULT } from './carteira'
+import { carregarPoliticas, montarCarteiraRecente, politicaPara, POLITICA_DEFAULT } from './carteira'
 import { CANAIS_COB } from './contato'
 import { executarMotor, jobCobranca } from './motor'
 import { OPERA_COB } from './roles'
@@ -208,7 +208,7 @@ router.get('/execucoes', requireRole(...OPERA_COB), asyncHandler(async (req: Aut
   res.json({ items: items.map((i) => ({ ...i, etapa: em.get(i.etapaId) ?? null })) })
 }))
 router.get('/politicas/resumo-carteira', requireRole(...OPERA_COB), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const c = await montarCarteira(getTenantId(req))
+  const c = await montarCarteiraRecente(getTenantId(req))
   const seg: Record<string, number> = {}
   for (const l of c.linhas) seg[l.segmento] = (seg[l.segmento] ?? 0) + 1
   res.json({ devedoresPorSegmento: seg })
