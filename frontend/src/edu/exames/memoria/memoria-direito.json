@@ -243,6 +243,286 @@
      ]
     }
    ]
+  },
+  {
+   "id": "processo-civil",
+   "nome": "Processo Civil",
+   "temas": [
+    {
+     "id": "prazos",
+     "nome": "Prazos, atos e recursos",
+     "series": [
+      [
+       {
+        "q": "Prazo para contestar no procedimento comum",
+        "a": "15 dias"
+       },
+       {
+        "q": "Contagem dos prazos processuais no CPC",
+        "a": "Dias úteis"
+       },
+       {
+        "q": "Ato do juiz que encerra a fase de conhecimento",
+        "a": "Sentença"
+       },
+       {
+        "q": "Recurso contra a sentença",
+        "a": "Apelação"
+       },
+       {
+        "q": "Recurso contra decisão interlocutória do rol legal",
+        "a": "Agravo de instrumento"
+       },
+       {
+        "q": "Imutabilidade da decisão de mérito",
+        "a": "Coisa julgada"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "tutelas",
+     "nome": "Tutelas e execução",
+     "series": [
+      [
+       {
+        "q": "Exige probabilidade do direito e perigo de dano",
+        "a": "Tutela de urgência"
+       },
+       {
+        "q": "Concedida com base em prova, sem exigir urgência",
+        "a": "Tutela de evidência"
+       },
+       {
+        "q": "Defesa na execução de título extrajudicial",
+        "a": "Embargos à execução"
+       },
+       {
+        "q": "Defesa do executado no cumprimento de sentença",
+        "a": "Impugnação"
+       },
+       {
+        "q": "Constrição de bens para pagar a dívida",
+        "a": "Penhora"
+       },
+       {
+        "q": "Prazo dos embargos de declaração",
+        "a": "5 dias"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "etica-oab",
+   "nome": "Ética e Estatuto da OAB",
+   "temas": [
+    {
+     "id": "estatuto",
+     "nome": "Advocacia e inscrição",
+     "series": [
+      [
+       {
+        "q": "Estatuto da Advocacia e da OAB",
+        "a": "Lei 8.906/1994"
+       },
+       {
+        "q": "Prova exigida para a inscrição como advogado",
+        "a": "Exame de Ordem"
+       },
+       {
+        "q": "Julga os processos disciplinares",
+        "a": "Tribunal de Ética e Disciplina"
+       },
+       {
+        "q": "Órgão máximo da OAB, sediado em Brasília",
+        "a": "Conselho Federal"
+       },
+       {
+        "q": "Valor fixado em contrato com o cliente",
+        "a": "Honorários convencionados"
+       },
+       {
+        "q": "Prescrição da pretensão disciplinar",
+        "a": "5 anos"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "deveres",
+     "nome": "Deveres e infrações",
+     "series": [
+      [
+       {
+        "q": "Sanção que apenas adverte o advogado",
+        "a": "Censura"
+       },
+       {
+        "q": "Sanção disciplinar mais grave",
+        "a": "Exclusão"
+       },
+       {
+        "q": "Dever de guardar segredo do cliente",
+        "a": "Sigilo profissional"
+       },
+       {
+        "q": "Conduta vedada: angariar clientes de forma indevida",
+        "a": "Captação de clientela"
+       },
+       {
+        "q": "Deixar a causa sem justo motivo",
+        "a": "Abandono de causa"
+       },
+       {
+        "q": "Documento que dá poderes ao advogado",
+        "a": "Procuração"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "administrativo",
+   "nome": "Direito Administrativo",
+   "temas": [
+    {
+     "id": "principios",
+     "nome": "Princípios e atos",
+     "series": [
+      [
+       {
+        "q": "Administração só faz o que a lei permite",
+        "a": "Legalidade"
+       },
+       {
+        "q": "Tratamento sem favoritismo",
+        "a": "Impessoalidade"
+       },
+       {
+        "q": "Dever de transparência dos atos",
+        "a": "Publicidade"
+       },
+       {
+        "q": "Probidade, ética e boa-fé",
+        "a": "Moralidade"
+       },
+       {
+        "q": "Resultados com qualidade e economia",
+        "a": "Eficiência"
+       },
+       {
+        "q": "Retirada de ato válido por conveniência e oportunidade",
+        "a": "Revogação"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "licitacao",
+     "nome": "Licitações e agentes",
+     "series": [
+      [
+       {
+        "q": "Nova Lei de Licitações",
+        "a": "Lei 14.133/2021"
+       },
+       {
+        "q": "Modalidade para bens e serviços comuns",
+        "a": "Pregão"
+       },
+       {
+        "q": "Acesso a cargo efetivo exige",
+        "a": "Concurso público"
+       },
+       {
+        "q": "Garantia após 3 anos de efetivo exercício",
+        "a": "Estabilidade"
+       },
+       {
+        "q": "Teoria da responsabilidade do Estado, art. 37, §6º",
+        "a": "Risco administrativo"
+       },
+       {
+        "q": "Ação regressiva contra o agente exige",
+        "a": "Dolo ou culpa"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "tributario",
+   "nome": "Direito Tributário",
+   "temas": [
+    {
+     "id": "sistema",
+     "nome": "Sistema tributário",
+     "series": [
+      [
+       {
+        "q": "Cobrado por serviço público específico e divisível",
+        "a": "Taxa"
+       },
+       {
+        "q": "Fato gerador independe de atividade estatal específica",
+        "a": "Imposto"
+       },
+       {
+        "q": "Cobrada pela valorização do imóvel por obra pública",
+        "a": "Contribuição de melhoria"
+       },
+       {
+        "q": "Sem lei que o estabeleça, não há tributo",
+        "a": "Legalidade tributária"
+       },
+       {
+        "q": "Veda cobrar no mesmo exercício da lei que o criou",
+        "a": "Anterioridade"
+       },
+       {
+        "q": "Veda tratar contribuintes equivalentes de modo desigual",
+        "a": "Isonomia tributária"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "credito",
+     "nome": "Obrigação e crédito",
+     "series": [
+      [
+       {
+        "q": "Código Tributário Nacional",
+        "a": "Lei 5.172/1966"
+       },
+       {
+        "q": "Fato previsto em lei que gera a obrigação",
+        "a": "Fato gerador"
+       },
+       {
+        "q": "Ato que apura o crédito tributário",
+        "a": "Lançamento"
+       },
+       {
+        "q": "Tem relação pessoal e direta com o fato gerador",
+        "a": "Contribuinte"
+       },
+       {
+        "q": "Prazo de decadência para lançar",
+        "a": "5 anos"
+       },
+       {
+        "q": "Prova que não há débitos",
+        "a": "Certidão negativa"
+       }
+      ]
+     ]
+    }
+   ]
   }
  ]
 }

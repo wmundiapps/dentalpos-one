@@ -497,6 +497,280 @@
      ]
     }
    ]
+  },
+  {
+   "id": "fisiologia",
+   "nome": "Fisiologia",
+   "temas": [
+    {
+     "id": "cardio",
+     "nome": "Cardiovascular e respiratória",
+     "series": [
+      [
+       {
+        "q": "Marca-passo natural do coração",
+        "a": "Nó sinoatrial"
+       },
+       {
+        "q": "Débito cardíaco",
+        "a": "FC × volume sistólico"
+       },
+       {
+        "q": "Pressão do sangue durante a sístole",
+        "a": "Pressão sistólica"
+       },
+       {
+        "q": "Principal estímulo da respiração",
+        "a": "CO₂ no sangue"
+       },
+       {
+        "q": "Ar de uma respiração tranquila",
+        "a": "Volume corrente"
+       },
+       {
+        "q": "Proteína que transporta O₂ nas hemácias",
+        "a": "Hemoglobina"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "renal",
+     "nome": "Renal e digestório",
+     "series": [
+      [
+       {
+        "q": "Unidade funcional do rim",
+        "a": "Néfron"
+       },
+       {
+        "q": "Maior reabsorção de água e sódio filtrados",
+        "a": "Túbulo proximal"
+       },
+       {
+        "q": "Aumenta a reabsorção de água no túbulo coletor",
+        "a": "ADH (vasopressina)"
+       },
+       {
+        "q": "Inicia a digestão de proteínas no estômago",
+        "a": "Pepsina"
+       },
+       {
+        "q": "Principal local de absorção de nutrientes",
+        "a": "Intestino delgado"
+       },
+       {
+        "q": "Feita no fígado, emulsifica gorduras",
+        "a": "Bile"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "endocrino",
+     "nome": "Endócrino e neurofisiologia",
+     "series": [
+      [
+       {
+        "q": "Hormônio que reduz a glicemia",
+        "a": "Insulina"
+       },
+       {
+        "q": "Hormônio que eleva a glicemia (células alfa)",
+        "a": "Glucagon"
+       },
+       {
+        "q": "Hormônio do estresse, no córtex da adrenal",
+        "a": "Cortisol"
+       },
+       {
+        "q": "Hormônio da tireoide que regula o metabolismo",
+        "a": "Tiroxina (T4)"
+       },
+       {
+        "q": "Neurotransmissor da junção neuromuscular",
+        "a": "Acetilcolina"
+       },
+       {
+        "q": "Glândula que comanda outras glândulas",
+        "a": "Hipófise"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "farmacologia",
+   "nome": "Farmacologia",
+   "temas": [
+    {
+     "id": "conceitos",
+     "nome": "Conceitos básicos",
+     "series": [
+      [
+       {
+        "q": "O que o organismo faz com o fármaco",
+        "a": "Farmacocinética"
+       },
+       {
+        "q": "O que o fármaco faz no organismo",
+        "a": "Farmacodinâmica"
+       },
+       {
+        "q": "Fração da dose que chega à circulação",
+        "a": "Biodisponibilidade"
+       },
+       {
+        "q": "Tempo para a concentração cair pela metade",
+        "a": "Meia-vida"
+       },
+       {
+        "q": "Perda de dose no fígado antes da circulação",
+        "a": "Primeira passagem"
+       },
+       {
+        "q": "Substância que ativa o receptor",
+        "a": "Agonista"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "classes",
+     "nome": "Classes de fármacos",
+     "series": [
+      [
+       {
+        "q": "Classe do ibuprofeno",
+        "a": "AINE"
+       },
+       {
+        "q": "Classe da amoxicilina",
+        "a": "Penicilinas"
+       },
+       {
+        "q": "Classe da losartana",
+        "a": "BRA"
+       },
+       {
+        "q": "Classe do enalapril",
+        "a": "Inibidor da ECA"
+       },
+       {
+        "q": "Classe da sinvastatina",
+        "a": "Estatinas"
+       },
+       {
+        "q": "Classe do omeprazol",
+        "a": "Inibidor da bomba de prótons"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "seguranca",
+     "nome": "Antídotos e efeitos adversos",
+     "series": [
+      [
+       {
+        "q": "Antídoto do paracetamol",
+        "a": "N-acetilcisteína"
+       },
+       {
+        "q": "Antídoto dos opioides",
+        "a": "Naloxona"
+       },
+       {
+        "q": "Antídoto da heparina",
+        "a": "Protamina"
+       },
+       {
+        "q": "Antídoto dos benzodiazepínicos",
+        "a": "Flumazenil"
+       },
+       {
+        "q": "Antídoto da varfarina",
+        "a": "Vitamina K"
+       },
+       {
+        "q": "Efeito adverso típico dos IECA",
+        "a": "Tosse seca"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "clinica",
+   "nome": "Clínica Médica",
+   "temas": [
+    {
+     "id": "cardiopneumo",
+     "nome": "Cardiologia e pneumologia",
+     "series": [
+      [
+       {
+        "q": "Dor torácica com supra de ST",
+        "a": "Infarto com supra de ST"
+       },
+       {
+        "q": "PA de 140/90 ou mais, em medidas repetidas",
+        "a": "Hipertensão arterial"
+       },
+       {
+        "q": "Ritmo irregularmente irregular",
+        "a": "Fibrilação atrial"
+       },
+       {
+        "q": "Exame para diagnosticar a DPOC",
+        "a": "Espirometria"
+       },
+       {
+        "q": "Broncoespasmo reversível com sibilos",
+        "a": "Asma"
+       },
+       {
+        "q": "Infecção aguda com consolidação no pulmão",
+        "a": "Pneumonia"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "endoinfecto",
+     "nome": "Endocrinologia e infectologia",
+     "series": [
+      [
+       {
+        "q": "Glicemia de jejum ≥ 126 mg/dL em duas ocasiões",
+        "a": "Diabetes mellitus"
+       },
+       {
+        "q": "A HbA1c reflete a glicemia dos últimos",
+        "a": "3 meses"
+       },
+       {
+        "q": "TSH alto e T4 livre baixo",
+        "a": "Hipotireoidismo"
+       },
+       {
+        "q": "Febre, cefaleia e rigidez de nuca",
+        "a": "Meningite"
+       },
+       {
+        "q": "Doença transmitida pelo Aedes aegypti",
+        "a": "Dengue"
+       },
+       {
+        "q": "Agente da tuberculose",
+        "a": "Mycobacterium tuberculosis"
+       }
+      ]
+     ]
+    }
+   ]
   }
  ]
 }
