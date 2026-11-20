@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useTheme } from "@mui/material";
 import "./memoria.css";
+import { eduApi } from "../../services/EduApi";
+import { ehAluno } from "./comum";
 import medicina from "./memoria/memoria-medicina.json";
 import direito from "./memoria/memoria-direito.json";
+import odontologia from "./memoria/memoria-odontologia.json";
+import enfermagem from "./memoria/memoria-enfermagem.json";
+import psicologia from "./memoria/memoria-psicologia.json";
+import administracao from "./memoria/memoria-administracao.json";
 
 type Pair = { q: string; a: string };
 type Theme = { id: string; nome: string; series: Pair[][] };
@@ -15,6 +21,10 @@ type BuiltTheme = Theme & { list: Serie[] };
 const CURSOS: Record<string, { nome: string; disciplinas: Disc[] }> = {
   medicina: medicina as { nome: string; disciplinas: Disc[] },
   direito: direito as { nome: string; disciplinas: Disc[] },
+  odontologia: odontologia as { nome: string; disciplinas: Disc[] },
+  enfermagem: enfermagem as { nome: string; disciplinas: Disc[] },
+  psicologia: psicologia as { nome: string; disciplinas: Disc[] },
+  administracao: administracao as { nome: string; disciplinas: Disc[] },
 };
 // Provas: ENADE deixa escolher o curso; ENAMED é só Medicina; OAB é só Direito.
 const PROVAS: { id: string; nome: string; cursos: { id: string; nome: string }[] }[] = [
@@ -88,7 +98,7 @@ function Prize({ nota, perfect, size = 40 }: { nota: number; perfect: boolean; s
 type Sel = { t: "q" | "a"; pos: number } | null;
 
 function Game({ serie, onFinish, onNext, hasNext }: {
-  serie: Serie; onFinish: (nota: number, perfect: boolean) => void; onNext: () => void; hasNext: boolean;
+  serie: Serie; onFinish: (nota: number, perfect: boolean, erros: number, ajudas: number) => void; onNext: () => void; hasNext: boolean;
 }) {
   const [qOrder] = useState(() => shuffle([...Array(N).keys()]));
   const [aOrder] = useState(() => shuffle([...Array(N).keys()]));
@@ -166,7 +176,7 @@ function Game({ serie, onFinish, onNext, hasNext }: {
     const nota = Math.max(0, Math.round(((pts - 0.25 * h) / N) * 100) / 10);
     const perfect = e.every(x => x === 0) && h === 0;
     setResult({ nota, perfect }); setPhase("done");
-    onFinish(nota, perfect);
+    onFinish(nota, perfect, e.reduce((a, b) => a + b, 0), h);
   }
 
   const total = err.reduce((a, b) => a + b, 0);
@@ -239,6 +249,23 @@ export default function MemoriaJogo() {
     "--mem-dark": muiTheme.palette.mode === "dark" ? "1" : "0",
   } as CSSProperties;
   const [best, setBest] = useState<Best>(loadBest);
+  const aluno = ehAluno();
+  const [salvo, setSalvo] = useState<"" | "ok" | "erro">("");
+  // Aluno logado: o progresso vem do servidor (portal do aluno) e se junta ao que já estava neste aparelho.
+  useEffect(() => {
+    if (!aluno) return;
+    eduApi.get<{ items: Array<{ serieId: string; melhorNota: number; perfeita: boolean }> }>("/exames/memoria/meu").then(r => {
+      setBest(old => {
+        const b: Best = { ...old };
+        for (const i of r.items) {
+          const o = b[i.serieId];
+          if (!o || i.melhorNota > o.nota || (i.perfeita && !o.perfect)) b[i.serieId] = { nota: i.melhorNota, perfect: i.perfeita };
+        }
+        saveBest(b);
+        return b;
+      });
+    }).catch(() => undefined);
+  }, [aluno]);
   const [provaId, setProvaId] = useState("enade");
   const prova = PROVAS.find(p => p.id === provaId)!;
   const [cursoId, setCursoId] = useState("medicina");
@@ -274,7 +301,14 @@ export default function MemoriaJogo() {
     setRun(r => r + 1);
   }
   function chooseSerie(id: string) { setSerieId(id); setRun(r => r + 1); }
-  function onFinish(nota: number, perfect: boolean) {
+  function onFinish(nota: number, perfect: boolean, erros: number, ajudas: number) {
+    setSalvo("");
+    if (aluno && disc && theme && serie) {
+      eduApi.post("/exames/memoria/resultado", {
+        serieId: serie.id, prova: prova.nome, curso: curso.nome, disciplina: disc.nome, tema: theme.nome, numero: serie.n,
+        nota, erros, ajudas, perfeita: perfect,
+      }).then(() => setSalvo("ok")).catch(() => setSalvo("erro"));
+    }
     const old = best[serie.id];
     if (!old || nota > old.nota || (perfect && !old.perfect)) {
       const b = { ...best, [serie.id]: { nota, perfect } };
@@ -344,6 +378,8 @@ export default function MemoriaJogo() {
               );
             })}
           </div>
+          {salvo === "ok" && <p className="mem-muted">Resultado salvo no seu portal do aluno.</p>}
+          {salvo === "erro" && <p className="mem-muted">Não foi possível salvar no portal agora. O resultado ficou neste aparelho.</p>}
           <Game key={`${serie.id}-${run}`} serie={serie} onFinish={onFinish} onNext={goNext} hasNext={!!next} />
           <h4 className="mem-h">Prêmios</h4>
           <p className="mem-muted">{doneAll.length} de {mySeries.length} séries concluídas{doneAll.length ? ` · média ${fmt(avg)}` : ""}. Fica salvo o melhor resultado de cada série neste aparelho.</p>

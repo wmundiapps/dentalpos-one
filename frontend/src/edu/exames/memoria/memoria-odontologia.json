@@ -1,0 +1,318 @@
+{
+ "id": "odontologia",
+ "nome": "Odontologia",
+ "disciplinas": [
+  {
+   "id": "periodontia",
+   "nome": "Periodontia",
+   "temas": [
+    {
+     "id": "anatomia",
+     "nome": "Anatomia do periodonto",
+     "series": [
+      [
+       {
+        "q": "Une o cemento ao osso alveolar",
+        "a": "Ligamento periodontal"
+       },
+       {
+        "q": "Tecido mineralizado que recobre a raiz",
+        "a": "Cemento"
+       },
+       {
+        "q": "Gengiva firme, queratinizada e presa ao osso",
+        "a": "Gengiva inserida"
+       },
+       {
+        "q": "Epitélio ligado ao dente por hemidesmossomos",
+        "a": "Epitélio juncional"
+       },
+       {
+        "q": "Fibras que entram no cemento e no osso",
+        "a": "Fibras de Sharpey"
+       },
+       {
+        "q": "Espaço raso entre a gengiva marginal e o dente",
+        "a": "Sulco gengival"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "doenca",
+     "nome": "Etiologia e doença",
+     "series": [
+      [
+       {
+        "q": "Fator etiológico primário da doença periodontal",
+        "a": "Biofilme dental"
+       },
+       {
+        "q": "Inflamação gengival sem perda de inserção",
+        "a": "Gengivite"
+       },
+       {
+        "q": "Doença com perda de inserção e de osso",
+        "a": "Periodontite"
+       },
+       {
+        "q": "Mineralização do biofilme",
+        "a": "Cálculo"
+       },
+       {
+        "q": "Espécie-chave do complexo vermelho",
+        "a": "Porphyromonas gingivalis"
+       },
+       {
+        "q": "Fator de risco que pode mascarar o sangramento",
+        "a": "Tabagismo"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "diagnostico",
+     "nome": "Diagnóstico e tratamento",
+     "series": [
+      [
+       {
+        "q": "Mede a profundidade de sondagem",
+        "a": "Sonda periodontal"
+       },
+       {
+        "q": "Referência para medir a perda de inserção",
+        "a": "Junção cemento-esmalte"
+       },
+       {
+        "q": "Como a classificação de 2018 descreve a periodontite",
+        "a": "Estágio e grau"
+       },
+       {
+        "q": "Remove cálculo e alisa a raiz",
+        "a": "Raspagem e alisamento radicular"
+       },
+       {
+        "q": "Fase de acompanhamento após a terapia",
+        "a": "Manutenção periodontal"
+       },
+       {
+        "q": "Sinal precoce de inflamação gengival",
+        "a": "Sangramento à sondagem"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "anatomia-dental",
+   "nome": "Anatomia e Histologia Dental",
+   "temas": [
+    {
+     "id": "dentes",
+     "nome": "Dentes e arcadas",
+     "series": [
+      [
+       {
+        "q": "Número de dentes decíduos",
+        "a": "20"
+       },
+       {
+        "q": "Número de dentes permanentes",
+        "a": "32"
+       },
+       {
+        "q": "Dentes com função de corte",
+        "a": "Incisivos"
+       },
+       {
+        "q": "Dentes com função de rasgar",
+        "a": "Caninos"
+       },
+       {
+        "q": "Dentes com função de trituração",
+        "a": "Molares"
+       },
+       {
+        "q": "Primeiro dente permanente a irromper",
+        "a": "Primeiro molar"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "histologia",
+     "nome": "Histologia dental",
+     "series": [
+      [
+       {
+        "q": "Tecido mais mineralizado do corpo",
+        "a": "Esmalte"
+       },
+       {
+        "q": "Tecido que forma a maior parte do dente",
+        "a": "Dentina"
+       },
+       {
+        "q": "Tecido mole no interior do dente",
+        "a": "Polpa"
+       },
+       {
+        "q": "Célula que forma a dentina",
+        "a": "Odontoblasto"
+       },
+       {
+        "q": "Célula que forma o esmalte",
+        "a": "Ameloblasto"
+       },
+       {
+        "q": "Célula que forma o cemento",
+        "a": "Cementoblasto"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "anestesia-cirurgia",
+   "nome": "Anestesia e Cirurgia Oral",
+   "temas": [
+    {
+     "id": "anestesia",
+     "nome": "Anestesia local",
+     "series": [
+      [
+       {
+        "q": "Anestésico local do grupo amida mais usado",
+        "a": "Lidocaína"
+       },
+       {
+        "q": "Vasoconstritor associado ao anestésico",
+        "a": "Epinefrina"
+       },
+       {
+        "q": "Nervo bloqueado na técnica mais usada na mandíbula",
+        "a": "Alveolar inferior"
+       },
+       {
+        "q": "Nervo anestesiado no forame mentual",
+        "a": "Mentual"
+       },
+       {
+        "q": "Os anestésicos locais bloqueiam canais de",
+        "a": "Sódio"
+       },
+       {
+        "q": "Desmaio mais comum no consultório",
+        "a": "Síncope"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "cirurgia",
+     "nome": "Cirurgia oral",
+     "series": [
+      [
+       {
+        "q": "Instrumento para luxar o dente",
+        "a": "Alavanca"
+       },
+       {
+        "q": "Remoção cirúrgica ou não de um dente",
+        "a": "Exodontia"
+       },
+       {
+        "q": "Perda do coágulo com dor intensa",
+        "a": "Alveolite seca"
+       },
+       {
+        "q": "Dente mais frequentemente incluso",
+        "a": "Terceiro molar"
+       },
+       {
+        "q": "Remoção do ápice radicular",
+        "a": "Apicectomia"
+       },
+       {
+        "q": "Imagem que mostra as duas arcadas",
+        "a": "Radiografia panorâmica"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dentistica",
+   "nome": "Dentística e Materiais",
+   "temas": [
+    {
+     "id": "black",
+     "nome": "Dentística",
+     "series": [
+      [
+       {
+        "q": "Black: cavidade oclusal de molar",
+        "a": "Classe I"
+       },
+       {
+        "q": "Black: proximal de molares e pré-molares",
+        "a": "Classe II"
+       },
+       {
+        "q": "Black: proximal de anteriores sem o ângulo incisal",
+        "a": "Classe III"
+       },
+       {
+        "q": "Black: proximal de anteriores com o ângulo incisal",
+        "a": "Classe IV"
+       },
+       {
+        "q": "Black: cavidade cervical",
+        "a": "Classe V"
+       },
+       {
+        "q": "Material estético aplicado direto no dente",
+        "a": "Resina composta"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "materiais",
+     "nome": "Materiais dentários",
+     "series": [
+      [
+       {
+        "q": "Cimento que libera flúor e adere ao dente",
+        "a": "Ionômero de vidro"
+       },
+       {
+        "q": "Restauração metálica de prata e mercúrio",
+        "a": "Amálgama"
+       },
+       {
+        "q": "Usado na proteção pulpar indireta",
+        "a": "Hidróxido de cálcio"
+       },
+       {
+        "q": "Ativa as resinas compostas",
+        "a": "Fotopolimerização"
+       },
+       {
+        "q": "Condiciona o esmalte antes do adesivo",
+        "a": "Ácido fosfórico"
+       },
+       {
+        "q": "Cerâmica de alta resistência para coroas",
+        "a": "Zircônia"
+       }
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

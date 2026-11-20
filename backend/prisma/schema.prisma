@@ -11647,6 +11647,33 @@ model ExaFlashcard {
   @@index([tenantId, exameId])
 }
 
+// Jogo da memória (ENADE · ENAMED · OAB): melhor resultado do aluno em cada série de 6 pares.
+// O conteúdo das séries fica no frontend; aqui só se guarda o desempenho (nota, erros, ajudas, tentativas).
+model ExaMemoriaSerie {
+  id         String   @id @default(uuid())
+  tenantId   String
+  studentId  String
+  serieId    String   // ex.: medicina-anatomia-ossos-2
+  prova      String   // ENADE | ENAMED | OAB (prova em que o aluno jogou)
+  curso      String
+  disciplina String
+  tema       String
+  numero     Int
+  melhorNota Float
+  perfeita   Boolean  @default(false) // taça: sem erros e sem ajuda
+  erros      Int      @default(0)     // da melhor tentativa
+  ajudas     Int      @default(0)     // da melhor tentativa
+  ultimaNota Float
+  tentativas Int      @default(1)
+  melhorEm   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, studentId, serieId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, curso, disciplina])
+}
+
 // ---- edu/feedback.prisma ----
 // ============================================================
 // EDUMASTER PRO — CAIXA DE SUGESTÕES / BUGS (prefixo Fbk). Somente tabelas NOVAS.

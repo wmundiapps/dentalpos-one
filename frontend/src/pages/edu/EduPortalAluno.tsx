@@ -10,6 +10,7 @@ import { useSearchParams } from "react-router-dom";
 import EduShell from "../../edu/EduShell";
 import { MeusDocumentos, NovoRequerimento, RevisaoDialog } from "../../edu/portal/PortalAcoes";
 import { AvisosCard, Card, FinanceiroCard, Kpi, ProvasCard, RequerimentosCard } from "../../edu/portal/PortalSecoes";
+import PortalMemoria from "../../edu/portal/PortalMemoria";
 import PortalBoletim from "../../edu/portal/PortalBoletim";
 import PortalFrequencia from "../../edu/portal/PortalFrequencia";
 import { SalasDoAluno } from "../../edu/portal/SalaVirtual";
@@ -90,6 +91,9 @@ export default function EduPortalAluno() {
               <Card title="Próximas provas e aulas" icon={<EventNoteOutlinedIcon color="primary" />} accent={cor}><ProvasCard provas={p.proximasProvas} aulas={p.horarios?.proximasAulas} /></Card>
               <Card title="Financeiro" icon={<PaymentsOutlinedIcon color="primary" />} accent={cor}><FinanceiroCard fin={p.financeiro} /></Card>
               <Card title="Avisos" icon={<NotificationsNoneOutlinedIcon color="primary" />} accent={cor}><AvisosCard avisos={p.avisos} /></Card>
+              <Card title="Jogo da memória · ENADE, ENAMED, OAB" icon={<AssignmentOutlinedIcon color="primary" />} accent={cor}>
+                <PortalMemoria studentId={sidAlvo} onAbrir={() => setParams((q) => { const n = new URLSearchParams(q); n.set("aba", "exames"); n.set("exame", "memoria"); return n; }, { replace: true })} />
+              </Card>
               <Box sx={{ gridColumn: { md: "1 / -1" } }}>
                 <Card title="Requerimentos" icon={<AssignmentOutlinedIcon color="primary" />} accent={cor}><RequerimentosCard lista={p.requerimentosAbertos} revisoes={p.revisoesEmAndamento} onNovo={() => setNovo(true)} podeAgir={podeAgir} /></Card>
               </Box>

@@ -1,0 +1,152 @@
+{
+ "id": "enfermagem",
+ "nome": "Enfermagem",
+ "disciplinas": [
+  {
+   "id": "fundamentos",
+   "nome": "Fundamentos de Enfermagem",
+   "temas": [
+    {
+     "id": "sinais",
+     "nome": "Sinais vitais",
+     "series": [
+      [
+       {
+        "q": "Frequência cardíaca normal do adulto",
+        "a": "60 a 100 bpm"
+       },
+       {
+        "q": "Frequência respiratória normal do adulto",
+        "a": "12 a 20 irpm"
+       },
+       {
+        "q": "Febre, pela medida axilar, a partir de",
+        "a": "37,8 °C"
+       },
+       {
+        "q": "Pressão arterial ideal do adulto",
+        "a": "Menor que 120/80 mmHg"
+       },
+       {
+        "q": "Saturação de oxigênio normal",
+        "a": "95% ou mais"
+       },
+       {
+        "q": "Local mais usado para sentir o pulso",
+        "a": "Artéria radial"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "seguranca",
+     "nome": "Segurança e controle de infecção",
+     "series": [
+      [
+       {
+        "q": "Medida mais simples contra infecção",
+        "a": "Higienização das mãos"
+       },
+       {
+        "q": "Momentos de higiene das mãos da OMS",
+        "a": "5 momentos"
+       },
+       {
+        "q": "Infecção adquirida na assistência à saúde",
+        "a": "IRAS"
+       },
+       {
+        "q": "Escala de risco de lesão por pressão",
+        "a": "Escala de Braden"
+       },
+       {
+        "q": "Escala do nível de consciência",
+        "a": "Escala de Glasgow"
+       },
+       {
+        "q": "Onde descartar perfurocortantes",
+        "a": "Caixa rígida"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "saude-coletiva",
+   "nome": "Saúde Coletiva",
+   "temas": [
+    {
+     "id": "sus",
+     "nome": "SUS e atenção básica",
+     "series": [
+      [
+       {
+        "q": "Lei Orgânica da Saúde",
+        "a": "Lei 8.080/1990"
+       },
+       {
+        "q": "Princípio: saúde para todos",
+        "a": "Universalidade"
+       },
+       {
+        "q": "Princípio: dar mais a quem precisa mais",
+        "a": "Equidade"
+       },
+       {
+        "q": "Porta de entrada preferencial do SUS",
+        "a": "Atenção Primária"
+       },
+       {
+        "q": "Gerencia o calendário de vacinação",
+        "a": "PNI"
+       },
+       {
+        "q": "Lei da participação da comunidade no SUS",
+        "a": "Lei 8.142/1990"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "materno-infantil",
+   "nome": "Saúde da Mulher e da Criança",
+   "temas": [
+    {
+     "id": "gestacao",
+     "nome": "Gestação e recém-nascido",
+     "series": [
+      [
+       {
+        "q": "Duração média da gestação",
+        "a": "40 semanas"
+       },
+       {
+        "q": "Exame de sangue que confirma a gestação",
+        "a": "Beta-hCG"
+       },
+       {
+        "q": "Mínimo de consultas de pré-natal do MS",
+        "a": "6 consultas"
+       },
+       {
+        "q": "Coleta do teste do pezinho",
+        "a": "3º ao 5º dia de vida"
+       },
+       {
+        "q": "Aleitamento materno exclusivo até",
+        "a": "6 meses"
+       },
+       {
+        "q": "Escore de vitalidade do recém-nascido",
+        "a": "Apgar"
+       }
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

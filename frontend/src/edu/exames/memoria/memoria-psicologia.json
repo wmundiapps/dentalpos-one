@@ -1,0 +1,120 @@
+{
+ "id": "psicologia",
+ "nome": "Psicologia",
+ "disciplinas": [
+  {
+   "id": "historia",
+   "nome": "História e Correntes",
+   "temas": [
+    {
+     "id": "autores",
+     "nome": "Autores e teorias",
+     "series": [
+      [
+       {
+        "q": "Fundador da psicanálise",
+        "a": "Freud"
+       },
+       {
+        "q": "Criador do behaviorismo radical",
+        "a": "Skinner"
+       },
+       {
+        "q": "Teoria dos estágios do desenvolvimento cognitivo",
+        "a": "Piaget"
+       },
+       {
+        "q": "Zona de desenvolvimento proximal",
+        "a": "Vygotsky"
+       },
+       {
+        "q": "Terapia centrada na pessoa",
+        "a": "Carl Rogers"
+       },
+       {
+        "q": "Primeiro laboratório de psicologia (1879)",
+        "a": "Wundt"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "psicopatologia",
+   "nome": "Psicopatologia",
+   "temas": [
+    {
+     "id": "transtornos",
+     "nome": "Classificação e transtornos",
+     "series": [
+      [
+       {
+        "q": "Manual de transtornos mentais da APA",
+        "a": "DSM-5"
+       },
+       {
+        "q": "Classificação internacional da OMS",
+        "a": "CID"
+       },
+       {
+        "q": "Episódios de mania e de depressão",
+        "a": "Transtorno bipolar"
+       },
+       {
+        "q": "Delírios e alucinações persistentes",
+        "a": "Esquizofrenia"
+       },
+       {
+        "q": "Medo súbito e intenso com sintomas físicos",
+        "a": "Ataque de pânico"
+       },
+       {
+        "q": "Conselho que regula a profissão",
+        "a": "CFP"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "processos",
+   "nome": "Processos Psicológicos",
+   "temas": [
+    {
+     "id": "aprendizagem",
+     "nome": "Aprendizagem e psicanálise",
+     "series": [
+      [
+       {
+        "q": "Aprendizagem por associação de estímulos (Pavlov)",
+        "a": "Condicionamento clássico"
+       },
+       {
+        "q": "Aprendizagem pelas consequências do comportamento",
+        "a": "Condicionamento operante"
+       },
+       {
+        "q": "Defesa que empurra o conteúdo para o inconsciente",
+        "a": "Repressão"
+       },
+       {
+        "q": "Instância dos impulsos, em Freud",
+        "a": "Id"
+       },
+       {
+        "q": "Instância que medeia com a realidade",
+        "a": "Ego"
+       },
+       {
+        "q": "Instância moral da personalidade",
+        "a": "Superego"
+       }
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,120 @@
+{
+ "id": "administracao",
+ "nome": "Administração",
+ "disciplinas": [
+  {
+   "id": "teorias",
+   "nome": "Teorias da Administração",
+   "temas": [
+    {
+     "id": "escolas",
+     "nome": "Escolas e autores",
+     "series": [
+      [
+       {
+        "q": "Pai da Administração Científica",
+        "a": "Taylor"
+       },
+       {
+        "q": "Teoria Clássica e as funções do administrador",
+        "a": "Fayol"
+       },
+       {
+        "q": "Estudos de Hawthorne",
+        "a": "Relações Humanas"
+       },
+       {
+        "q": "Modelo burocrático",
+        "a": "Weber"
+       },
+       {
+        "q": "Linha de montagem",
+        "a": "Fordismo"
+       },
+       {
+        "q": "Produção enxuta",
+        "a": "Toyotismo"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "planejamento",
+   "nome": "Planejamento e Gestão",
+   "temas": [
+    {
+     "id": "ferramentas",
+     "nome": "Ferramentas de gestão",
+     "series": [
+      [
+       {
+        "q": "Forças, fraquezas, oportunidades e ameaças",
+        "a": "SWOT"
+       },
+       {
+        "q": "Ciclo de melhoria contínua de Deming",
+        "a": "PDCA"
+       },
+       {
+        "q": "As cinco forças competitivas",
+        "a": "Porter"
+       },
+       {
+        "q": "Subordinação a dois chefes",
+        "a": "Organização matricial"
+       },
+       {
+        "q": "Metas específicas, mensuráveis e com prazo",
+        "a": "SMART"
+       },
+       {
+        "q": "Indicadores em quatro perspectivas",
+        "a": "Balanced Scorecard"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "financas",
+   "nome": "Finanças e Marketing",
+   "temas": [
+    {
+     "id": "basico",
+     "nome": "Finanças e marketing",
+     "series": [
+      [
+       {
+        "q": "Mostra receitas, custos e lucro do período",
+        "a": "DRE"
+       },
+       {
+        "q": "Produto, preço, praça e promoção",
+        "a": "Marketing mix"
+       },
+       {
+        "q": "Retorno sobre o investimento",
+        "a": "ROI"
+       },
+       {
+        "q": "Receita igual aos custos",
+        "a": "Ponto de equilíbrio"
+       },
+       {
+        "q": "Divisão do mercado em grupos de clientes",
+        "a": "Segmentação"
+       },
+       {
+        "q": "Fluxos futuros trazidos a valor de hoje",
+        "a": "Valor presente líquido"
+       }
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}
