@@ -2,7 +2,7 @@
 
 > Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
 
-Versão 2026-11-20 · Vigência a partir de 20/12/2026
+Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 ## 1. Objeto e princípios
 
@@ -135,7 +135,7 @@ Acrescentam-se fotos de **cada dano, sujeira, falta ou defeito** encontrado, com
 
 10.2. O Parceiro que causar dano o comunica imediatamente e responde por ele (Termo de Parceria, cláusula 13).
 
-10.3. **Conflitos de interesses.** O Parceiro declara na Plataforma, antes do Vínculo ou assim que surgirem: parentesco até o 2º grau, casamento ou união estável com o Anfitrião ou com Locatário; relação de emprego ou societária com o Anfitrião; e interesse próprio em imóvel concorrente na mesma edificação. O Parceiro não avalia nem vistoria Reserva de parente, cônjuge ou companheiro, que deve ser atendida por substituto.
+10.3. **Conflitos de interesses.** O Parceiro declara na Plataforma, antes do Vínculo ou assim que surgirem, quanto a si, a seus sócios e a seus Prepostos: parentesco até o 2º grau, casamento ou união estável com o Anfitrião ou com Locatário; relação de emprego ou societária com o Anfitrião; e interesse próprio em imóvel concorrente na mesma edificação. O Parceiro não avalia nem vistoria Reserva de parente, cônjuge ou companheiro, que deve ser atendida por substituto.
 
 10.4. O Parceiro não pode fazer Reservas como Locatário em Anúncio a que esteja vinculado para gerar Taxas de Parceiro, nem estimular Reservas simuladas.
 
@@ -163,7 +163,7 @@ Acrescentam-se fotos de **cada dano, sujeira, falta ou defeito** encontrado, com
 |---|---|---|
 | **Leve** | Atraso de 15 a 30 minutos; vistoria incompleta ou fora do prazo; resposta fora do prazo da cláusula 5; falta de registro de atendimento; não eliminação de dados no prazo, sem uso indevido | **Advertência** |
 | **Média** | Falta de acesso; repetição de vistorias fora do prazo (cláusula 4.6); ingresso no Espaço sem consentimento fora de emergência; não devolução de chaves no prazo; descortesia; venda de produto ou serviço; pedido de gorjeta | **Advertência** e **suspensão de 30 dias**; perda da Taxa de Parceiro da Reserva afetada |
-| **Grave** | Pagamento fora da Plataforma (cláusula 8); desvio de clientela (cláusula 9); uso indevido de dados ou quebra de sigilo (Termo de Confidencialidade); fotografar pessoas, pacientes, documentos ou telas (cláusula 4.4); copiar chave ou entregá-la a terceiro; assédio, discriminação, agressão; atendimento sob efeito de álcool ou drogas; furto ou apropriação; atuar como corretor sem CRECI ativo ou com documento falso; 2 faltas de acesso em 90 dias; Reserva simulada | **Exclusão**, perda das Taxas de Parceiro da Reserva envolvida e, quando previsto, **cláusula penal** |
+| **Grave** | Pagamento fora da Plataforma (cláusula 8); desvio de clientela (cláusula 9); uso indevido de dados ou quebra de sigilo (Termo de Confidencialidade); fotografar pessoas, pacientes, documentos ou telas (cláusula 4.4); copiar chave ou entregá-la a terceiro; assédio, discriminação, agressão; atendimento sob efeito de álcool ou drogas; furto ou apropriação; atuar como corretor sem CRECI ativo (jurídico ou do responsável técnico) ou com documento falso; 2 faltas de acesso em 90 dias; Reserva simulada | **Exclusão**, perda das Taxas de Parceiro da Reserva envolvida e, quando previsto, **cláusula penal** |
 
 12.2. **Advertências** (janela móvel de **12 meses**), seguindo o modelo de Penalidades e Medidas, cláusula 4.1:
 
@@ -189,7 +189,7 @@ Uma segunda suspensão em 12 meses, por qualquer motivo, tem prazo de 90 dias; u
 
 12.5. **Efeitos da suspensão.** Durante a suspensão, o Parceiro não recebe novos Vínculos nem Taxas de Parceiro de novas Reservas, e os Vínculos ficam suspensos (Termo de Parceria, cláusula 6.7). As Taxas de Reservas já concluídas continuam a ser repassadas, salvo retenção cautelar (Termo de Parceria, cláusula 10.5).
 
-12.6. **Exclusão.** A exclusão encerra o Termo de Parceria e todos os Vínculos (Termo de Parceria, cláusula 15.3) e impede novo cadastro do Parceiro e de pessoa jurídica de que seja sócio.
+12.6. **Exclusão.** A exclusão encerra o Termo de Parceria e todos os Vínculos (Termo de Parceria, cláusula 15.3) e impede novo cadastro do Parceiro, de seus sócios e de outra pessoa jurídica de que eles sejam sócios, e o cadastro dos mesmos Prepostos por outro Parceiro.
 
 ## 13. Procedimento e direito de defesa
 

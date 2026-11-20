@@ -2,7 +2,7 @@
 
 > Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
 
-Versão 2026-11-20 · Vigência a partir de 20/12/2026
+Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 ## 1. Objeto e processadores
 
@@ -26,7 +26,7 @@ Versão 2026-11-20 · Vigência a partir de 20/12/2026
 |---|---|
 | Valor Base | Soma, por Ocorrência, de horas × preço por hora, ou preço de diária para Ocorrências de 6 horas ou mais quando mais vantajoso; deduzido o desconto de pacote, quando houver (Regras de Reserva e Uso, cláusula 2.3) |
 | Taxa de Limpeza | Valor fixo por Ocorrência, definido pelo Anfitrião, limitado a 30% do Valor Base |
-| **Taxa de Intermediação** (somente se o Anúncio tiver Corretor Parceiro com Vínculo ativo) | **Uma por Reserva**: o maior valor entre **R$ 50,00** e **10% do maior Valor do Dia** da Reserva (cláusula 12.2) |
+| **Taxa de Intermediação** (somente se o Anúncio tiver Corretor Parceiro com Vínculo ativo) | **Uma por Reserva**: o maior valor entre **R$ 50,00** e **10% do valor total da locação** (Valor Base + Taxa de Limpeza) da Reserva (cláusula 12.2) |
 | **Taxa de Atendimento** (somente se o Anúncio tiver Zelador Parceiro com Vínculo ativo) | **Uma por Reserva**: valor fixo do Anúncio, definido pela Operadora (cláusula 12.3) |
 | **Total** | Soma dos itens acima |
 
@@ -46,7 +46,7 @@ As Taxas de Parceiro não integram a base de cálculo do Valor do Anfitrião nem
 
 (a) **Anúncio sem Parceiros.** Reserva de 4 horas a R$ 80,00/hora, Taxa de Limpeza de R$ 30,00. Valor Base: R$ 320,00. **Total pago pelo Locatário: R$ 350,00.** Taxa de Serviço do Anfitrião: 20% × R$ 350,00 = R$ 70,00. **Valor do Anfitrião: R$ 280,00**, antes das tarifas do processador. Remuneração da Operadora: R$ 70,00.
 
-(b) **Anúncio com Corretor e Zelador — Reserva de 1 dia.** Diária com Valor Base de R$ 1.000,00, sem Taxa de Limpeza. Taxa de Intermediação: 10% × R$ 1.000,00 = R$ 100,00 (maior que R$ 50,00). Taxa de Atendimento do Anúncio: R$ 150,00.
+(b) **Anúncio com Corretor e Zelador — locação de R$ 1.000,00 em 10 dias.** Locação (Valor Base + Taxa de Limpeza) de R$ 1.000,00, distribuída em 10 dias de uso. Taxa de Intermediação: 10% × R$ 1.000,00 = R$ 100,00 (maior que R$ 50,00), uma só para a Reserva. Taxa de Atendimento do Anúncio: R$ 150,00, uma só para a Reserva.
 
 | | Valor |
 |---|---|
@@ -60,11 +60,9 @@ As Taxas de Parceiro não integram a base de cálculo do Valor do Anfitrião nem
 | (–) Repasse ao Zelador Parceiro | R$ 150,00 |
 | **Remuneração da Operadora (20% da locação)** | **R$ 200,00** |
 
-(c) **Anúncio com Corretor e Zelador — série de 10 Ocorrências.** Série semanal de 10 Ocorrências de R$ 100,00 cada, sem Taxa de Limpeza: locação de R$ 1.000,00. Maior Valor do Dia: R$ 100,00; 10% = R$ 10,00, menor que o mínimo, logo Taxa de Intermediação de **R$ 50,00**. Taxa de Atendimento: R$ 150,00 (uma por Reserva). **Total pago pelo Locatário: R$ 1.200,00.** Valor do Anfitrião: R$ 800,00. Recebido pela Operadora: R$ 400,00, dos quais R$ 50,00 são repassados ao Corretor e R$ 150,00 ao Zelador, restando à Operadora R$ 200,00.
+(c) **Mínimo de R$ 50,00.** Locação de R$ 300,00 em Anúncio com Corretor e Zelador (Taxa de Atendimento de R$ 150,00). 10% × R$ 300,00 = R$ 30,00, menor que o mínimo, logo Taxa de Intermediação de **R$ 50,00**. **Total pago pelo Locatário: R$ 500,00.** Valor do Anfitrião: R$ 240,00. Recebido pela Operadora: R$ 260,00, dos quais R$ 50,00 são repassados ao Corretor e R$ 150,00 ao Zelador, restando à Operadora R$ 60,00 (20% da locação).
 
 2.5. O detalhamento completo, com cada Taxa de Parceiro discriminada e o nome do Parceiro correspondente, é exibido antes da confirmação. Não há cobranças ocultas.
-
-2.6. **Transição.** As Reservas cujo pagamento tenha sido aprovado antes de 20/12/2026 continuam sujeitas à versão 2026-10-12 deste documento (Taxa de Serviço SpaceHour de 15% paga pelo Locatário e Taxa de Serviço do Anfitrião de 5%), inclusive quanto a reembolsos (Termos de Uso, cláusula 14.2).
 
 ## 3. Meios de pagamento e momento da cobrança
 
@@ -169,7 +167,7 @@ As Taxas de Parceiro não integram a base de cálculo do Valor do Anfitrião nem
 
 12.1. **Quando existem.** As Taxas de Parceiro são cobradas do Locatário somente quando o Anúncio tiver, na data da aprovação do pagamento, Corretor Parceiro ou Zelador Parceiro com Vínculo ativo, consentido pelo Anfitrião (Obrigações do Anfitrião, cláusula 17). Anúncio sem Parceiro não tem Taxa de Parceiro. Cada Taxa é cobrada **uma única vez por Reserva**, qualquer que seja o número de dias ou de Ocorrências.
 
-12.2. **Taxa de Intermediação (Corretor Parceiro).** O maior valor entre **R$ 50,00** e **10% do maior Valor do Dia** da Reserva. "Valor do Dia" é a parcela do Valor Base das Ocorrências de uma mesma data, calculada pelas regras de preço do Anúncio e deduzido o desconto de pacote na mesma proporção, sem Taxa de Limpeza (Termo de Parceria, cláusula 2.1). Remunera a captação do Espaço e a intermediação feita pelo Corretor Parceiro, inscrito no CRECI.
+12.2. **Taxa de Intermediação (Corretor Parceiro).** O maior valor entre **R$ 50,00** e **10% do valor total da locação** da Reserva, isto é, do Valor Base mais a Taxa de Limpeza de todas as Ocorrências. Remunera a captação do Espaço e a intermediação feita pelo Corretor Parceiro, empresa inscrita no CRECI.
 
 12.3. **Taxa de Atendimento (Zelador Parceiro).** Valor fixo por Anúncio, definido pela Operadora conforme a cidade, o porte do Espaço e a complexidade do acesso, exibido no Anúncio e no resumo da Reserva antes do pagamento. Remunera a entrega do acesso, as vistorias de entrada e de saída e o atendimento operacional ao Locatário durante as Ocorrências. A alteração do valor não alcança Reservas já pagas.
 
@@ -183,9 +181,9 @@ As Taxas de Parceiro não integram a base de cálculo do Valor do Anfitrião nem
 
 13.2. **Prazo.** O repasse é feito **até o dia 10 de cada mês**, relativo às Reservas concluídas (check-out da última Ocorrência registrado) no mês anterior, **líquido de reembolsos**, compensações e retenções tributárias.
 
-13.3. **Forma.** Exclusivamente por **Pix para a chave do próprio Parceiro**, vinculada ao mesmo CPF ou CNPJ do cadastro.
+13.3. **Forma.** Exclusivamente por **Pix para a chave do próprio Parceiro**, vinculada ao **mesmo CNPJ** do cadastro. Todo Parceiro é pessoa jurídica.
 
-13.4. **Documento fiscal.** O Parceiro pessoa jurídica (inclusive MEI) emite nota fiscal em nome da Operadora; o Parceiro pessoa física sem CNPJ recebe por Recibo de Pagamento a Autônomo (RPA), com as retenções legais (Termo de Parceria, cláusula 11).
+13.4. **Documento fiscal.** Para cada repasse, o Parceiro emite NFS-e em nome da Operadora (Termo de Parceria, cláusula 11).
 
 13.5. **Compensação.** Reembolsos, contestações (*chargebacks*) e valores devidos pelo Parceiro após o repasse são compensados com repasses futuros (Termo de Parceria, cláusula 12.5).
 

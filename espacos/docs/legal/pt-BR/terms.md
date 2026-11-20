@@ -2,7 +2,7 @@
 
 > Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
 
-Versão 2026-11-20 · Vigência a partir de 20/12/2026
+Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 ## 1. Partes e aceitação
 
@@ -50,9 +50,9 @@ Versão 2026-11-20 · Vigência a partir de 20/12/2026
 | **Valor Base** | Soma dos preços por hora ou por diária das Ocorrências de uma Reserva, deduzido eventual desconto de pacote, sem taxas. |
 | **Taxa de Limpeza** | Valor fixo por Ocorrência definido pelo Anfitrião, limitado a 30% do Valor Base. |
 | **Taxa de Serviço SpaceHour** | Remuneração da Operadora pela intermediação, cobrada **somente do Anfitrião** (também chamada **Taxa de Serviço do Anfitrião**): 20% do Valor Base mais a Taxa de Limpeza, com tributos incluídos, descontados do valor pago pelo Locatário antes do crédito ao Anfitrião, que recebe os 80% restantes. O Locatário não paga Taxa de Serviço SpaceHour. |
-| **Corretor Parceiro** | Corretor de imóveis com inscrição ativa no CRECI (Lei nº 6.530/1978), aprovado pela Operadora, que capta e cadastra Espaços, faz a intermediação das Reservas e pode auxiliar o Anfitrião na gestão do Anúncio, vinculado a cada Anúncio com o consentimento do Anfitrião (Termo de Parceria — Corretor e Zelador Parceiros). |
-| **Zelador Parceiro** | Prestador de serviços independente, aprovado pela Operadora, que, nos Anúncios a que estiver vinculado com o consentimento do Anfitrião, entrega as chaves ou o acesso, abre e fecha o Espaço, faz as vistorias de entrada e de saída com fotos e atende o Locatário em problemas operacionais durante as Ocorrências. A mesma pessoa pode ser Corretor Parceiro e Zelador Parceiro. |
-| **Taxa de Intermediação** | Valor pago pelo Locatário, uma vez por Reserva, quando o Anúncio tiver Corretor Parceiro vinculado: o maior entre R$ 50,00 e 10% do Valor Base do dia mais caro da Reserva (Pagamentos, cláusula 12.2). |
+| **Corretor Parceiro** | Pessoa jurídica com CNPJ ativo e inscrição ativa no CRECI (CRECI jurídico, Lei nº 6.530/1978), com corretor responsável técnico, aprovada pela Operadora, que capta e cadastra Espaços, faz a intermediação das Reservas e pode auxiliar o Anfitrião na gestão do Anúncio, vinculada a cada Anúncio com o consentimento do Anfitrião (Termo de Parceria — Corretor e Zelador Parceiros). |
+| **Zelador Parceiro** | Pessoa jurídica com CNPJ ativo, prestadora de serviços independente, aprovada pela Operadora, que, nos Anúncios a que estiver vinculado com o consentimento do Anfitrião, entrega as chaves ou o acesso, abre e fecha o Espaço, faz as vistorias de entrada e de saída com fotos e atende o Locatário em problemas operacionais durante as Ocorrências. A mesma empresa pode ser Corretor Parceiro e Zelador Parceiro. |
+| **Taxa de Intermediação** | Valor pago pelo Locatário, uma vez por Reserva, quando o Anúncio tiver Corretor Parceiro vinculado: o maior entre R$ 50,00 e 10% do valor total da locação (Valor Base + Taxa de Limpeza) da Reserva (Pagamentos, cláusula 12.2). |
 | **Taxa de Atendimento** | Valor fixo pago pelo Locatário, uma vez por Reserva, quando o Anúncio tiver Zelador Parceiro vinculado, definido pela Operadora para cada Anúncio e exibido antes do pagamento (Pagamentos, cláusula 12.3). |
 | **Taxas de Parceiro** | A Taxa de Intermediação e a Taxa de Atendimento, em conjunto. São recebidas pela Operadora e repassadas aos Parceiros, e são reembolsadas na mesma proporção do Valor Base (Política de Cancelamento e Reembolso, cláusula 5.4). |
 | **Caução** | Valor de garantia definido pelo Anfitrião no Anúncio, limitado a 3 vezes o Valor Base, destinado a garantir danos e penalidades. Enquanto nenhum meio de pagamento disponível permitir pré-autorização pela Plataforma, a Caução é substituída pela exigência de Fiador (documento Fiança e Caução). |
@@ -149,8 +149,6 @@ Essas características descrevem o modelo de negócio da Plataforma e não podem
 10.1. Os preços são fixados pelo Anfitrião em reais (BRL). O Locatário paga o Valor Base, a Taxa de Limpeza e, somente quando o Anúncio tiver Parceiro vinculado, a **Taxa de Intermediação** e a **Taxa de Atendimento**, uma vez por Reserva cada, sem acréscimo de tributo destacado à parte. **O Locatário não paga Taxa de Serviço SpaceHour.** Da soma do Valor Base e da Taxa de Limpeza, o Anfitrião recebe **80%** e a Operadora retém a **Taxa de Serviço SpaceHour de 20%, tributos incluídos**. O detalhamento consta do documento Pagamentos e é exibido antes da confirmação.
 
 10.2. Não há cobrança de valores ocultos. O pagamento aprovado pelo processador quita a obrigação de pagamento do preço da Reserva perante o Anfitrião e das Taxas de Parceiro perante a Operadora. A forma de cobrança, o momento em que o valor é debitado, o recebimento pelo Anfitrião e os estornos variam conforme o meio de pagamento e estão descritos no documento Pagamentos.
-
-10.3. Reservas pagas antes da vigência desta versão mantêm as taxas da versão vigente na data do pagamento (cláusula 14.2).
 
 ## 11. Propriedade intelectual
 

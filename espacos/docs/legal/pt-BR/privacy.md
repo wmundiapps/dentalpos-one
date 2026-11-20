@@ -2,7 +2,7 @@
 
 > Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
 
-Versão 2026-11-20 · Vigência a partir de 20/12/2026
+Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 ## 1. Quem somos e a quem se aplica
 
@@ -27,7 +27,7 @@ Versão 2026-11-20 · Vigência a partir de 20/12/2026
 | Reservas | Datas, horários, atividade declarada, número de pessoas, mensagens, check-in/check-out, fotos, histórico de cancelamentos | Usuários e Plataforma |
 | Pagamentos | Identificador e situação da transação, meio de pagamento, valores, estornos, CPF ou CNPJ do pagador (exigido pelo Asaas), identificação da conta de recebimento do Anfitrião no processador (os dados completos de cartão são coletados diretamente pelo Mercado Pago ou pelo Asaas e não são recebidos pela Plataforma) | Titular e processadores de pagamento |
 | Fiador e cônjuge | Nome, e-mail, telefone, CPF ou CNPJ, relação com o Locatário, estado civil, regime de bens, nome, CPF e e-mail do cônjuge, aceites, limite de responsabilidade | Locatário, Fiador e cônjuge |
-| Parceiros (Corretor e Zelador) | Nome ou razão social, CPF ou CNPJ, telefone, e-mail, chave Pix de titularidade própria, cidades de atuação, número e situação da inscrição no CRECI (Corretor), Vínculos com Anúncios, vistorias e fotos dos Espaços, registros de atendimento, avaliações, Demonstrativos, repasses, documentos fiscais e RPA, aceites (data, hora, IP e versão) e, quando solicitada, certidão de antecedentes criminais (Zelador) | Titular, base pública do CRECI, Anfitrião, Locatário e Plataforma |
+| Parceiros (Corretor e Zelador, sempre pessoa jurídica) | Razão social, CNPJ, nome do representante legal e dos Prepostos, telefone, e-mail, chave Pix do mesmo CNPJ, cidades de atuação, número e situação do CRECI jurídico e do CRECI do responsável técnico (Corretor), Vínculos com Anúncios, vistorias e fotos dos Espaços, registros de atendimento, avaliações, Demonstrativos, repasses, notas fiscais (NFS-e), aceites (data, hora, IP e versão) e, quando solicitada, certidão de antecedentes criminais dos Prepostos do Zelador | Titular, base pública do CRECI, Anfitrião, Locatário e Plataforma |
 | Reputação e conformidade | Avaliações, Incidentes, evidências, Advertências, suspensões | Usuários e Plataforma |
 | Técnicos | IP, identificadores de dispositivo, navegador, registros de acesso, cookies; IP e navegador usados no cadastro e na confirmação do e-mail; provedor do e-mail | Coleta automática |
 | Clientes Finais | Notas e comentário da avaliação, apelido opcional, data; sem cadastro | Cliente Final |
@@ -102,7 +102,7 @@ Os arquivos ficam cifrados, cada acesso é registrado e são eliminados 90 dias 
 
 4.7. Não vendemos dados pessoais.
 
-4.8. **Corretores e Zeladores Parceiros.** Quando o Anúncio tiver Parceiro vinculado, após a aprovação do pagamento, o Corretor Parceiro e o Zelador Parceiro recebem, por e-mail e por WhatsApp ou Telegram, o nome, o telefone, o e-mail, a profissão e, quando exigido, o registro profissional do Locatário, além dos dados da Reserva (Espaço, datas, horários, atividade e número de pessoas), **somente para atender aquela Reserva** (entrega de acesso, vistorias e atendimento operacional), com base na execução do contrato (LGPD, art. 7º, V). Os Parceiros tratam esses dados como operadores, sob as instruções do Termo de Confidencialidade e Proteção de Dados (Parceiros), que proíbe qualquer outro uso e exige a eliminação em até 90 dias após o check-out. O Locatário recebe o nome do Zelador da Reserva, e o nome e o número do CRECI do Corretor são exibidos no Anúncio.
+4.8. **Corretores e Zeladores Parceiros.** Quando o Anúncio tiver Parceiro vinculado, após a aprovação do pagamento, o Corretor Parceiro e o Zelador Parceiro recebem, por e-mail e por WhatsApp ou Telegram, o nome, o telefone, o e-mail, a profissão e, quando exigido, o registro profissional do Locatário, além dos dados da Reserva (Espaço, datas, horários, atividade e número de pessoas), **somente para atender aquela Reserva** (entrega de acesso, vistorias e atendimento operacional), com base na execução do contrato (LGPD, art. 7º, V). Os Parceiros tratam esses dados como operadores, sob as instruções do Termo de Confidencialidade e Proteção de Dados (Parceiros), que proíbe qualquer outro uso e exige a eliminação em até 90 dias após o check-out. O Locatário recebe o nome do Zelador da Reserva, e o nome empresarial e o número do CRECI jurídico do Corretor são exibidos no Anúncio.
 
 ## 5. Transferência internacional
 
@@ -128,7 +128,7 @@ Os arquivos ficam cifrados, cada acesso é registrado e são eliminados 90 dias 
 | Documentos de título de ocupação e de consentimento do proprietário ou locador | Enquanto o Anúncio existir e, após, pelo prazo prescricional aplicável |
 | Feedback do aplicativo | Até 3 anos, ou prazo menor quando anonimizado |
 | Dados do Locatário enviados a Parceiros (cópia em poder do Parceiro) | Até 90 dias após o check-out da última Ocorrência (Termo de Confidencialidade e Proteção de Dados (Parceiros), cláusula 7) |
-| Certidão de antecedentes criminais de Zelador | Até 90 dias após a decisão do cadastro |
+| Certidão de antecedentes criminais de Preposto de Zelador | Até 90 dias após a decisão do cadastro |
 | Cadastro, Vínculos, vistorias e repasses de Parceiros | Enquanto a parceria existir e, após, pelo prazo fiscal e prescricional aplicável |
 
 6.1. Encerrados os prazos, os dados são eliminados ou anonimizados.

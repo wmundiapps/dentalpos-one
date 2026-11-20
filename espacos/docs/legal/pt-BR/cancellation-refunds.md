@@ -2,7 +2,7 @@
 
 > Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
 
-Versão 2026-11-20 · Vigência a partir de 20/12/2026
+Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 ## 1. Disposições gerais
 
@@ -15,8 +15,6 @@ Versão 2026-11-20 · Vigência a partir de 20/12/2026
 1.4. Os percentuais das políticas incidem sobre o **Valor Base** de cada Ocorrência. A Taxa de Limpeza e as Taxas de Parceiro (Taxa de Intermediação e Taxa de Atendimento) seguem as regras específicas das cláusulas 4, 5 e 6. O Locatário não paga Taxa de Serviço SpaceHour, e por isso não há taxa de serviço a reembolsar.
 
 1.5. As regras deste documento não afastam direitos mais favoráveis garantidos por lei ao Locatário consumidor, que sempre prevalecem.
-
-1.6. **Transição.** Nas Reservas pagas antes de 20/12/2026, a Taxa de Serviço SpaceHour de 15% paga pelo Locatário continua a ser reembolsada conforme a versão 2026-10-12 deste documento.
 
 ## 2. Ordem de aplicação
 
@@ -88,7 +86,7 @@ Versão 2026-11-20 · Vigência a partir de 20/12/2026
 
 5.4. **Taxas de Parceiro.** A Taxa de Intermediação e a Taxa de Atendimento, quando cobradas, são devolvidas **na mesma proporção do Valor Base reembolsado** em relação ao Valor Base total da Reserva, em qualquer hipótese de reembolso (cortesia, arrependimento, política do Anúncio, cancelamento pelo Anfitrião, circunstância atenuante ou decisão de Incidente). Exemplo: se 87,5% do Valor Base for reembolsado, 87,5% de cada Taxa de Parceiro também é. O Corretor e o Zelador Parceiros recebem apenas a parcela não reembolsada (Termo de Parceria — Corretor e Zelador Parceiros, cláusula 12).
 
-5.5. **Exemplo.** Série semanal de 4 Ocorrências, política Moderada, cancelada fora do prazo de arrependimento quando faltam 30 horas para a primeira. A primeira Ocorrência recebe 50% do Valor Base proporcional; as três seguintes (mais de 72 horas) recebem 100%. A Taxa de Limpeza das 4 Ocorrências é devolvida integralmente. O Valor Base reembolsado é de (0,5 + 1 + 1 + 1) ÷ 4 = 87,5%; por isso, se a Reserva tiver Taxa de Intermediação de R$ 50,00 e Taxa de Atendimento de R$ 150,00, o Locatário recebe de volta R$ 43,75 e R$ 131,25, respectivamente (R$ 175,00 no total).
+5.5. **Exemplo.** Série semanal de 4 Ocorrências, política Moderada, cancelada fora do prazo de arrependimento quando faltam 30 horas para a primeira. A primeira Ocorrência recebe 50% do Valor Base proporcional; as três seguintes (mais de 72 horas) recebem 100%. A Taxa de Limpeza das 4 Ocorrências é devolvida integralmente. O Valor Base reembolsado é de (0,5 + 1 + 1 + 1) ÷ 4 = 87,5%; por isso, se a Reserva tiver Taxa de Intermediação de R$ 100,00 e Taxa de Atendimento de R$ 150,00, o Locatário recebe de volta R$ 87,50 e R$ 131,25, respectivamente (R$ 218,75 no total).
 
 5.6. **Não comparecimento.** O não comparecimento sem cancelamento não gera reembolso do Valor Base da Ocorrência nem da parcela correspondente das Taxas de Parceiro, ressalvado o direito de arrependimento. A Taxa de Limpeza não utilizada é devolvida quando o Anfitrião confirmar que a limpeza não foi necessária.
 

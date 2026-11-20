@@ -2,7 +2,7 @@
 
 > Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
 
-Versão 2026-11-20 · Vigência a partir de 20/12/2026
+Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 ## 1. Objeto
 
@@ -120,11 +120,9 @@ Versão 2026-11-20 · Vigência a partir de 20/12/2026
 
 16.2. Estornos ao Locatário reduzem o valor recebido pelo Anfitrião na forma do documento Pagamentos, cláusula 5.
 
-16.3. As Reservas pagas antes de 20/12/2026 mantêm a Taxa de Serviço do Anfitrião de 5% da versão anterior deste documento.
-
 ## 17. Corretores e Zeladores Parceiros no Anúncio
 
-17.1. **Consentimento.** Nenhum Corretor Parceiro ou Zelador Parceiro é vinculado ao Anúncio sem o **consentimento expresso do Anfitrião**, dado na Plataforma para cada Parceiro e para cada Anúncio. O Anfitrião vê, antes de consentir, o nome do Parceiro, a modalidade, o número do CRECI (no caso do Corretor), a Taxa de Parceiro que será cobrada do Locatário e a avaliação do Parceiro. Cada Anúncio tem no máximo 1 Corretor e 1 Zelador com Vínculo ativo (Termo de Parceria — Corretor e Zelador Parceiros, cláusula 6).
+17.1. **Consentimento.** Nenhum Corretor Parceiro ou Zelador Parceiro é vinculado ao Anúncio sem o **consentimento expresso do Anfitrião**, dado na Plataforma para cada Parceiro e para cada Anúncio. O Anfitrião vê, antes de consentir, o nome do Parceiro, a modalidade, o número do CRECI jurídico (no caso do Corretor), a Taxa de Parceiro que será cobrada do Locatário e a avaliação do Parceiro. Cada Anúncio tem no máximo 1 Corretor e 1 Zelador com Vínculo ativo (Termo de Parceria — Corretor e Zelador Parceiros, cláusula 6).
 
 17.2. **Encerramento.** O Anfitrião pode encerrar o Vínculo de um Parceiro sem motivo, com aviso prévio de **30 dias** pela Plataforma, ou **imediatamente, por justa causa**, nas hipóteses do Termo de Parceria, cláusula 6.5. Encerrado o Vínculo, as Taxas de Parceiro deixam de ser cobradas nas novas Reservas; o Corretor conserva a Taxa de Intermediação das Reservas já pagas (Termo de Parceria, cláusula 6.8).
 
@@ -136,6 +134,6 @@ Versão 2026-11-20 · Vigência a partir de 20/12/2026
 
 17.6. **Indisponibilidade ou falta de Zelador.** Quando o Zelador estiver indisponível, suspenso ou desvinculado e não houver substituto aceito, o Anfitrião presta o acesso diretamente, na forma da cláusula 9 (Termo de Parceria, cláusulas 6.9 e 8.6).
 
-17.7. **Nenhum pagamento direto.** O Anfitrião não paga ao Parceiro valores relativos às Reservas nem pede ao Parceiro que cobre algo do Locatário. Serviços que o Anfitrião contratar com a mesma pessoa sem relação com as Reservas (por exemplo, limpeza periódica) devem ser declarados na Plataforma e não podem substituir nem duplicar as Taxas de Parceiro (Regras de Conduta e Atendimento (Parceiros), cláusula 8.1).
+17.7. **Nenhum pagamento direto.** O Anfitrião não paga ao Parceiro valores relativos às Reservas nem pede ao Parceiro que cobre algo do Locatário. Serviços que o Anfitrião contratar com a mesma empresa sem relação com as Reservas (por exemplo, limpeza periódica) devem ser declarados na Plataforma e não podem substituir nem duplicar as Taxas de Parceiro (Regras de Conduta e Atendimento (Parceiros), cláusula 8.1).
 
 17.8. **Conflito de interesses.** O Anfitrião declara na Plataforma se o Parceiro é seu parente até o 2º grau, cônjuge, companheiro, sócio ou empregado. O Anfitrião, seus sócios, administradores e empregados não podem ser Corretor Parceiro com direito à Taxa de Intermediação em seus próprios Anúncios (Termo de Parceria, cláusula 7.3).
