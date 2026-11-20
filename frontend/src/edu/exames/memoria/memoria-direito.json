@@ -1,0 +1,248 @@
+{
+ "id": "direito",
+ "nome": "Direito",
+ "disciplinas": [
+  {
+   "id": "constitucional",
+   "nome": "Direito Constitucional",
+   "temas": [
+    {
+     "id": "principios",
+     "nome": "Princípios fundamentais",
+     "series": [
+      [
+       {
+        "q": "Art. 1º, III, da CF",
+        "a": "Dignidade da pessoa humana"
+       },
+       {
+        "q": "Art. 1º, V, da CF",
+        "a": "Pluralismo político"
+       },
+       {
+        "q": "Poderes da União, independentes e harmônicos",
+        "a": "Legislativo, Executivo e Judiciário"
+       },
+       {
+        "q": "Forma de governo do Brasil",
+        "a": "República"
+       },
+       {
+        "q": "Forma de Estado do Brasil",
+        "a": "Federação"
+       },
+       {
+        "q": "Sistema de governo do Brasil",
+        "a": "Presidencialismo"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "garantias",
+     "nome": "Direitos e garantias",
+     "series": [
+      [
+       {
+        "q": "Protege a liberdade de locomoção",
+        "a": "Habeas corpus"
+       },
+       {
+        "q": "Protege direito líquido e certo",
+        "a": "Mandado de segurança"
+       },
+       {
+        "q": "Dá acesso a informações pessoais em bancos de dados",
+        "a": "Habeas data"
+       },
+       {
+        "q": "Anula ato lesivo ao patrimônio público; o autor é cidadão",
+        "a": "Ação popular"
+       },
+       {
+        "q": "Supre a falta de norma que inviabiliza um direito",
+        "a": "Mandado de injunção"
+       },
+       {
+        "q": "Asilo inviolável do indivíduo",
+        "a": "Casa (domicílio)"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "estado",
+     "nome": "Organização dos Poderes",
+     "series": [
+      [
+       {
+        "q": "Mandato de senador",
+        "a": "8 anos"
+       },
+       {
+        "q": "Mandato de deputado federal",
+        "a": "4 anos"
+       },
+       {
+        "q": "Idade mínima para Presidente",
+        "a": "35 anos"
+       },
+       {
+        "q": "Idade mínima para deputado federal",
+        "a": "21 anos"
+       },
+       {
+        "q": "Número de ministros do STF",
+        "a": "11 ministros"
+       },
+       {
+        "q": "Julga o Presidente em crime de responsabilidade",
+        "a": "Senado Federal"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "penal",
+   "nome": "Direito Penal",
+   "temas": [
+    {
+     "id": "teoria",
+     "nome": "Teoria do crime",
+     "series": [
+      [
+       {
+        "q": "Não há crime sem lei anterior",
+        "a": "Legalidade"
+       },
+       {
+        "q": "Fato típico, ilícito e culpável",
+        "a": "Conceito analítico de crime"
+       },
+       {
+        "q": "Repelir injusta agressão, atual ou iminente",
+        "a": "Legítima defesa"
+       },
+       {
+        "q": "Salvar direito de perigo atual e inevitável",
+        "a": "Estado de necessidade"
+       },
+       {
+        "q": "Idade da inimputabilidade penal",
+        "a": "18 anos"
+       },
+       {
+        "q": "O agente quer o resultado",
+        "a": "Dolo"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "especie",
+     "nome": "Crimes em espécie",
+     "series": [
+      [
+       {
+        "q": "Subtrair coisa alheia móvel, sem violência",
+        "a": "Furto"
+       },
+       {
+        "q": "Subtrair com violência ou grave ameaça",
+        "a": "Roubo"
+       },
+       {
+        "q": "Obter vantagem ilícita induzindo alguém a erro",
+        "a": "Estelionato"
+       },
+       {
+        "q": "Matar alguém (reclusão de 6 a 20 anos)",
+        "a": "Homicídio simples"
+       },
+       {
+        "q": "Apropriar-se de coisa alheia de que tem a posse",
+        "a": "Apropriação indébita"
+       },
+       {
+        "q": "Ofender a integridade corporal de outrem",
+        "a": "Lesão corporal"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "civil",
+   "nome": "Direito Civil",
+   "temas": [
+    {
+     "id": "pessoas",
+     "nome": "Pessoas e capacidade",
+     "series": [
+      [
+       {
+        "q": "Começa a personalidade civil da pessoa natural",
+        "a": "Com o nascimento com vida"
+       },
+       {
+        "q": "Cessa a menoridade",
+        "a": "18 anos"
+       },
+       {
+        "q": "Absolutamente incapazes: menores de",
+        "a": "16 anos"
+       },
+       {
+        "q": "Termina a existência da pessoa natural",
+        "a": "Morte"
+       },
+       {
+        "q": "Local onde a pessoa se estabelece com ânimo definitivo",
+        "a": "Domicílio"
+       },
+       {
+        "q": "Pessoa jurídica adquire personalidade com",
+        "a": "Registro dos atos constitutivos"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "contratos",
+     "nome": "Obrigações e contratos",
+     "series": [
+      [
+       {
+        "q": "O contrato faz lei entre as partes",
+        "a": "Pacta sunt servanda"
+       },
+       {
+        "q": "Lealdade exigida na conclusão e na execução do contrato",
+        "a": "Boa-fé objetiva"
+       },
+       {
+        "q": "Prazo prescricional geral do Código Civil",
+        "a": "10 anos"
+       },
+       {
+        "q": "Defeito oculto na coisa recebida",
+        "a": "Vício redibitório"
+       },
+       {
+        "q": "Dois credores e devedores recíprocos extinguem a dívida",
+        "a": "Compensação"
+       },
+       {
+        "q": "Alguém garante a dívida de outro",
+        "a": "Fiança"
+       }
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

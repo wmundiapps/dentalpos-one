@@ -6,11 +6,12 @@ import { LoadBox } from "../desempenho/kit";
 import BancoDocente from "./BancoDocente";
 import Coordenacao from "./Coordenacao";
 import SimuladoAluno from "./SimuladoAluno";
+import MemoriaJogo from "./MemoriaJogo";
 import { DesempenhoAluno, FlashcardsAluno, RankingAluno, SugestoesAluno, TrilhaAluno } from "./EstudoAluno";
 import { ehAluno, ehDocente, useVisao } from "./comum";
 
-const ABAS_ALUNO: Array<[string, string]> = [["trilha", "Minha trilha"], ["estudar", "O que estudar"], ["simulados", "Simulados"], ["flashcards", "Flashcards"], ["desempenho", "Meu desempenho"], ["ranking", "Ranking e privacidade"]];
-const ABAS_DOCENTE: Array<[string, string]> = [["coordenacao", "Painel do coordenador"], ["banco", "Banco, gerador e simulados"]];
+const ABAS_ALUNO: Array<[string, string]> = [["trilha", "Minha trilha"], ["estudar", "O que estudar"], ["simulados", "Simulados"], ["flashcards", "Flashcards"], ["desempenho", "Meu desempenho"], ["memoria", "Jogo da memória"], ["ranking", "Ranking e privacidade"]];
+const ABAS_DOCENTE: Array<[string, string]> = [["coordenacao", "Painel do coordenador"], ["banco", "Banco, gerador e simulados"], ["memoria", "Jogo da memória"]];
 
 export default function ExamesHub({ embutido }: { embutido?: boolean }) {
   const aluno = ehAluno();
@@ -25,6 +26,14 @@ export default function ExamesHub({ embutido }: { embutido?: boolean }) {
     if (!exameId && v.exames.length) setExameId((v.exames.find((e) => e.questoes > 0) ?? v.exames[0]).id);
   }, [v.exames, exameId]);
 
+  const tabs = (
+    <Tabs value={aba} onChange={(_, k) => ir(k)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }} aria-label="Seções de preparação para exames">
+      {abas.map(([k, l]) => <Tab key={k} value={k} label={l} />)}
+    </Tabs>
+  );
+  // O jogo da memória usa conteúdo próprio por curso e não depende do cadastro de exames.
+  if (aba === "memoria") return <Box>{tabs}<MemoriaJogo /></Box>;
+
   return (
     <Box>
       <LoadBox loading={v.loading && !v.exames.length} error={v.error} onRetry={v.reload}>
@@ -32,9 +41,7 @@ export default function ExamesHub({ embutido }: { embutido?: boolean }) {
           <Alert severity="info">Nenhum exame configurado. A coordenação deve abrir "Banco, gerador e simulados" ou rodar o cadastro padrão de exames (ENADE, ENAMED, OAB).</Alert>
         ) : (
           <>
-            <Tabs value={aba} onChange={(_, k) => ir(k)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }} aria-label="Seções de preparação para exames">
-              {abas.map(([k, l]) => <Tab key={k} value={k} label={l} />)}
-            </Tabs>
+            {tabs}
             {aba === "trilha" && <TrilhaAluno exames={v.exames} exameId={exameId} setExameId={setExameId} irParaSimulados={() => ir("simulados")} />}
             {aba === "estudar" && <SugestoesAluno exames={v.exames} exameId={exameId} setExameId={setExameId} />}
             {aba === "simulados" && <SimuladoAluno exames={v.exames} exameId={exameId} setExameId={setExameId} />}

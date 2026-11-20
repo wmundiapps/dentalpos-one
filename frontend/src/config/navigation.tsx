@@ -225,6 +225,7 @@ const allNavigationGroups:NavigationGroup[] = [
     items:[
       item("ENADE · ENAMED · OAB","/edu/exames",<AutoAwesomeIcon/>),
       item("Simulados com gabarito comentado","/edu/exames?aba=simulados",<AssessmentIcon/>),
+      item("Jogo da memória (por curso)","/edu/exames?aba=memoria",<AutoAwesomeIcon/>),
       item("Painel de prontidão do curso","/edu/exames?aba=coordenacao",<InsightsIcon/>),
       item("Banco de questões e gerador com IA","/edu/exames?aba=banco",<BiotechIcon/>),
     ]

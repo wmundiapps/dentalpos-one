@@ -1,0 +1,502 @@
+{
+ "id": "medicina",
+ "nome": "Medicina",
+ "disciplinas": [
+  {
+   "id": "anatomia",
+   "nome": "Anatomia",
+   "temas": [
+    {
+     "id": "term",
+     "nome": "Terminologia e planos",
+     "series": [
+      [
+       {
+        "q": "Plano que separa direita e esquerda",
+        "a": "Sagital"
+       },
+       {
+        "q": "Plano que separa anterior e posterior",
+        "a": "Coronal (frontal)"
+       },
+       {
+        "q": "Plano que separa superior e inferior",
+        "a": "Transversal (axial)"
+       },
+       {
+        "q": "Mais perto da raiz do membro",
+        "a": "Proximal"
+       },
+       {
+        "q": "Em direção à frente do corpo",
+        "a": "Anterior (ventral)"
+       },
+       {
+        "q": "Mais perto da linha mediana",
+        "a": "Medial"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "ossos",
+     "nome": "Ossos",
+     "series": [
+      [
+       {
+        "q": "Osso do braço",
+        "a": "Úmero"
+       },
+       {
+        "q": "Osso lateral do antebraço (lado do polegar)",
+        "a": "Rádio"
+       },
+       {
+        "q": "Osso medial do antebraço",
+        "a": "Ulna"
+       },
+       {
+        "q": "Osso em S que liga esterno e escápula",
+        "a": "Clavícula"
+       },
+       {
+        "q": "Osso triangular posterior do ombro",
+        "a": "Escápula"
+       },
+       {
+        "q": "Ossos do punho",
+        "a": "Carpais"
+       }
+      ],
+      [
+       {
+        "q": "Maior osso do corpo",
+        "a": "Fêmur"
+       },
+       {
+        "q": "Osso medial da perna, que sustenta o peso",
+        "a": "Tíbia"
+       },
+       {
+        "q": "Osso fino e lateral da perna",
+        "a": "Fíbula"
+       },
+       {
+        "q": "Osso anterior do joelho",
+        "a": "Patela"
+       },
+       {
+        "q": "Osso do calcanhar",
+        "a": "Calcâneo"
+       },
+       {
+        "q": "Osso do tarso que se articula com a tíbia",
+        "a": "Tálus"
+       }
+      ],
+      [
+       {
+        "q": "Vértebra C1",
+        "a": "Atlas"
+       },
+       {
+        "q": "Vértebra C2, com o processo odontoide",
+        "a": "Áxis"
+       },
+       {
+        "q": "Osso do peito com manúbrio, corpo e xifoide",
+        "a": "Esterno"
+       },
+       {
+        "q": "Osso da testa",
+        "a": "Frontal"
+       },
+       {
+        "q": "Osso em U do pescoço, sem articulação com outro osso",
+        "a": "Hioide"
+       },
+       {
+        "q": "Vértebras fundidas na base da coluna",
+        "a": "Sacro"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "art",
+     "nome": "Articulações",
+     "series": [
+      [
+       {
+        "q": "Articulação do ombro (úmero e escápula)",
+        "a": "Glenoumeral"
+       },
+       {
+        "q": "Tipo de articulação do cotovelo",
+        "a": "Gínglimo (dobradiça)"
+       },
+       {
+        "q": "Articulação que gira a cabeça (C1 e C2)",
+        "a": "Atlantoaxial"
+       },
+       {
+        "q": "Articulação entre fêmur e acetábulo",
+        "a": "Coxofemoral"
+       },
+       {
+        "q": "Articulações entre os ossos do crânio",
+        "a": "Suturas"
+       },
+       {
+        "q": "Tipo de articulação do disco intervertebral",
+        "a": "Sínfise"
+       }
+      ],
+      [
+       {
+        "q": "Articulação entre acrômio e clavícula",
+        "a": "Acromioclavicular"
+       },
+       {
+        "q": "Articulação entre esterno e clavícula",
+        "a": "Esternoclavicular"
+       },
+       {
+        "q": "Articulação entre sacro e ílio",
+        "a": "Sacroilíaca"
+       },
+       {
+        "q": "Articulação em sela do polegar",
+        "a": "Carpometacarpal"
+       },
+       {
+        "q": "Disco em C de fibrocartilagem do joelho",
+        "a": "Menisco"
+       },
+       {
+        "q": "Membrana que produz o líquido articular",
+        "a": "Membrana sinovial"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "fascia",
+     "nome": "Fáscias, tendões e ligamentos",
+     "series": [
+      [
+       {
+        "q": "Une músculo a osso",
+        "a": "Tendão"
+       },
+       {
+        "q": "Une osso a osso",
+        "a": "Ligamento"
+       },
+       {
+        "q": "Tendão mais forte do corpo, no calcanhar",
+        "a": "Tendão do calcâneo"
+       },
+       {
+        "q": "Fáscia espessa da planta do pé",
+        "a": "Aponeurose plantar"
+       },
+       {
+        "q": "Banda que segura os tendões flexores no punho",
+        "a": "Retináculo dos flexores"
+       },
+       {
+        "q": "Impede a tíbia de ir para frente no joelho",
+        "a": "Ligamento cruzado anterior"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "musc",
+     "nome": "Músculos",
+     "series": [
+      [
+       {
+        "q": "Principal músculo da inspiração",
+        "a": "Diafragma"
+       },
+       {
+        "q": "Músculo anterior do tórax que aduz o braço",
+        "a": "Peitoral maior"
+       },
+       {
+        "q": "Músculo largo do dorso, extensor do ombro",
+        "a": "Latíssimo do dorso"
+       },
+       {
+        "q": "Músculo em losango no dorso e pescoço",
+        "a": "Trapézio"
+       },
+       {
+        "q": "Músculo do pescoço que gira e inclina a cabeça",
+        "a": "Esternocleidomastoideo"
+       },
+       {
+        "q": "Músculo \"tanquinho\", do esterno ao púbis",
+        "a": "Reto do abdome"
+       }
+      ],
+      [
+       {
+        "q": "Músculo da frente do braço, com duas cabeças",
+        "a": "Bíceps braquial"
+       },
+       {
+        "q": "Músculo de trás do braço, com três cabeças",
+        "a": "Tríceps braquial"
+       },
+       {
+        "q": "Músculo que arredonda o ombro",
+        "a": "Deltoide"
+       },
+       {
+        "q": "Supraespinal, infraespinal, redondo menor e subescapular",
+        "a": "Manguito rotador"
+       },
+       {
+        "q": "Músculo profundo ao bíceps que flexiona o cotovelo",
+        "a": "Braquial"
+       },
+       {
+        "q": "Músculo do polegar que faz a oposição",
+        "a": "Oponente do polegar"
+       }
+      ],
+      [
+       {
+        "q": "Maior músculo do corpo",
+        "a": "Glúteo máximo"
+       },
+       {
+        "q": "Músculo anterior da coxa, com quatro cabeças",
+        "a": "Quadríceps femoral"
+       },
+       {
+        "q": "Músculo mais longo do corpo, cruza a coxa",
+        "a": "Sartório"
+       },
+       {
+        "q": "Bíceps femoral, semitendíneo e semimembranáceo",
+        "a": "Isquiotibiais"
+       },
+       {
+        "q": "Músculo da panturrilha com duas cabeças",
+        "a": "Gastrocnêmio"
+       },
+       {
+        "q": "Músculo anterior da perna que faz dorsiflexão",
+        "a": "Tibial anterior"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "arterias",
+     "nome": "Artérias",
+     "series": [
+      [
+       {
+        "q": "Maior artéria do corpo",
+        "a": "Aorta"
+       },
+       {
+        "q": "Artérias que irrigam o miocárdio",
+        "a": "Coronárias"
+       },
+       {
+        "q": "Ramo da carótida comum que entra no crânio",
+        "a": "Carótida interna"
+       },
+       {
+        "q": "Leva sangue desoxigenado do coração ao pulmão",
+        "a": "Artéria pulmonar"
+       },
+       {
+        "q": "Artéria palpável sobre a mandíbula",
+        "a": "Facial"
+       },
+       {
+        "q": "Artéria que passa pelos forames transversos cervicais",
+        "a": "Vertebral"
+       }
+      ],
+      [
+       {
+        "q": "Continuação da axilar no braço",
+        "a": "Braquial"
+       },
+       {
+        "q": "Pulso do punho, lado do polegar",
+        "a": "Radial"
+       },
+       {
+        "q": "Pulso no dorso do pé",
+        "a": "Dorsal do pé"
+       },
+       {
+        "q": "Continuação da ilíaca externa na coxa",
+        "a": "Femoral"
+       },
+       {
+        "q": "Artéria atrás do joelho",
+        "a": "Poplítea"
+       },
+       {
+        "q": "Dá a gástrica esquerda, esplênica e hepática comum",
+        "a": "Tronco celíaco"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "veias",
+     "nome": "Veias e linfáticos",
+     "series": [
+      [
+       {
+        "q": "Traz sangue da metade inferior ao átrio direito",
+        "a": "Veia cava inferior"
+       },
+       {
+        "q": "Levam sangue oxigenado ao átrio esquerdo",
+        "a": "Veias pulmonares"
+       },
+       {
+        "q": "Drena a cabeça, ao lado da carótida",
+        "a": "Jugular interna"
+       },
+       {
+        "q": "Veia superficial lateral do braço",
+        "a": "Cefálica"
+       },
+       {
+        "q": "Veia superficial medial do braço",
+        "a": "Basílica"
+       },
+       {
+        "q": "Leva sangue do intestino ao fígado",
+        "a": "Veia porta"
+       }
+      ],
+      [
+       {
+        "q": "Veia mais longa do corpo, na face medial da perna",
+        "a": "Safena magna"
+       },
+       {
+        "q": "Veia profunda que acompanha a artéria femoral",
+        "a": "Veia femoral"
+       },
+       {
+        "q": "Veia que acompanha a artéria atrás do joelho",
+        "a": "Veia poplítea"
+       },
+       {
+        "q": "Recebe o sangue venoso do coração",
+        "a": "Seio coronário"
+       },
+       {
+        "q": "Maior vaso linfático do corpo",
+        "a": "Ducto torácico"
+       },
+       {
+        "q": "Pequenos filtros da linfa",
+        "a": "Linfonodos"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "nervos",
+     "nome": "Nervos",
+     "series": [
+      [
+       {
+        "q": "Nervo craniano I (olfato)",
+        "a": "Olfatório"
+       },
+       {
+        "q": "Nervo craniano II (visão)",
+        "a": "Óptico"
+       },
+       {
+        "q": "Nervo craniano da mímica facial (VII)",
+        "a": "Facial"
+       },
+       {
+        "q": "Nervo craniano X, vai do pescoço ao abdome",
+        "a": "Vago"
+       },
+       {
+        "q": "Nervo craniano V, sensibilidade da face",
+        "a": "Trigêmeo"
+       },
+       {
+        "q": "Nervo craniano VIII (audição e equilíbrio)",
+        "a": "Vestibulococlear"
+       }
+      ],
+      [
+       {
+        "q": "Passa atrás do epicôndilo medial",
+        "a": "Ulnar"
+       },
+       {
+        "q": "Nervo do túnel do carpo",
+        "a": "Mediano"
+       },
+       {
+        "q": "Lesão causa \"mão caída\"",
+        "a": "Radial"
+       },
+       {
+        "q": "Inerva o deltoide",
+        "a": "Axilar"
+       },
+       {
+        "q": "Inerva bíceps e braquial",
+        "a": "Musculocutâneo"
+       },
+       {
+        "q": "Formado por C5 a T1",
+        "a": "Plexo braquial"
+       }
+      ],
+      [
+       {
+        "q": "Maior nervo do corpo",
+        "a": "Isquiático"
+       },
+       {
+        "q": "Inerva o quadríceps",
+        "a": "Femoral"
+       },
+       {
+        "q": "Lesão no colo da fíbula causa pé caído",
+        "a": "Fibular comum"
+       },
+       {
+        "q": "Inerva o diafragma (C3 a C5)",
+        "a": "Frênico"
+       },
+       {
+        "q": "Ramo do isquiático que inerva a panturrilha e a planta",
+        "a": "Tibial"
+       },
+       {
+        "q": "Inerva os adutores da coxa",
+        "a": "Obturatório"
+       }
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}
