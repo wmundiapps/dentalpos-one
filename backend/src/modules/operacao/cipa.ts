@@ -71,13 +71,13 @@ async function avisar(tenantId: string, cat: any, nivel: number) {
   return dests.length
 }
 
-router.get('/cat', asyncHandler(async (req: Req, res: Response) => {
+router.get('/cat', gestao, asyncHandler(async (req: Req, res: Response) => {
   const tenantId = getTenantId(req)
   const cats = await prisma.cipCat.findMany({ where: { tenantId }, orderBy: { createdAt: 'desc' }, take: 200 })
   const avisos = await prisma.cipAviso.groupBy({ by: ['catId', 'nivel'], where: { tenantId, catId: { in: cats.map((c) => c.id) } }, _count: true })
   res.json(cats.map((c) => ({ ...c, avisos: avisos.filter((a) => a.catId === c.id).map((a) => ({ nivel: a.nivel, total: a._count })) })))
 }))
-router.get('/cat/:id', asyncHandler(async (req: Req, res: Response) => {
+router.get('/cat/:id', gestao, asyncHandler(async (req: Req, res: Response) => {
   const tenantId = getTenantId(req)
   const c = await prisma.cipCat.findFirst({ where: { id: String(req.params.id), tenantId } }) ?? erro(404, 'Registro não encontrado.')
   res.json({ ...c, avisos: await prisma.cipAviso.findMany({ where: { tenantId, catId: c.id }, orderBy: { enviadoEm: 'asc' } }) })

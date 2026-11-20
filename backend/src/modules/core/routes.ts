@@ -122,6 +122,8 @@ router.get(
   '/pessoas',
   requireAuth,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    // O diretório de pessoas (nomes, e-mails e cargos) é da equipe: aluno e cliente do escritório contábil não consultam.
+    if (['STUDENT', 'CLIENTE_CONTABIL'].includes(String(req.user?.role || '').toUpperCase())) return res.status(403).json({ error: 'Sem permissão para esta área.' })
     const tenantId = getTenantId(req)
     const role = qs(req.query.role)
     const q = qs(req.query.q)

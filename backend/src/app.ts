@@ -95,17 +95,30 @@ app.use('/api', (req, res, next) => {
   next()
 })
 
-const authLimiter = rateLimit({
+// Limite por IP + conta: o campus compartilha poucos IPs (NAT), então um limite só por IP bloquearia alunos legítimos.
+// O limite por IP sozinho (AUTH_RATE_LIMIT_IP_MAX) segura varredura de várias contas a partir de uma única origem.
+const contaDoPedido = (req: any) => String(req.body?.email || req.body?.cpf || req.body?.login || '').trim().toLowerCase().slice(0, 120)
+const authLimiterIp = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: Number(process.env.AUTH_RATE_LIMIT_IP_MAX || 1500),
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.' }
+})
+const authLimiterConta = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: Number(process.env.AUTH_RATE_LIMIT_MAX || 10),
+  keyGenerator: (req: any) => `${req.ip}|${contaDoPedido(req)}`,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.' }
 })
 
+const authLimiter: import('express').RequestHandler = (req, res, next) => authLimiterIp(req, res, (e?: unknown) => (e ? next(e) : authLimiterConta(req, res, next)))
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: Number(process.env.API_RATE_LIMIT_MAX || 1200),
+  limit: Number(process.env.API_RATE_LIMIT_MAX || 20000), // campus com NAT: muitos usuários por IP
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Limite temporário de requisições atingido.' }
