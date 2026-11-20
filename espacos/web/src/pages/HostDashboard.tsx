@@ -1,3 +1,4 @@
+import { HostPixSetup } from './Plans';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
@@ -36,6 +37,7 @@ export default function HostDashboard() {
         <Link to="/anfitriao/novo" className="btn btn-primary">+ {t('nav.newListing')}</Link>
       </div>
       <PayoutAccount />
+      <HostPixSetup />
       <SecureAccountNudge />
       <div className="tabs">
         <button className={tab === 'requests' ? 'active' : ''} onClick={() => setTab('requests')}>{t('host.requests')} {requests.length > 0 && <span className="count">{requests.length}</span>}</button>

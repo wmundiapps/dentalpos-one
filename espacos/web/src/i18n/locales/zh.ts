@@ -530,6 +530,7 @@ const zh: Dict = {
   'legal.partner-terms': 'Partner Agreement (Broker and Caretaker)',
   'legal.partner-confidentiality': 'Confidentiality and Data (Partners)',
   'legal.partner-conduct': 'Partner Conduct Rules',
+  'legal.prepaid-plan': 'SpaceHour Plan: terms and refunds',
   'legal.guarantor-deposit': '担保人与押金',
   'legal.reviews': '评价',
   'legal.payments': '国际支付',
@@ -619,6 +620,16 @@ const zh: Dict = {
   'err.not_found': '未找到。',
   'err.validation': '请检查各字段内容',
   'err.internal': '发生错误，请重试。',
+  'err.plan_not_accepted': 'This space does not accept the SpaceHour Plan yet.',
+  'err.plan_insufficient_credit': 'Your SpaceHour Plan does not have enough credit.',
+  'err.plan_fees_method_required': 'Choose Pix or card for the partner fees.',
+  'err.plan_terms_required': 'Please accept the SpaceHour Plan terms.',
+  'err.plan_invalid_months': 'Choose 6 or 12 months.',
+  'err.plan_invalid_amount': 'Monthly amount must be between {min} and {max}.',
+  'err.pix_invalid_key': 'Invalid Pix key.',
+  'err.pix_invalid_holder': 'Enter the Pix key holder tax ID.',
+  'err.pix_manual_ref_required': 'Enter the Pix transfer code.',
+  'err.pix_failed': 'Pix failed: {message}',
   'err.network': '连接失败，请检查您的网络。',
   // 支付服务商付款、专业执业资格、照片、应用评价
   'status.pending_payment': '待付款',
@@ -1127,6 +1138,7 @@ const zh: Dict = {
   'val.package_max_weekdays': 'Choose at most {max} weekdays in a package.',
   'admin.tabProspecting': 'Prospecting',
   'admin.tabPartners': 'Partners',
+  'admin.tabFinance': 'Finance',
 };
 
 export default zh;

@@ -45,6 +45,7 @@ const listingSchema = z.object({
   pricePerHour: z.number().positive(),
   pricePerDay: z.number().positive().optional(),
   packageDiscountPct: z.number().min(0).max(BOOKING_LIMITS.maxPackageDiscountPct).optional(),
+  acceptsPlan: z.boolean().optional(),
   minHours: z.number().int().min(1).max(BOOKING_LIMITS.maxHoursPerOccurrence),
   cleaningFee: z.number().min(0),
   securityDeposit: z.number().min(0),
@@ -231,7 +232,8 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
       await repo.updateUser(tx, user);
     }
     await repo.insertListing(tx, listing);
-    await onListingCreated(tx, user, listing); // veio pelo link de um corretor: vínculo aguardando o "sim" do anfitrião
+    await onListingCreated(tx, user, listing);
+    if (data.acceptsPlan === false) await tx.query('UPDATE listings SET accepts_plan = false WHERE id = $1', [listing.id]); // veio pelo link de um corretor: vínculo aguardando o "sim" do anfitrião
     if (pendingEmail) await tx.query('UPDATE listings SET pending_email = true WHERE id = $1', [listing.id]);
     // Boas-vindas ao anúncio + convite para o SpaceHour ADS (destaque pago, em breve)
     const needsPayout = (payoutRequired(listing.countryCode) || (marketplaceEnabled() && MP_COUNTRIES.includes(listing.countryCode))) && !(await hostProviders([user.id])).get(user.id)?.length;
@@ -269,6 +271,7 @@ listingsRouter.put('/listings/:id', requireAuth, async (req: AuthedRequest, res)
     // Política de cancelamento das reservas existentes não muda (fica gravada na reserva)
     Object.assign(cur, data, derived);
     await repo.updateListing(tx, cur);
+    if (data.acceptsPlan !== undefined) await tx.query('UPDATE listings SET accepts_plan = $2 WHERE id = $1', [cur.id, data.acceptsPlan]);
     return cur;
   });
   res.json(l);

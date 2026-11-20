@@ -39,6 +39,7 @@ const ProLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: 
 const GeneralLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.GeneralLanding })));
 const Admin = lazy(() => import('./pages/Misc').then((m) => ({ default: m.Admin })));
 const PartnersLanding = lazy(() => import('./pages/Partners').then((m) => ({ default: m.PartnersLanding })));
+const PlansPage = lazy(() => import('./pages/Plans').then((m) => ({ default: m.PlansPage })));
 const PartnerDashboard = lazy(() => import('./pages/Partners').then((m) => ({ default: m.PartnerDashboard })));
 const Diagnostics = lazy(() => import('./pages/Diagnostics'));
 
@@ -83,6 +84,8 @@ export default function App() {
             <Route path="/admin" element={<Private><Admin /></Private>} />
             <Route path="/admin/parceiros" element={<Private><Admin /></Private>} />
             <Route path="/parceiros" element={<PartnersLanding />} />
+            <Route path="/planos" element={<PlansPage />} />
+            <Route path="/admin/financeiro" element={<Private><Admin /></Private>} />
             <Route path="/parceiro" element={<Private><PartnerDashboard /></Private>} />
             <Route path="/parceiro/reservas/:bookingId" element={<Private><PartnerDashboard /></Private>} />
             <Route path="/diagnostico" element={<Diagnostics />} />

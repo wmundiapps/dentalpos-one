@@ -530,6 +530,7 @@ const es: Dict = {
   'legal.partner-terms': 'Partner Agreement (Broker and Caretaker)',
   'legal.partner-confidentiality': 'Confidentiality and Data (Partners)',
   'legal.partner-conduct': 'Partner Conduct Rules',
+  'legal.prepaid-plan': 'SpaceHour Plan: terms and refunds',
   'legal.guarantor-deposit': 'Garante y Depósito de Garantía',
   'legal.reviews': 'Calificaciones',
   'legal.payments': 'Pagos Internacionales',
@@ -619,6 +620,16 @@ const es: Dict = {
   'err.not_found': 'No encontrado.',
   'err.validation': 'Revisa los campos',
   'err.internal': 'Algo salió mal. Inténtalo de nuevo.',
+  'err.plan_not_accepted': 'This space does not accept the SpaceHour Plan yet.',
+  'err.plan_insufficient_credit': 'Your SpaceHour Plan does not have enough credit.',
+  'err.plan_fees_method_required': 'Choose Pix or card for the partner fees.',
+  'err.plan_terms_required': 'Please accept the SpaceHour Plan terms.',
+  'err.plan_invalid_months': 'Choose 6 or 12 months.',
+  'err.plan_invalid_amount': 'Monthly amount must be between {min} and {max}.',
+  'err.pix_invalid_key': 'Invalid Pix key.',
+  'err.pix_invalid_holder': 'Enter the Pix key holder tax ID.',
+  'err.pix_manual_ref_required': 'Enter the Pix transfer code.',
+  'err.pix_failed': 'Pix failed: {message}',
   'err.network': 'Falla de conexión. Verifica tu internet.',
   // Pago en el proveedor, matrícula profesional, fotos, valoración de la app
   'status.pending_payment': 'Pendiente de pago',
@@ -1127,6 +1138,7 @@ const es: Dict = {
   'val.package_max_weekdays': 'Choose at most {max} weekdays in a package.',
   'admin.tabProspecting': 'Prospecting',
   'admin.tabPartners': 'Partners',
+  'admin.tabFinance': 'Finance',
 };
 
 export default es;

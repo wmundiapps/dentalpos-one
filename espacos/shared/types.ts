@@ -92,6 +92,7 @@ export interface Listing {
   brokerId?: string;
   caretakerId?: string;
   caretakerFee?: number;
+  acceptsPlan?: boolean;   // aceita reservas pagas com o Plano SpaceHour (padrão: sim)
   minHours: number;
   cleaningFee: number;
   securityDeposit: number;  // caução (pré-autorização), 0 = sem caução
@@ -153,6 +154,10 @@ export interface PriceBreakdown {
   brokerFee?: number;       // taxa do corretor parceiro (paga pelo locatário, uma por reserva)
   caretakerFee?: number;    // taxa do zelador parceiro (paga pelo locatário, uma por reserva)
   partners?: Array<{ role: PartnerRole; userId: string; amount: number }>;
+  // Paga com o Plano SpaceHour: crédito usado (valor cheio da locação) e o que isso representa em dinheiro (com 10% de desconto)
+  planId?: string;
+  planCredit?: number;
+  planCash?: number;
 }
 
 export type PartnerRole = 'broker' | 'caretaker';

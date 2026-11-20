@@ -16,6 +16,7 @@ import { payoutsRouter } from './routes/payouts.js';
 import { marketingRouter } from './routes/marketing.js';
 import { prospectingRouter } from './routes/prospecting.js';
 import { partnersRouter, telegramWebhook } from './routes/partners.js';
+import { plansRouter } from './routes/plans.js';
 import { runJobs } from './jobs.js';
 import { one, pool } from './db.js';
 import { marketplaceEnabled } from './payments/mpAccounts.js';
@@ -103,7 +104,7 @@ export function createApp() {
     }
     next();
   });
-  app.use('/api', assistantRouter, authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter, marketingRouter, prospectingRouter, partnersRouter);
+  app.use('/api', assistantRouter, authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter, marketingRouter, prospectingRouter, partnersRouter, plansRouter);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found')));
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

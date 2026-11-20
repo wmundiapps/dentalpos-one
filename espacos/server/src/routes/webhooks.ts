@@ -3,6 +3,7 @@
 import express, { Router } from 'express';
 import { pool } from '../db.js';
 import { applyPaymentUpdate } from '../bookings.js';
+import { applyPlanPayment } from '../plans.js';
 import { stripeGateway } from '../payments/stripe.js';
 import { mercadoPagoGateway, mercadoPagoToken, MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
 import type { Gateway } from '../payments/index.js';
@@ -31,7 +32,8 @@ async function handle(provider: string, gateways: Gateway[], req: express.Reques
   const fresh = await pool.query('INSERT INTO webhook_events (provider, event_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [provider, parsed.eventId]);
   if (fresh.rowCount) {
     try {
-      for (const u of parsed.updates) await applyPaymentUpdate(u);
+      // Plano SpaceHour: external_reference é o id do plano (pln_...)
+      for (const u of parsed.updates) await (u.paymentId.startsWith('pln_') ? applyPlanPayment(u) : applyPaymentUpdate(u));
     } catch (e) {
       // libera o evento para o provedor reenviar
       await pool.query('DELETE FROM webhook_events WHERE provider = $1 AND event_id = $2', [provider, parsed.eventId]);

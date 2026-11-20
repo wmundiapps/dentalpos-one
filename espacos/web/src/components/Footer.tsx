@@ -14,6 +14,7 @@ export function Footer() {
         <div>
           <strong>SpaceHour</strong>
           <p className="muted small">{t('footer.tagline')}</p>
+          <p className="small"><Link to="/planos">Plano SpaceHour: economize 10%</Link></p>
         </div>
         <div>
           <strong>{t('footer.policies')}</strong>

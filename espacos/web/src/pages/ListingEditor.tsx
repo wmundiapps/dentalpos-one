@@ -250,6 +250,7 @@ export default function ListingEditor() {
           <h2 className="span2">5. {t('editor.pricing', { currency: cfg.currency })}</h2>
           <label>{t('form.pricePerHour')}<NumInput min={0.01} step="0.01" required value={f.pricePerHour || undefined} onChange={(v) => set('pricePerHour', v ?? 0)} /></label>
           <label>{t('form.pricePerDay')}<NumInput min={0} step="0.01" value={f.pricePerDay} onChange={(v) => set('pricePerDay', v)} /></label>
+          <label className="check span2"><input type="checkbox" checked={f.acceptsPlan !== false} onChange={(e) => set('acceptsPlan', e.target.checked)} /> Aceitar o Plano SpaceHour (profissionais que pagam adiantado com 10% de desconto; você recebe 80% do valor pago, por Pix)</label>
           <label>{t('form.packageDiscount')}<NumInput min={0} max={BOOKING_LIMITS.maxPackageDiscountPct} step="1" placeholder="0" value={f.packageDiscountPct || undefined} onChange={(v) => set('packageDiscountPct', v ?? 0)} /></label>
           <p className="muted small">{t('form.packageDiscountHelp', { max: BOOKING_LIMITS.maxPackageDiscountPct })}</p>
           <label>{t('form.cleaningFee')}<NumInput min={0} step="0.01" placeholder="0" value={f.cleaningFee || undefined} onChange={(v) => set('cleaningFee', v ?? 0)} /></label>

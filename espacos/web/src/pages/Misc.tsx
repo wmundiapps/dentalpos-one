@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { PartnersAdmin } from './Partners';
+import { FinanceAdmin } from './Plans';
 import { Link, useParams } from 'react-router-dom';
 import { api, apiBlobUrl, openProtectedFile } from '../api';
 import { useI18n, type DictKey } from '../i18n';
@@ -87,18 +88,18 @@ function Incidents() {
   );
 }
 
-type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant' | 'users' | 'contacts' | 'prospecting' | 'partners';
+type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant' | 'users' | 'contacts' | 'prospecting' | 'partners' | 'finance';
 
 export function Admin() {
   const { t } = useI18n();
-  const [tab, setTab] = useState<Tab>(() => (window.location.pathname.endsWith('/parceiros') ? 'partners' : 'verifications'));
+  const [tab, setTab] = useState<Tab>(() => (window.location.pathname.endsWith('/parceiros') ? 'partners' : window.location.pathname.endsWith('/financeiro') ? 'finance' : 'verifications'));
   return (
     <div className="container">
       <h1>{t('admin.title')}</h1>
       <div className="segmented" role="tablist">
-        {(['verifications', 'users', 'contacts', 'prospecting', 'partners', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
+        {(['verifications', 'users', 'contacts', 'prospecting', 'partners', 'finance', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : k === 'users' ? 'admin.tabUsers' : k === 'contacts' ? 'admin.tabContacts' : k === 'prospecting' ? 'admin.tabProspecting' : k === 'partners' ? 'admin.tabPartners' : 'admin.tabFeedback')}
+            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : k === 'users' ? 'admin.tabUsers' : k === 'contacts' ? 'admin.tabContacts' : k === 'prospecting' ? 'admin.tabProspecting' : k === 'partners' ? 'admin.tabPartners' : k === 'finance' ? 'admin.tabFinance' : 'admin.tabFeedback')}
           </button>
         ))}
       </div>
@@ -111,6 +112,7 @@ export function Admin() {
       {tab === 'contacts' && <ContactsAdmin />}
       {tab === 'prospecting' && <ProspectingAdmin />}
       {tab === 'partners' && <PartnersAdmin />}
+      {tab === 'finance' && <FinanceAdmin />}
     </div>
   );
 }

@@ -28,6 +28,9 @@ const simulated: Gateway = {
   async parseWebhook() { return { eventId: 'simulated', updates: [] }; },
 };
 
+/** Reserva paga só com o crédito do Plano SpaceHour (nada a cobrar no provedor). */
+export const planGateway: Gateway = { ...simulated, id: 'plan', supportsOffSession: false };
+
 let override: ((countryCode: string, provider?: string) => Gateway) | undefined;
 /** Para testes: substitui a escolha de provedor. */
 export function setGatewayOverride(fn?: (countryCode: string, provider?: string) => Gateway) { override = fn; }

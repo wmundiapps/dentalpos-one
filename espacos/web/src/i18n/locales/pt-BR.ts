@@ -530,6 +530,7 @@ const ptBR = {
   'legal.partner-terms': 'Termo de Parceria (Corretor e Zelador)',
   'legal.partner-confidentiality': 'Confidencialidade e Dados (Parceiros)',
   'legal.partner-conduct': 'Regras de Conduta dos Parceiros',
+  'legal.prepaid-plan': 'Plano SpaceHour: condições e reembolso',
   'legal.guarantor-deposit': 'Fiança e Caução',
   'legal.reviews': 'Avaliações',
   'legal.payments': 'Pagamentos',
@@ -619,6 +620,16 @@ const ptBR = {
   'err.not_found': 'Não encontrado.',
   'err.validation': 'Verifique os campos',
   'err.internal': 'Algo deu errado. Tente novamente.',
+  'err.plan_not_accepted': 'Este espaço ainda não aceita o Plano SpaceHour. Escolha Pix ou cartão.',
+  'err.plan_insufficient_credit': 'Seu Plano SpaceHour não tem saldo suficiente (ou vence antes desta reserva).',
+  'err.plan_fees_method_required': 'Escolha Pix ou cartão para pagar as taxas de corretor e zelador.',
+  'err.plan_terms_required': 'Para continuar, aceite as condições do Plano SpaceHour.',
+  'err.plan_invalid_months': 'Escolha 6 ou 12 meses.',
+  'err.plan_invalid_amount': 'O valor mensal deve ficar entre R$ {min} e R$ {max}.',
+  'err.pix_invalid_key': 'Chave Pix inválida. Use CPF, CNPJ, e-mail, celular (+55...) ou chave aleatória.',
+  'err.pix_invalid_holder': 'Informe o CPF ou CNPJ do titular da chave Pix.',
+  'err.pix_manual_ref_required': 'Informe o código do Pix enviado.',
+  'err.pix_failed': 'O Pix não foi enviado: {message}',
   'err.network': 'Falha de conexão. Verifique sua internet.',
 
   // Pagamento no provedor, registro profissional, fotos, avaliação do app
@@ -1129,6 +1140,7 @@ const ptBR = {
   'val.package_max_weekdays': 'No pacote, escolha no máximo {max} dias da semana.',
   'admin.tabProspecting': 'Captação',
   'admin.tabPartners': 'Parceiros',
+  'admin.tabFinance': 'Financeiro',
 };
 
 export default ptBR;

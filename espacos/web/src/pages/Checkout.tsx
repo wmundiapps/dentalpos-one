@@ -40,6 +40,10 @@ export default function Checkout() {
   const [taxId, setTaxId] = useState('');
   const [lic, setLic] = useState({ body: '', number: '', region: '' });
   const [pay, setPay] = useState<{ url: string; id: string } | null>(null);
+  // Plano SpaceHour: saldo de crédito para pagar a locação
+  const [planBalance, setPlanBalance] = useState(0);
+  const [usePlan, setUsePlan] = useState(false);
+  useEffect(() => { if (me) api<{ balance: number }>('/me/plans').then((r) => setPlanBalance(r.balance)).catch(() => {}); }, [me]);
 
   useEffect(() => {
     api<{ listing: ListingSummary }>(`/listings/${id}`).then((d) => setListing(d.listing)).catch(() => setError(t('err.listing_not_found')));
@@ -71,7 +75,12 @@ export default function Checkout() {
   const soonest = Math.min(...occurrences.map((o) => Date.parse(`${o.date}T${o.start}:00-03:00`)));
   const boletoOk = soonest - Date.now() >= 3 * 86400000;
   const holdText = (m: string) => m === 'pix' ? t('pay.holdPix') : m === 'boleto' ? t('pay.holdBoleto') : t('pay.holdCard');
-  const methods = useAsaas ? country.paymentMethods.filter((m) => ['pix', 'card', 'boleto'].includes(m)) : country.paymentMethods;
+  const planCredit = quote.price.baseAmount + quote.price.cleaningFee;
+  const partnerFees = (quote.price.brokerFee ?? 0) + (quote.price.caretakerFee ?? 0);
+  const planAvailable = planBalance >= planCredit && (listing as { acceptsPlan?: boolean }).acceptsPlan !== false;
+  const planOn = usePlan && planAvailable;
+  const methods = planOn ? country.paymentMethods.filter((m) => m === 'pix' || m === 'card')
+    : useAsaas ? country.paymentMethods.filter((m) => ['pix', 'card', 'boleto'].includes(m)) : country.paymentMethods;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -79,7 +88,7 @@ export default function Checkout() {
     try {
       const b = await api<{ id: string; status: string; payment?: { checkoutUrl?: string } }>('/bookings', {
         body: {
-          listingId: listing!.id, occurrences, guests, purpose, paymentMethod: method, acceptRules: accept, isConsumer,
+          listingId: listing!.id, occurrences, guests, purpose, paymentMethod: planOn ? 'plan' : method, feesMethod: planOn && partnerFees > 0 ? method : undefined, acceptRules: accept, isConsumer,
           provider: provider || undefined, payerTaxId: useAsaas ? taxId : undefined,
           license: licenseMissing ? { body: lic.body, number: lic.number, region: lic.region || undefined } : undefined,
           clientReviewsEnabled: clientReviews, message: message || undefined,
@@ -138,7 +147,14 @@ export default function Checkout() {
           <section className="section">
             <h2>{t('checkout.payment')}</h2>
             <p className="muted small">{t('checkout.paymentCurrency', { currency: listing.currency })}</p>
-            {providers.length > 1 && (
+            {planAvailable && (
+              <label className={`pay-method ${planOn ? 'selected' : ''}`}>
+                <input type="checkbox" checked={planOn} onChange={(e) => { setUsePlan(e.target.checked); setMethod(''); }} />
+                <span><strong>Pagar a locação com meu Plano SpaceHour</strong></span>
+                <span className="muted small">Saldo: {planBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} · usa {planCredit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}{partnerFees > 0 ? `. As taxas de parceiros (${partnerFees.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}) são pagas à parte, abaixo.` : '.'}</span>
+              </label>
+            )}
+            {!planOn && providers.length > 1 && (
               <div className="pay-providers" role="radiogroup" aria-label={t('checkout.whereToPay')}>
                 <p className="small"><strong>{t('checkout.whereToPay')}</strong></p>
                 {providers.map((p) => (
@@ -150,7 +166,7 @@ export default function Checkout() {
                 ))}
               </div>
             )}
-            <div className="pay-methods" role="radiogroup">
+            {!(planOn && partnerFees === 0) && <div className="pay-methods" role="radiogroup">
               {methods.map((m) => (
                 <label key={m} className={`pay-method ${method === m ? 'selected' : ''} ${m === 'boleto' && !boletoOk ? 'disabled' : ''}`}>
                   <input type="radio" name="pm" value={m} checked={method === m} onChange={() => setMethod(m)} required disabled={m === 'boleto' && !boletoOk} />
@@ -158,8 +174,8 @@ export default function Checkout() {
                   <span className="muted small">{m === 'boleto' && !boletoOk ? t('pay.boletoTooSoon') : holdText(m)}</span>
                 </label>
               ))}
-            </div>
-            {useAsaas && (
+            </div>}
+            {useAsaas && !planOn && (
               <label className="block-label">{t('checkout.payerTaxId')}
                 <input required inputMode="numeric" value={taxId} onChange={(e) => setTaxId(e.target.value)} placeholder="000.000.000-00" />
                 <span className="muted small">{t('checkout.payerTaxIdHelp')}</span>

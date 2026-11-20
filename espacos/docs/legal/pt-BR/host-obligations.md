@@ -137,3 +137,13 @@ Versão 2026-11-20 · Vigência a partir de 20/11/2026
 17.7. **Nenhum pagamento direto.** O Anfitrião não paga ao Parceiro valores relativos às Reservas nem pede ao Parceiro que cobre algo do Locatário. Serviços que o Anfitrião contratar com a mesma empresa sem relação com as Reservas (por exemplo, limpeza periódica) devem ser declarados na Plataforma e não podem substituir nem duplicar as Taxas de Parceiro (Regras de Conduta e Atendimento (Parceiros), cláusula 8.1).
 
 17.8. **Conflito de interesses.** O Anfitrião declara na Plataforma se o Parceiro é seu parente até o 2º grau, cônjuge, companheiro, sócio ou empregado. O Anfitrião, seus sócios, administradores e empregados não podem ser Corretor Parceiro com direito à Taxa de Intermediação em seus próprios Anúncios (Termo de Parceria, cláusula 7.3).
+
+## 18. Plano SpaceHour
+
+18.1. **Aceite por Anúncio.** Cada Anúncio aceita, por padrão, Reservas pagas com o crédito do Plano SpaceHour. O Anfitrião é informado dessa condição ao publicar o Anúncio e pode desativá-la ou reativá-la a qualquer tempo, Anúncio por Anúncio. A desativação vale para novas Reservas; as já confirmadas são mantidas.
+
+18.2. **Valor do Anfitrião.** Nas Reservas pagas com crédito, o Anfitrião recebe **80% do valor efetivamente pago** pela locação, isto é, do valor de tabela (Valor Base + Taxa de Limpeza) com o desconto de 10% do Plano. Exemplo: locação de R$ 100,00 → R$ 90,00 efetivamente pagos → **R$ 72,00 para o Anfitrião** e R$ 18,00 para a Operadora.
+
+18.3. **Recebimento por Pix.** Esse valor é pago pela Operadora por Pix, **24 horas após o início da primeira Ocorrência** da Reserva, salvo Incidente ou disputa aberta (Pagamentos, cláusula 14.5). O Anfitrião deve cadastrar e **manter atualizada uma chave Pix de sua própria titularidade** (mesmo CPF ou CNPJ da conta ou da pessoa jurídica titular do Anúncio). Sem chave válida, o Anúncio deixa de aceitar o Plano. Pagamento feito à chave cadastrada pelo Anfitrião libera a Operadora.
+
+18.4. **Reembolsos.** Cancelamentos e reembolsos de Reservas pagas com crédito seguem a Política de Cancelamento e Reembolso. Valores reembolsados depois do pagamento ao Anfitrião são compensados com pagamentos futuros ou cobrados dele (Pagamentos, cláusula 5.3).

@@ -14,7 +14,7 @@ Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 1.4. O aceite é registrado eletronicamente, com data, hora e versão dos Termos vigentes, e cada Reserva registra também o aceite das Regras de Reserva e Uso e das normas do Espaço na versão aplicável.
 
-1.5. Integram estes Termos, como anexos com a mesma força vinculante, os seguintes 10 (dez) documentos:
+1.5. Integram estes Termos, como anexos com a mesma força vinculante, os seguintes 11 (onze) documentos:
 - (a) Regras de Reserva e Uso (`booking-rules`);
 - (b) Política de Cancelamento e Reembolso (`cancellation-refunds`);
 - (c) Penalidades e Medidas (`penalties`);
@@ -24,7 +24,8 @@ Versão 2026-11-20 · Vigência a partir de 20/11/2026
 - (g) Pagamentos (`payments`);
 - (h) Obrigações do Anfitrião (`host-obligations`);
 - (i) Central de Resolução e Disputas (`disputes`);
-- (j) Política de Privacidade (`privacy`).
+- (j) Política de Privacidade (`privacy`);
+- (k) Plano SpaceHour — Condições e Política de Reembolso (`prepaid-plan`).
 
 1.6. Em caso de conflito entre documentos, prevalece, nesta ordem: (i) a norma legal cogente aplicável; (ii) o documento específico sobre o tema; (iii) estes Termos. As normas internas publicadas pelo Anfitrião no Anúncio complementam, mas não podem contrariar, os documentos da Plataforma.
 
@@ -55,6 +56,7 @@ Versão 2026-11-20 · Vigência a partir de 20/11/2026
 | **Taxa de Intermediação** | Valor pago pelo Locatário, uma vez por Reserva, quando o Anúncio tiver Corretor Parceiro vinculado: o maior entre R$ 100,00 e 10% do valor total da locação (Valor Base + Taxa de Limpeza) da Reserva (Pagamentos, cláusula 12.2). |
 | **Taxa de Atendimento** | Valor fixo pago pelo Locatário, uma vez por Reserva, quando o Anúncio tiver Zelador Parceiro vinculado, definido pela Operadora para cada Anúncio e exibido antes do pagamento (Pagamentos, cláusula 12.3). |
 | **Taxas de Parceiro** | A Taxa de Intermediação e a Taxa de Atendimento, em conjunto. São recebidas pela Operadora e repassadas aos Parceiros, e são reembolsadas na mesma proporção do Valor Base (Política de Cancelamento e Reembolso, cláusula 5.4). |
+| **Plano SpaceHour** | Compra antecipada, pelo Locatário, por 6 ou 12 meses, de crédito em reais de uso restrito à Plataforma, com desconto de 10%, que paga somente a locação (Valor Base + Taxa de Limpeza) de Reservas em Anúncios que aceitem o Plano, nunca as Taxas de Parceiro (Plano SpaceHour — Condições e Política de Reembolso). |
 | **Caução** | Valor de garantia definido pelo Anfitrião no Anúncio, limitado a 3 vezes o Valor Base, destinado a garantir danos e penalidades. Enquanto nenhum meio de pagamento disponível permitir pré-autorização pela Plataforma, a Caução é substituída pela exigência de Fiador (documento Fiança e Caução). |
 | **Incidente** | Registro formal, aberto na Central de Resolução, de um fato ocorrido em uma Reserva que pode gerar cobrança, Advertência ou outra medida (por exemplo, atraso na saída ou dano). Não se confunde com Ocorrência, que designa o período reservado. |
 | **Advertência** | Anotação no histórico do Usuário decorrente de infração, com efeitos previstos no documento Penalidades e Medidas. |
@@ -149,6 +151,8 @@ Essas características descrevem o modelo de negócio da Plataforma e não podem
 10.1. Os preços são fixados pelo Anfitrião em reais (BRL). O Locatário paga o Valor Base, a Taxa de Limpeza e, somente quando o Anúncio tiver Parceiro vinculado, a **Taxa de Intermediação** e a **Taxa de Atendimento**, uma vez por Reserva cada, sem acréscimo de tributo destacado à parte. **O Locatário não paga Taxa de Serviço SpaceHour.** Da soma do Valor Base e da Taxa de Limpeza, o Anfitrião recebe **80%** e a Operadora retém a **Taxa de Serviço SpaceHour de 20%, tributos incluídos**. O detalhamento consta do documento Pagamentos e é exibido antes da confirmação.
 
 10.2. Não há cobrança de valores ocultos. O pagamento aprovado pelo processador quita a obrigação de pagamento do preço da Reserva perante o Anfitrião e das Taxas de Parceiro perante a Operadora. A forma de cobrança, o momento em que o valor é debitado, o recebimento pelo Anfitrião e os estornos variam conforme o meio de pagamento e estão descritos no documento Pagamentos.
+
+10.3. **Plano SpaceHour.** O Locatário pode pagar a locação com o crédito do Plano SpaceHour, pago antecipadamente à conta da Operadora. As Taxas de Parceiro são sempre pagas à parte. Nas Reservas pagas com crédito, o Anfitrião recebe 80% do valor efetivamente pago pela locação, por Pix da Operadora (Pagamentos, cláusula 14).
 
 ## 11. Propriedade intelectual
 

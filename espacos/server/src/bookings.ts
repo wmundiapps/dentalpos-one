@@ -9,16 +9,17 @@ import { ACTIVE_STATUSES } from './repo.js';
 import { HttpError, addStrike, assertCanTransact } from './auth.js';
 import { notify } from './notify.js';
 import { onBookingCancelled, onBookingCompleted, onBookingConfirmed } from './partners.js';
+import { debitBooking, onPlanBookingCancelled, releaseBooking, scheduleHostPayout } from './plans.js';
 import {
   type Gateway, type PaymentUpdate, capturePayment, chargeExtra, gatewayForBooking, gatewayOf, holdDeposit, markFailed, markPaid, newPayment,
-  payHost, refundPayment, releaseDeposit, startCheckout, supportsHold, voidPayment,
+  gatewayFor, planGateway, payHost, refundPayment, releaseDeposit, startCheckout, supportsHold, voidPayment,
 } from './payments/index.js';
 import type { Booking, Incident, IncidentType, Listing, MaritalStatus, Occurrence, Payment, PropertyRegime, User } from '../../shared/types.js';
 import {
   BOOKING_LIMITS, FEES, addDays, GUARANTOR_RULES, INCIDENT_RESPONSE_HOURS, OVERSTAY, PENALTIES, REVIEW_RULES, RULES_VERSION, spouseConsentRequired,
   computeGuestRefund, computePrice, daysBetween, guarantorRequired, hostCancellationPenalty, occurrenceEndUtc,
   occurrenceHours, occurrenceStartUtc, roundMoney, suggestedPenalty, validateOccurrences,
-  bookingPattern, partnerFeesOf,
+  bookingPattern, partnerFeesOf, planBookingSplit,
 } from '../../shared/rules.js';
 import { getCountry } from '../../shared/countries.js';
 import { isLaunched } from './launch.js';
@@ -125,6 +126,8 @@ export interface CreateBookingInput {
   clientReviewsEnabled?: boolean;
   guarantor?: { name: string; email: string; phone?: string; documentNumber: string; relationship?: string };
   message?: string;
+  /** Plano SpaceHour: como pagar as taxas de corretor/zelador, que nunca saem do crédito. */
+  feesMethod?: 'pix' | 'card';
 }
 
 export function createBooking(guest: User, input: CreateBookingInput): Promise<Booking> {
@@ -151,7 +154,8 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     }
     if (!isLaunched(listing.countryCode)) throw new HttpError(422, 'country_not_supported');
     const country = getCountry(listing.countryCode);
-    if (!country.paymentMethods.includes(input.paymentMethod as never)) throw new HttpError(422, 'payment_method_unavailable');
+    const usePlan = input.paymentMethod === 'plan';
+    if (!usePlan && !country.paymentMethods.includes(input.paymentMethod as never)) throw new HttpError(422, 'payment_method_unavailable');
 
     const q = await quote(tx, listing, input.occurrences, guest);
     if (q.errors.length) throw new HttpError(422, 'invalid_occurrences', q.errors);
@@ -161,7 +165,16 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
       const soonest = Math.min(...input.occurrences.map((o) => occurrenceStartUtc(listing, o).getTime()));
       if (soonest - Date.now() < BOLETO_WINDOW_DAYS * 86400000) throw new HttpError(422, 'boleto_needs_3_days', { days: BOLETO_WINDOW_DAYS });
     }
-    const { gateway, sellerRef } = await gatewayForBooking(listing.countryCode, listing.hostId, input.provider);
+    // Plano: o crédito paga a locação (o anfitrião recebe 80% do valor efetivamente pago, por Pix do SpaceHour);
+    // corretor e zelador são cobrados à parte na conta do SpaceHour, nunca do crédito.
+    const planFees = usePlan ? partnerFeesOf(q.price) : 0;
+    if (usePlan) {
+      if (planFees > 0 && !['pix', 'card'].includes(input.feesMethod ?? '')) throw new HttpError(422, 'plan_fees_method_required');
+      Object.assign(q.price, (({ credit, cash, hostServiceFee, hostPayout }) => ({ planCredit: credit, planCash: cash, hostServiceFee, hostPayout }))(planBookingSplit(q.price)));
+    }
+    const { gateway, sellerRef } = usePlan
+      ? { gateway: planFees > 0 ? gatewayFor(listing.countryCode) : planGateway, sellerRef: undefined }
+      : await gatewayForBooking(listing.countryCode, listing.hostId, input.provider);
     let payer = guest;
     if (gateway.id === 'asaas') {
       const taxId = (input.payerTaxId ?? guest.documentNumber ?? '').replace(/\D/g, '');
@@ -188,6 +201,12 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     }
     const payment = newPayment(booking, gateway, sellerRef);
     booking.paymentId = payment.id;
+    if (usePlan) {
+      payment.amount = planFees;
+      payment.method = planFees > 0 ? input.feesMethod! : 'plan';
+      payment.payoutAmount = 0;
+      payment.payoutStatus = 'cancelled'; // anfitrião recebe pelo repasse do plano (host_payouts)
+    }
     if (!gateway.instant) {
       // Segura o horário enquanto o locatário paga no checkout do provedor
       booking.status = 'pending_payment';
@@ -195,6 +214,7 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
       booking.paymentDeadline = new Date(Math.min(now.getTime() + paymentWindowMinutes(input.paymentMethod) * 60000, firstStart(listing, booking))).toISOString();
     }
     await repo.saveBooking(tx, booking);
+    if (usePlan) await debitBooking(tx, guest, booking, listing);
     if (input.message?.trim()) {
       await repo.insertMessage(tx, { id: id('msg'), bookingId: booking.id, senderId: guest.id, text: input.message.trim().slice(0, 2000), createdAt: nowIso() });
     }
@@ -206,7 +226,7 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
       await startCheckout(gateway, payment, booking, listing, payer, checkoutUrls(booking));
       await repo.savePayment(tx, payment);
       await notify(tx, { userId: guest.id }, 'payment_pending',
-        `Seu horário em "${listing.title}" (${whenText(booking)}) está guardado até ${deadlineText(booking.paymentDeadline!)}. ${PAY_HOW[input.paymentMethod] ?? 'Conclua o pagamento para confirmar a reserva.'}`,
+        `Seu horário em "${listing.title}" (${whenText(booking)}) está guardado até ${deadlineText(booking.paymentDeadline!)}. ${PAY_HOW[payment.method] ?? 'Conclua o pagamento para confirmar a reserva.'}`,
         `/reservas/${booking.id}`);
     }
     await repo.saveBooking(tx, booking);
@@ -270,6 +290,7 @@ export function applyPaymentUpdate(update: PaymentUpdate): Promise<void> {
       if (b.status === 'pending_payment') {
         b.status = 'expired';
         b.paymentDeadline = undefined;
+        await releaseBooking(tx, b);
         await repo.saveBooking(tx, b);
         await notify(tx, { userId: b.guestId }, 'payment_failed', `O pagamento da reserva em "${l.title}" não foi concluído. O horário foi liberado.`, `/espacos/${l.id}`);
       }
@@ -329,6 +350,7 @@ async function confirm(tx: Db, b: Booking, l: Listing) {
   await notify(tx, { userId: b.hostId }, 'booking_confirmed', `Reserva confirmada em "${l.title}" — ${whenText(b)}.`, `/anfitriao/reservas/${b.id}`);
   // Corretor e zelador: valor a repassar e troca de contatos com o locatário
   await onBookingConfirmed(tx, b, l);
+  await scheduleHostPayout(tx, b, l); // reserva paga com o plano: Pix ao anfitrião 24 h após o início
 }
 
 async function voidBookingPayment(tx: Db, b: Booking, l: Pick<Listing, 'countryCode'>) {
@@ -337,6 +359,7 @@ async function voidBookingPayment(tx: Db, b: Booking, l: Pick<Listing, 'countryC
     await voidPayment(await gw(l, p), p);
     await repo.savePayment(tx, p);
   }
+  await releaseBooking(tx, b); // crédito do plano volta inteiro
 }
 
 export type GuarantorAnswer = {
@@ -441,16 +464,25 @@ export function guestCancel(guest: User, bookingId: string, reason: string, now 
     if (b.status !== 'confirmed') {
       // ainda não confirmada: devolve tudo (ou só cancela o checkout)
       if (p) await voidPayment(await gw(l, p), p);
+      await releaseBooking(tx, b);
       b.refundAmount = b.status === 'pending_payment' ? 0 : b.price.total;
       b.paymentDeadline = undefined;
     } else {
       const r = refundPreview(l, b, now);
-      b.refundAmount = p ? await refundPayment(await gw(l, p), p, r.total, `guest_cancel:${r.rule}`) : r.total;
-      if (p) {
-        await releaseDeposit(await gw(l, p), p);
-        const kept = b.price.baseAmount - r.refundBase + (b.price.cleaningFee - r.refundCleaning);
-        p.payoutAmount = roundMoney(kept * (1 - (b.price.hostServiceFeeRate ?? (b.price.baseAmount + b.price.cleaningFee ? b.price.hostServiceFee / (b.price.baseAmount + b.price.cleaningFee) : FEES.hostServiceFeeRate))), p.currency);
-        if (p.payoutAmount <= 0) p.payoutStatus = 'cancelled';
+      if (b.price.planId) {
+        // Plano: a locação devolvida volta como crédito; só as taxas de parceiros voltam ao Pix/cartão
+        const back = await onPlanBookingCancelled(tx, b, r.refundBase + r.refundCleaning, b.price.planCash ? b.price.hostServiceFee / b.price.planCash : FEES.hostServiceFeeRate);
+        const cash = p ? await refundPayment(await gw(l, p), p, (r.refundPartnerFees ?? 0) + r.refundServiceFee + r.refundTax, `guest_cancel:${r.rule}`) : 0;
+        b.refundAmount = roundMoney(back + cash, b.price.currency);
+        if (p) await releaseDeposit(await gw(l, p), p);
+      } else {
+        b.refundAmount = p ? await refundPayment(await gw(l, p), p, r.total, `guest_cancel:${r.rule}`) : r.total;
+        if (p) {
+          await releaseDeposit(await gw(l, p), p);
+          const kept = b.price.baseAmount - r.refundBase + (b.price.cleaningFee - r.refundCleaning);
+          p.payoutAmount = roundMoney(kept * (1 - (b.price.hostServiceFeeRate ?? (b.price.baseAmount + b.price.cleaningFee ? b.price.hostServiceFee / (b.price.baseAmount + b.price.cleaningFee) : FEES.hostServiceFeeRate))), p.currency);
+          if (p.payoutAmount <= 0) p.payoutStatus = 'cancelled';
+        }
       }
       await onBookingCancelled(tx, b, r.refundPartnerFees ?? 0);
       await notify(tx, { userId: b.hostId }, 'booking_cancelled', `O locatário cancelou a reserva em "${l.title}".`, `/anfitriao/reservas/${b.id}`);
@@ -479,6 +511,7 @@ export function hostCancel(host: User, bookingId: string, reason: string, extenu
     }
     b.refundAmount = b.price.total;
     await onBookingCancelled(tx, b, partnerFeesOf(b.price)); // devolução integral: parceiros não recebem
+    await releaseBooking(tx, b); // plano: crédito volta inteiro e o repasse do anfitrião é cancelado
     b.status = 'cancelled_host';
     b.cancelledAt = now.toISOString();
     b.cancellationReason = reason;
@@ -710,11 +743,13 @@ export async function tick(now = new Date()) {
         b.paymentDeadline = undefined;
         if (p) await gw(l, p).then((g) => voidPayment(g, p)).catch((e) => console.error('[tick] cancelar checkout', (e as Error).message));
         await reopenAfterUnpaid(tx, b); // lembrete de reserva não paga
+        await releaseBooking(tx, b);
         changed = true;
       }
       if ((b.status === 'pending_host' || b.status === 'pending_guarantor') && b.hostDecisionDeadline && new Date(b.hostDecisionDeadline) < now) {
         b.status = 'expired';
         if (p) await voidPayment(await gw(l, p), p);
+        await releaseBooking(tx, b);
         await notify(tx, { userId: b.guestId }, 'booking_expired', `Sua solicitação para "${l.title}" expirou sem resposta. Se você já pagou, o valor será estornado integralmente.`, `/reservas/${b.id}`);
         changed = true;
       }

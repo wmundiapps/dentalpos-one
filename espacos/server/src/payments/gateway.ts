@@ -4,7 +4,7 @@
 
 import type { Booking, Listing, Payment, User } from '../../../shared/types.js';
 
-export type GatewayId = 'stripe' | 'mercadopago' | 'asaas' | 'simulated';
+export type GatewayId = 'stripe' | 'mercadopago' | 'asaas' | 'simulated' | 'plan';
 
 export interface CheckoutUrls { successUrl: string; cancelUrl: string; notificationUrl: string }
 

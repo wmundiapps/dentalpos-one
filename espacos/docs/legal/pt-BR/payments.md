@@ -188,3 +188,17 @@ As Taxas de Parceiro não integram a base de cálculo do Valor do Anfitrião nem
 13.5. **Compensação.** Reembolsos, contestações (*chargebacks*) e valores devidos pelo Parceiro após o repasse são compensados com repasses futuros (Termo de Parceria, cláusula 12.5).
 
 13.6. As demais regras do repasse estão no Termo de Parceria — Corretor e Zelador Parceiros, cláusula 10.
+
+## 14. Plano SpaceHour (crédito pré-pago)
+
+14.1. **Compra.** O Locatário pode comprar antecipadamente, por 6 ou 12 meses, Crédito em reais para pagar Locações, pagando 90% do Crédito (desconto de 10%), por Pix ou cartão, pelo Mercado Pago, à **conta da própria Operadora**, sem divisão automática (*split*). As condições completas e a política de reembolso estão em Plano SpaceHour — Condições e Política de Reembolso (`prepaid-plan`).
+
+14.2. **O que o Crédito paga.** Somente a Locação (Valor Base + Taxa de Limpeza), pelo preço de tabela, em Anúncios que aceitem o Plano.
+
+14.3. **Taxas de Parceiro sempre à parte.** A Taxa de Intermediação e a Taxa de Atendimento **nunca** são pagas com Crédito: são cobradas à parte, pelo valor integral, por Pix ou cartão, no momento da Reserva, e seguem as cláusulas 12 e 13.
+
+14.4. **Valor do Anfitrião.** Nas Reservas pagas com Crédito, o Anfitrião recebe **80% do valor efetivamente pago** pela Locação (Crédito consumido × 0,90), e a Operadora fica com 20%. Exemplo: Locação de R$ 100,00 → R$ 90,00 efetivamente pagos → Anfitrião R$ 72,00; Operadora R$ 18,00.
+
+14.5. **Pagamento ao Anfitrião.** A Operadora paga o Anfitrião por **Pix para chave de titularidade do próprio Anfitrião** (mesmo CPF ou CNPJ), **24 horas após o início da primeira Ocorrência** da Reserva, salvo Incidente ou disputa aberta, caso em que o pagamento aguarda a decisão. Sem chave Pix válida cadastrada, o Anúncio não aceita o Plano.
+
+14.6. **Reembolsos.** Nas Reservas pagas com Crédito, a parte reembolsável da Locação volta como Crédito ao mesmo Plano, e a parte reembolsável das Taxas de Parceiro volta ao meio de pagamento original. Reembolso de Reserva já paga ao Anfitrião é compensado com pagamentos futuros a ele ou cobrado (cláusula 5.3).

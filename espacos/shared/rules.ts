@@ -73,6 +73,45 @@ export function brokerFee(rentalTotal: number, currency: string): number {
   return roundMoney(Math.max(PARTNER_RULES.brokerMinFee, rentalTotal * PARTNER_RULES.brokerRate), currency);
 }
 
+// ───────────── Plano SpaceHour (pagamento antecipado) ─────────────
+// O locatário paga 6 ou 12 meses adiantados com 10% de desconto e recebe crédito em reais (valor cheio) para usar
+// na locação (valor base + limpeza). Taxas do corretor e do zelador NUNCA saem do crédito: são cobradas à parte.
+export const PLAN_RULES = {
+  discountRate: 0.10,
+  months: [6, 12] as const,
+  minMonthly: 100,
+  maxMonthly: 20000,
+  graceDays: 90,            // crédito vale até 90 dias depois do fim do plano
+  withdrawalDays: 7,        // arrependimento (CDC art. 49): 100% se ainda não usou
+  refundBusinessDays: 10,
+} as const;
+
+/** Preço do plano: crédito (mensal × meses) com 10% de desconto. */
+export function planQuote(monthly: number, months: number) {
+  const credit = roundMoney(monthly * months, 'BRL');
+  const price = roundMoney(credit * (1 - PLAN_RULES.discountRate), 'BRL');
+  return { credit, price, savings: roundMoney(credit - price, 'BRL') };
+}
+
+/**
+ * Reembolso do plano. Até 7 dias da compra: 100% menos o uso (com desconto). Depois: valor pago menos o crédito usado a preço cheio
+ * (o desconto só vale para quem cumpre o plano). No fim da validade, o saldo volta pela mesma conta.
+ */
+export function planRefund(p: { pricePaid: number; creditUsed: number; paidAt: Date }, now: Date = new Date()) {
+  const withinWithdrawal = now.getTime() - p.paidAt.getTime() <= PLAN_RULES.withdrawalDays * 86400000;
+  // Arrependimento (7 dias): devolve tudo menos o que foi usado, pelo preço com desconto (o arrependimento não custa o desconto)
+  if (withinWithdrawal) return { amount: roundMoney(Math.max(0, p.pricePaid - p.creditUsed * (1 - PLAN_RULES.discountRate)), 'BRL'), rule: 'withdrawal' as const };
+  return { amount: roundMoney(Math.max(0, p.pricePaid - p.creditUsed), 'BRL'), rule: 'early_exit' as const };
+}
+
+/** Reserva paga com o plano: crédito debitado (valor cheio da locação), quanto isso representa em dinheiro e a parte do anfitrião. */
+export function planBookingSplit(price: Pick<PriceBreakdown, 'baseAmount' | 'cleaningFee' | 'currency'>, hostRate: number = FEES.hostServiceFeeRate) {
+  const credit = roundMoney(price.baseAmount + price.cleaningFee, price.currency);
+  const cash = roundMoney(credit * (1 - PLAN_RULES.discountRate), price.currency);
+  const hostServiceFee = roundMoney(cash * hostRate, price.currency);
+  return { credit, cash, hostServiceFee, hostPayout: roundMoney(cash - hostServiceFee, price.currency) };
+}
+
 // ───────────── Política de cancelamento (locatário) ─────────────
 export interface CancellationTier { minHoursBefore: number; refundRate: number }
 
