@@ -55,14 +55,14 @@ export function useReferralCapture() {
 // ───────────── Página pública + cadastro ─────────────
 export function PartnersLanding() {
   const { me } = useApp();
-  useEffect(() => { document.title = 'Seja parceiro SpaceHour: corretor e zelador | SpaceHour'; }, []);
+  useEffect(() => { document.title = 'Seja parceiro SpaceHour: imobiliárias e corretores | SpaceHour'; }, []);
   return (
     <div className="lp">
       <section className="lp-hero">
         <div className="container">
-          <p className="lp-kicker">Para corretores, imobiliárias e zeladores</p>
-          <h1>Ganhe em toda reserva dos espaços que você traz ou atende.</h1>
-          <p className="lp-lead">O SpaceHour aluga salas, consultórios e salas de reunião por hora. Cadastre os espaços ociosos dos seus clientes e receba a cada reserva, sem custo para participar.</p>
+          <p className="lp-kicker">Rede de imobiliárias e corretores parceiros</p>
+          <h1>Transforme os espaços ociosos dos seus clientes em receita recorrente.</h1>
+          <p className="lp-lead">O SpaceHour é uma plataforma global de locação de espaços compartilhados por hora ou por dia: salas comerciais, consultórios, salas de reunião, estúdios e outros espaços ociosos, anunciados por anfitriões e alugados por profissionais. Sua imobiliária cadastra os espaços e ganha em cada locação, sem custo de adesão.</p>
           {me ? <a className="btn btn-primary" href="#cadastro">Quero ser parceiro</a> : <Link className="btn btn-primary" to="/cadastro?next=/parceiros%23cadastro">Criar conta e ser parceiro</Link>}
         </div>
       </section>
@@ -70,24 +70,24 @@ export function PartnersLanding() {
         <section className="lp-benefits">
           <div className="panel">
             <h3>🏢 Corretor Parceiro</h3>
-            <p><b>{brl(PARTNER_RULES.brokerMinFee)} ou {PARTNER_RULES.brokerRate * 100}% do valor da locação</b> (o que for maior) em <b>toda reserva</b> dos espaços que você captou, enquanto durar a parceria. Paga pelo locatário, sem tirar nada do proprietário.</p>
+            <p><b>{PARTNER_RULES.brokerRate * 100}% do valor de cada locação ou {brl(PARTNER_RULES.brokerMinFee)} por locação, o que for maior</b>, em todos os espaços que a sua imobiliária cadastrou, enquanto durar a parceria, sem tirar nada da parte do proprietário.</p>
             <p className="muted small">Só para empresas (CNPJ) com CRECI ativo (Lei 6.530/78). Parceria sempre entre empresas (PJ–PJ).</p>
           </div>
           <div className="panel">
-            <h3>🔑 Zelador Parceiro</h3>
-            <p>Entregue o acesso, faça a vistoria de entrada e de saída com fotos e atenda o locatário durante a reserva. Você recebe uma <b>taxa fixa por reserva</b>, combinada com o anfitrião para cada espaço.</p>
+            <h3>🔑 Acompanhamento do inquilino</h3>
+            <p>A imobiliária parceira entrega as chaves, faz a vistoria de entrada e de saída com fotos e acompanha o inquilino durante a locação, com o padrão de atendimento SpaceHour.</p>
             <p className="muted small">Só para empresas (CNPJ, pode ser MEI). A mesma empresa pode ser corretor e zelador.</p>
           </div>
           <div className="panel">
             <h3>💸 Exemplo</h3>
-            <p>Locação de {brl(1000)}: o proprietário recebe {brl(800)}. Com corretor ({brl(100)}) e zelador ({brl(150)}), o locatário paga {brl(1250)}. O SpaceHour repassa {brl(100)} ao corretor e {brl(150)} ao zelador por Pix, até o dia {PARTNER_RULES.payoutDay} do mês seguinte ao check-out.</p>
+            <p>Uma locação de {brl(3000)} rende {brl(300)} à imobiliária; uma de {brl(400)} rende o mínimo de {brl(PARTNER_RULES.brokerMinFee)}. Repasse por Pix, até o dia {PARTNER_RULES.payoutDay} do mês seguinte ao check-out, com nota fiscal da empresa.</p>
           </div>
         </section>
         <section className="panel">
           <h2>Como funciona</h2>
           <ol>
             <li>Faça o cadastro abaixo. A equipe confere os dados em até 2 dias úteis.</li>
-            <li>Mande o seu link de indicação aos proprietários ou peça o vínculo com um anúncio que já existe. O proprietário confirma.</li>
+            <li>Cadastre os espaços dos seus clientes pelo seu link de indicação ou peça o vínculo com um anúncio que já existe. O proprietário confirma.</li>
             <li>A cada reserva paga, você recebe um aviso por e-mail e pelo Telegram ou WhatsApp com os dados do locatário.</li>
             <li>Atenda conforme as <Link to="/regras/partner-conduct">Regras de Conduta</Link>. O repasse sai todo mês.</li>
           </ol>
@@ -342,7 +342,7 @@ export function ListingPartners({ listingId }: { listingId: string }) {
   return (
     <section className="panel" id="parceiros">
       <h2>Parceiros (corretor e zelador)</h2>
-      <p className="muted small">O corretor ganha {brl(PARTNER_RULES.brokerMinFee)} ou {PARTNER_RULES.brokerRate * 100}% do valor da locação por reserva (o que for maior); o zelador, a taxa combinada. As duas taxas são pagas pelo locatário e <b>não saem da sua parte</b>. Você continua responsável pelo espaço perante o locatário. <Link to="/parceiros">Como funciona</Link></p>
+      <p className="muted small">O corretor ganha {PARTNER_RULES.brokerRate * 100}% do valor da locação ou {brl(PARTNER_RULES.brokerMinFee)} por reserva (o que for maior); o zelador, a taxa combinada. As duas taxas são pagas pelo locatário e <b>não saem da sua parte</b>. Você continua responsável pelo espaço perante o locatário. <Link to="/parceiros">Como funciona</Link></p>
       {msg && <p className="notice">{msg}</p>}
       {list.map((l) => (
         <div key={l.id} className="row between wrap gap">

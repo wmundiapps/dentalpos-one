@@ -55,7 +55,7 @@ export const FEES = {
 // Taxas pagas pelo locatário "por fora" da locação, uma vez por reserva (independente do número de dias).
 // O SpaceHour recebe junto com a comissão e repassa ao parceiro até o dia 10 do mês seguinte ao check-out.
 export const PARTNER_RULES = {
-  brokerMinFee: 50,              // corretor: R$ 50 ou 10% do valor total da locação, o que for maior
+  brokerMinFee: 100,             // corretor: R$ 100 ou 10% do valor total da locação, o que for maior (inclui acompanhar o inquilino)
   brokerRate: 0.10,
   caretakerMinFee: 20,           // zelador: valor fixo por reserva, definido por anúncio (cidade, tamanho)
   caretakerMaxFee: 500,
@@ -68,7 +68,7 @@ export const PARTNER_RULES = {
   dataRetentionDays: 90,         // parceiro deixa de ver os dados do locatário 90 dias após o check-out
 } as const;
 
-/** Taxa do corretor: o maior entre R$ 50 e 10% do valor total da locação (valor base + limpeza), uma vez por reserva. */
+/** Taxa do corretor: o maior entre R$ 100 e 10% do valor total da locação (valor base + limpeza), uma vez por reserva. */
 export function brokerFee(rentalTotal: number, currency: string): number {
   return roundMoney(Math.max(PARTNER_RULES.brokerMinFee, rentalTotal * PARTNER_RULES.brokerRate), currency);
 }

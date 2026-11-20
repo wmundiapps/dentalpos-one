@@ -137,9 +137,9 @@ Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 9.2. **Taxa de Intermediação (Corretor Parceiro).** Devida **uma vez por Reserva**, qualquer que seja o número de dias ou de Ocorrências, apenas quando o Anúncio tiver Corretor Parceiro com Vínculo ativo na data da aprovação do pagamento:
 
-> **Taxa de Intermediação = o maior valor entre R$ 50,00 e 10% do valor total da locação (Valor Base + Taxa de Limpeza) da Reserva.**
+> **Taxa de Intermediação = o maior valor entre R$ 100,00 e 10% do valor total da locação (Valor Base + Taxa de Limpeza) da Reserva.**
 
-Exemplos: locação de R$ 1.000,00 em 10 dias → 10% × R$ 1.000,00 = R$ 100,00, maior que R$ 50,00 → **R$ 100,00**. Locação de R$ 300,00 → 10% × R$ 300,00 = R$ 30,00, menor que R$ 50,00 → **R$ 50,00**.
+Exemplos: locação de R$ 1.000,00 em 10 dias → 10% × R$ 1.000,00 = R$ 100,00 → **R$ 100,00**. Locação de R$ 3.000,00 → 10% = **R$ 300,00**. Locação de R$ 300,00 → 10% × R$ 300,00 = R$ 30,00, menor que R$ 100,00 → **R$ 100,00**.
 
 9.3. **Taxa de Atendimento (Zelador Parceiro).** Devida **uma vez por Reserva**, qualquer que seja o número de dias ou de Ocorrências, apenas quando o Anúncio tiver Zelador Parceiro com Vínculo ativo: valor fixo por Anúncio, definido pela Operadora conforme a cidade, o porte do Espaço e a complexidade do acesso, aceito pelo Zelador no Vínculo e exibido ao Locatário antes do pagamento. A alteração do valor só vale para Reservas pagas depois dela e depende de novo aceite do Zelador; se o Zelador não aceitar, aplica-se a cláusula 6.6.
 
