@@ -34,8 +34,17 @@ export function generateToken(user: {
   clinicId: string
   tenantId: string
   role: string
+  accessExpiresAt?: Date | null
 }) {
-  const expiresIn = (process.env.JWT_EXPIRES_IN || '8h') as SignOptions['expiresIn']
+  let expiresIn = (process.env.JWT_EXPIRES_IN || '8h') as SignOptions['expiresIn']
+  // Acesso de convidado: a sessão nunca passa da data de expiração do acesso.
+  if (user.accessExpiresAt) {
+    const restante = Math.floor((new Date(user.accessExpiresAt).getTime() - Date.now()) / 1000)
+    if (restante > 0) {
+      const padrao = typeof expiresIn === 'number' ? expiresIn : 8 * 3600
+      expiresIn = Math.min(restante, padrao)
+    }
+  }
   return jwt.sign(
     {
       id: user.id,
@@ -164,6 +173,13 @@ export async function login(req: Request, res: Response) {
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
     }
 
+    if (user.accessExpiresAt && new Date(user.accessExpiresAt).getTime() <= Date.now()) {
+      return res.status(403).json({
+        code: 'ACCESS_EXPIRED',
+        error: 'O período de acesso de convidado terminou. Solicite a renovação à WMundi® Technologies.',
+      })
+    }
+
     const demo = await getDemoAccess(user.clinicId)
     if (demo.isDemo && demo.phase === 'ENDED') {
       return res.status(403).json({
@@ -189,7 +205,7 @@ export async function login(req: Request, res: Response) {
 /** Emite o token de sessão normal + auditoria. Usado pelo login sem 2FA e por POST /auth/2fa/verify. */
 export async function concluirLogin(
   req: Request,
-  user: { id: string; email: string; clinicId: string; tenantId: string; role: string; password?: unknown },
+  user: { id: string; email: string; clinicId: string; tenantId: string; role: string; password?: unknown; accessExpiresAt?: Date | null },
   demo: unknown,
   resumo = 'Login realizado com sucesso.'
 ) {
@@ -198,7 +214,8 @@ export async function concluirLogin(
     email: user.email,
     clinicId: user.clinicId,
     tenantId: user.tenantId,
-    role: user.role
+    role: user.role,
+    accessExpiresAt: user.accessExpiresAt
   })
 
   try {

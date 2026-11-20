@@ -29,4 +29,6 @@ if [ "$EDU_POLISH" = "1" ]; then
 fi
 # Usuário de apresentação (se configurado por variável de ambiente)
 npx tsx scripts/edu-demo-user.ts || true
+# Usuário convidado com prazo de acesso (GUEST_USER_EMAIL/GUEST_USER_PASSWORD/GUEST_EXPIRES_AT)
+npx tsx scripts/edu-guest-user.ts || true
 wait $SERVER
