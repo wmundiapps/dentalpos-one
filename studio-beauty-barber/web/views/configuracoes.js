@@ -23,6 +23,7 @@ export async function render(root, { session }) {
     const a = h('input', { type: 'time', value: v?.[0] || '09:00' }), b = h('input', { type: 'time', value: v?.[1] || '19:00' });
     return { i, on, a, b, el: h('div', { class: 'row', style: { padding: '4px 0' } }, h('label', { class: 'check', style: { width: '120px' } }, on, h('span', {}, d)), a, '–', b) };
   });
+  const wOn = h('input', { type: 'checkbox', checked: s.wallet_enabled }), wPct = h('input', { type: 'number', min: 0, max: 50, value: s.wallet_discount_pct ?? 10 });
   const dep = h('input', { type: 'checkbox', checked: s.deposit_required });
   const ret = h('input', { type: 'number', min: 0, max: 100, value: s.noshow_retention_pct ?? 30 }), fch = h('input', { type: 'number', min: 0, max: 168, value: s.free_cancel_hours ?? 24 });
   // ----- Identidade visual e contato -----
@@ -63,7 +64,7 @@ export async function render(root, { session }) {
     try {
       await patch('/api/settings', { name: name.value, phone: phone.value || undefined, email: email.value || undefined, address: address.value || undefined, city: city.value || undefined,
         brand: { mode, colors, tagline: tagline.value, about: about.value, whatsapp: wa.value, instagram: ig.value, facebook: fb.value, website: site.value },
-        allowed_domains: domains.value, quiet_start: Number(qs.value), quiet_end: Number(qe.value), deposit_required: dep.checked, noshow_retention_pct: Number(ret.value), free_cancel_hours: Number(fch.value), bot_enabled: bot.checked, hours,
+        allowed_domains: domains.value, quiet_start: Number(qs.value), quiet_end: Number(qe.value), deposit_required: dep.checked, wallet_enabled: wOn.checked, wallet_discount_pct: Number(wPct.value), noshow_retention_pct: Number(ret.value), free_cancel_hours: Number(fch.value), bot_enabled: bot.checked, hours,
         cashback: { enabled: cb.checked },
         finder: { enabled: fd.checked },
         automations: { confirmation: aConf.checked, recall: aRec.checked, reminders: aRem.checked, birthday: aBd.checked, reactivation: aRe.checked } });
@@ -107,6 +108,10 @@ export async function render(root, { session }) {
         h('div', { class: 'stack-sm' }, chk(dep, 'Exigir pagamento antecipado (Pix ou cartão, pelo seu Asaas) na página de agendamento')),
         h('div', { class: 'row', style: { marginTop: '10px' } }, f('Retenção por falta (%)', ret), f('Cancelamento sem custo até (h antes)', fch)),
         h('p', { class: 'small muted' }, 'O cliente precisa aceitar a política para reservar. Falta: o salão retém o percentual e devolve o resto. Conecte o Asaas em Integrações antes de ativar.')),
+      h('div', { class: 'card' }, h('h3', {}, 'Carteira de crédito'),
+        h('div', { class: 'stack-sm' }, chk(wOn, 'Clientes podem recarregar crédito e pagar atendimentos com o saldo')),
+        h('div', { class: 'row', style: { marginTop: '10px' } }, f('Desconto ao pagar com crédito (% nos serviços)', wPct)),
+        h('p', { class: 'small muted' }, 'O desconto vale só para serviços (não para produtos) quando a comanda é paga com o saldo da carteira. O saldo do cliente é dinheiro recebido adiantado: acompanhe o total em Carteira de crédito. Recargas por Pix usam o seu Asaas (Integrações).')),
       h('div', { class: 'card' }, h('h3', {}, 'Horário de funcionamento'), hoursRows.map((r) => r.el)),
       h('div', { class: 'card' }, h('h3', {}, 'Automações e robô'),
         h('div', { class: 'stack-sm' }, chk(bot, 'Robô de atendimento ligado (WhatsApp, Instagram, Facebook)'), chk(aConf, 'Confirmação na hora do agendamento (cliente responde 1 para confirmar)'), chk(aRem, 'Lembretes de agendamento (24h e 2h antes)'), chk(aRec, 'Recall: chamar o cliente para voltar no ciclo de cada serviço (só quem autorizou)'), chk(aBd, 'Mensagem de aniversário'), chk(aRe, 'Reativar clientes sumidos (só quem autorizou)')),

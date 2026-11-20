@@ -7,6 +7,7 @@ import { createAppointment, findOrCreateClient, settleSale } from '../domain.js'
 import { getIntegration } from '../integrations/store.js';
 import * as asaas from '../integrations/asaas.js';
 import { settleApptMoney, notifyBooked } from '../payments.js';
+import { discountPct, walletDiscountCents, spend, move, notifySpend } from '../wallet.js';
 
 const STATUSES = 'scheduled,confirmed,done,cancelled,noshow,pending_payment';
 
@@ -100,7 +101,7 @@ export default function register(r) {
   r.post('/api/sales', auth('reception'), async (ctx) => {
     const d = validate(ctx.body, {
       client_id: 'str?:0:60', appointment_id: 'str?:0:60', staff_id: 'str?:0:60',
-      payment_method: 'enum:cash,card,pix,pix_asaas,other', discount_cents: 'int?:0:10000000',
+      payment_method: 'enum:cash,card,pix,pix_asaas,wallet,other', discount_cents: 'int?:0:10000000',
     });
     const itemsIn = Array.isArray(ctx.body?.items) ? ctx.body.items.slice(0, 40) : [];
     if (!itemsIn.length) throw new HttpError(422, 'Adicione pelo menos um item.');
@@ -124,7 +125,6 @@ export default function register(r) {
     if (discount > 0 && !['owner', 'manager'].includes(ctx.user.role) && discount > subtotal * 0.1) {
       throw new HttpError(403, 'Descontos acima de 10% precisam de um gerente.');
     }
-    const total = subtotal - discount;
 
     let clientId = d.client_id, staffId = d.staff_id;
     if (d.appointment_id) {
@@ -134,14 +134,26 @@ export default function register(r) {
     }
     if (clientId && !(await db.get('SELECT 1 AS x FROM clients WHERE id = ? AND salon_id = ?', [clientId, ctx.salon.id]))) throw new HttpError(404, 'Cliente não encontrado.');
 
+    // Pagamento com crédito da carteira: benefício de desconto sobre os serviços (nunca sobre produtos) e débito atômico do saldo.
+    const wallet = d.payment_method === 'wallet';
+    let walletDiscount = 0;
+    if (wallet) {
+      if (!ctx.salon.wallet_enabled) throw new HttpError(409, 'A carteira de crédito está desligada para este salão.');
+      if (!clientId) throw new HttpError(422, 'Escolha o cliente para pagar com o crédito da carteira.');
+      const svcSub = items.filter((i) => i.kind === 'service').reduce((a, i) => a + i.qty * i.unit_cents, 0);
+      walletDiscount = walletDiscountCents(Math.max(0, svcSub - discount), discountPct(ctx.salon));
+    }
+    const total = subtotal - discount - walletDiscount;
+
     const id = uid();
     await db.tx(async (t) => {
       await t.run(
-        `INSERT INTO sales (id, salon_id, client_id, appointment_id, staff_id, total_cents, discount_cents, payment_method, status, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-        [id, ctx.salon.id, clientId, d.appointment_id, staffId, total, discount, d.payment_method, 'open', nowIso()]);
+        `INSERT INTO sales (id, salon_id, client_id, appointment_id, staff_id, total_cents, discount_cents, payment_method, status, wallet_cents, wallet_discount_cents, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [id, ctx.salon.id, clientId, d.appointment_id, staffId, total, discount + walletDiscount, d.payment_method, 'open', wallet ? total : 0, walletDiscount, nowIso()]);
       for (const it of items) {
         await t.run('INSERT INTO sale_items (id, sale_id, kind, ref_id, name, qty, unit_cents) VALUES (?,?,?,?,?,?,?)', [uid(), id, it.kind, it.ref_id, it.name, it.qty, it.unit_cents]);
       }
+      if (wallet && total > 0) await spend(t, { salonId: ctx.salon.id, clientId, saleId: id, cents: total, userId: ctx.user.id });
     });
 
     let pix = null;
@@ -162,10 +174,22 @@ export default function register(r) {
       }
       if (pix.simulated) await db.run("UPDATE sales SET status = 'pending', pix_payload = ? WHERE id = ?", [pix.payload, id]);
     } else {
-      await settleSale(id, { method: d.payment_method });
+      try {
+        await settleSale(id, { method: d.payment_method });
+      } catch (e) {
+        // Não deixa o cliente sem o crédito se a baixa da comanda falhou.
+        if (wallet && total > 0) {
+          await db.tx(async (t) => {
+            await t.run("UPDATE sales SET status = 'cancelled' WHERE id = ? AND status <> 'paid'", [id]);
+            await move(t, { salonId: ctx.salon.id, clientId, kind: 'refund', amountCents: total, refId: id, note: 'Comanda não concluída', userId: ctx.user.id });
+          });
+        }
+        throw e;
+      }
     }
-    await audit(ctx, 'sale_created', 'sale', id, { total, method: d.payment_method });
-    return { id, total_cents: total, status: pix ? 'pending' : 'paid', pix };
+    await audit(ctx, 'sale_created', 'sale', id, { total, method: d.payment_method, wallet_discount: walletDiscount });
+    if (wallet && total > 0) notifySpend(ctx.salon, { client_id: clientId, wallet_cents: total, wallet_discount_cents: walletDiscount }).catch(() => {});
+    return { id, total_cents: total, status: pix ? 'pending' : 'paid', pix, wallet_discount_cents: walletDiscount };
   });
 
   // Confirmação manual (ex.: Pix recebido fora do Asaas / simulação no piloto)

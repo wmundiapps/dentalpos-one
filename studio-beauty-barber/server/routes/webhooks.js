@@ -9,6 +9,7 @@ import { handleInbound } from '../bot.js';
 import { settleSale } from '../domain.js';
 import * as asaas from '../integrations/asaas.js';
 import { confirmApptPayment } from '../payments.js';
+import { creditTopup, clawbackTopup } from '../wallet.js';
 
 async function firstTime(provider, eventId) {
   if (!eventId) return true;
@@ -161,11 +162,25 @@ export default function register(r) {
         if (sale) {
           if (settled && paidCents === sale.total_cents) await settleSale(sale.id, { method: 'pix' });
           else console.warn('[asaas] venda ignorada: valor ou status não confere', sale.id);
+        } else if (String(pay.externalReference || '').startsWith('wallet:')) {
+          const salon = await db.get('SELECT * FROM salons WHERE id = ?', [ctx.params.salonId]);
+          const tp = salon && await db.get('SELECT * FROM wallet_topups WHERE id = ? AND salon_id = ?', [pay.externalReference.slice(7), salon.id]);
+          if (tp && settled && pay.id === tp.asaas_payment_id && paidCents === tp.amount_cents) await creditTopup(salon, tp.id, { paidCents });
+          else console.warn('[asaas] recarga ignorada: pagamento não confere', pay.externalReference);
         } else if (String(pay.externalReference || '').startsWith('appt:')) {
           const salon = await db.get('SELECT * FROM salons WHERE id = ?', [ctx.params.salonId]);
           const appt = salon && await db.get('SELECT * FROM appointments WHERE id = ? AND salon_id = ?', [pay.externalReference.slice(5), salon.id]);
           if (appt && settled && pay.id === appt.pay_ref && paidCents === appt.price_cents) await confirmApptPayment(salon, appt.id, paidCents);
           else console.warn('[asaas] reserva ignorada: pagamento não confere', pay.externalReference);
+        }
+      }
+      // Pix de recarga da carteira estornado ou contestado depois de creditado: tira o valor do saldo.
+      if (['PAYMENT_REFUNDED', 'PAYMENT_CHARGEBACK_REQUESTED'].includes(ev.event)) {
+        const pay = await asaas.getPayment(conf, ev.payment.id);
+        if (String(pay.externalReference || '').startsWith('wallet:') && ['REFUNDED', 'CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE'].includes(pay.status)) {
+          const salon = await db.get('SELECT * FROM salons WHERE id = ?', [ctx.params.salonId]);
+          const tp = salon && await db.get('SELECT * FROM wallet_topups WHERE id = ? AND salon_id = ?', [pay.externalReference.slice(7), salon.id]);
+          if (tp && pay.id === tp.asaas_payment_id) await clawbackTopup(salon, tp.id);
         }
       }
       return { ok: true };

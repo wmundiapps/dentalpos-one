@@ -18,6 +18,7 @@ import registerPublic from './routes/public.js';
 import registerFinder from './routes/finder.js';
 import registerConsents from './routes/consents.js';
 import registerClub from './routes/club.js';
+import registerWallet from './routes/wallet.js';
 import registerProspect from './routes/prospect.js';
 import registerWebhooks from './routes/webhooks.js';
 
@@ -40,7 +41,7 @@ export function buildRouter() {
     if (!secret || got.length !== secret.length || !timingSafeEqual(Buffer.from(got), Buffer.from(secret))) throw new HttpError(401, 'Não autorizado.');
     return { ok: true, stats: await tick() };
   });
-  for (const reg of [registerAuth, registerCatalog, registerAgenda, registerCrm, registerSettings, registerClub, registerProspect, registerPublic, registerFinder, registerConsents, registerWebhooks]) reg(r);
+  for (const reg of [registerAuth, registerCatalog, registerAgenda, registerCrm, registerSettings, registerClub, registerWallet, registerProspect, registerPublic, registerFinder, registerConsents, registerWebhooks]) reg(r);
   return r;
 }
 
