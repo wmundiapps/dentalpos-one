@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { canEditListing, onListingCreated } from '../partners.js';
 import { z } from 'zod';
 import { id, nowIso, pool, rows, withTx, type Db } from '../db.js';
 import * as repo from '../repo.js';
@@ -127,11 +128,12 @@ export async function publicListings(db: Db, listings: Listing[], viewer?: User)
   const visible = await addressVisibleTo(db, listings, viewer);
   const canBook = await bookableHosts(listings);
   return listings.map((l) => {
-    const { address, ...rest } = l;
+    // Parceiros: só a existência (as taxas aparecem no orçamento), sem identificar quem é
+    const { address, brokerId, caretakerId, ...rest } = l;
     // Caução: pré-autorização no cartão quando o processador permite; senão, garantida por avalista
     const depositHold = l.securityDeposit > 0 ? supportsHold('card', gatewayFor(l.countryCode)) : undefined;
     // bookable=false: anfitrião ainda não conectou o Mercado Pago — aparece como "em breve", sem reserva
-    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, depositHold, ...canBook(l), ...ratings(l.id) };
+    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, depositHold, ...canBook(l), ...ratings(l.id), hasBroker: !!brokerId, hasCaretaker: !!caretakerId };
   });
 }
 
@@ -229,6 +231,7 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
       await repo.updateUser(tx, user);
     }
     await repo.insertListing(tx, listing);
+    await onListingCreated(tx, user, listing); // veio pelo link de um corretor: vínculo aguardando o "sim" do anfitrião
     if (pendingEmail) await tx.query('UPDATE listings SET pending_email = true WHERE id = $1', [listing.id]);
     // Boas-vindas ao anúncio + convite para o SpaceHour ADS (destaque pago, em breve)
     const needsPayout = (payoutRequired(listing.countryCode) || (marketplaceEnabled() && MP_COUNTRIES.includes(listing.countryCode))) && !(await hostProviders([user.id])).get(user.id)?.length;
@@ -261,7 +264,8 @@ listingsRouter.put('/listings/:id', requireAuth, async (req: AuthedRequest, res)
   await assertCepMatches(data as { countryCode: string; address: string; city: string; state?: string });
   const l = await withTx(async (tx) => {
     const cur = await getListing(tx, req.params.id, true);
-    if (cur.hostId !== req.user!.id) throw new HttpError(403, 'forbidden');
+    // Anfitrião ou parceiro ativo que o anfitrião autorizou a editar
+    if (cur.hostId !== req.user!.id && !(await canEditListing(tx, req.user!.id, cur.id))) throw new HttpError(403, 'forbidden');
     // Política de cancelamento das reservas existentes não muda (fica gravada na reserva)
     Object.assign(cur, data, derived);
     await repo.updateListing(tx, cur);

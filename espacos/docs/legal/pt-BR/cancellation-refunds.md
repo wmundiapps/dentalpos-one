@@ -1,6 +1,8 @@
 # Política de Cancelamento e Reembolso
 
-Versão 2026-10-12 · Vigência a partir de 12/10/2026
+> Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
+
+Versão 2026-11-20 · Vigência a partir de 20/12/2026
 
 ## 1. Disposições gerais
 
@@ -10,9 +12,11 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
 1.3. Os prazos são contados em horas até o **início de cada Ocorrência**, no Fuso do Espaço, a partir do momento em que o cancelamento é registrado na Plataforma.
 
-1.4. Os percentuais das políticas incidem sobre o **Valor Base** de cada Ocorrência. A Taxa de Limpeza e a Taxa de Serviço SpaceHour seguem as regras específicas das cláusulas 4, 5 e 6.
+1.4. Os percentuais das políticas incidem sobre o **Valor Base** de cada Ocorrência. A Taxa de Limpeza e as Taxas de Parceiro (Taxa de Intermediação e Taxa de Atendimento) seguem as regras específicas das cláusulas 4, 5 e 6. O Locatário não paga Taxa de Serviço SpaceHour, e por isso não há taxa de serviço a reembolsar.
 
 1.5. As regras deste documento não afastam direitos mais favoráveis garantidos por lei ao Locatário consumidor, que sempre prevalecem.
+
+1.6. **Transição.** Nas Reservas pagas antes de 20/12/2026, a Taxa de Serviço SpaceHour de 15% paga pelo Locatário continua a ser reembolsada conforme a versão 2026-10-12 deste documento.
 
 ## 2. Ordem de aplicação
 
@@ -27,7 +31,7 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
 ## 3. Janela de cortesia
 
-3.1. O Locatário pode cancelar com **reembolso integral** (Valor Base, Taxa de Limpeza e Taxa de Serviço SpaceHour) em até **24 horas após a Reserva**, desde que a Reserva tenha sido feita com **pelo menos 48 horas de antecedência** do início da primeira Ocorrência e que nenhuma Ocorrência tenha começado.
+3.1. O Locatário pode cancelar com **reembolso integral** (Valor Base, Taxa de Limpeza e Taxas de Parceiro) em até **24 horas após a Reserva**, desde que a Reserva tenha sido feita com **pelo menos 48 horas de antecedência** do início da primeira Ocorrência e que nenhuma Ocorrência tenha começado.
 
 3.2. A janela de cortesia se aplica a todos os Locatários, consumidores ou não.
 
@@ -38,9 +42,10 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 4.2. **Profissionais.** O fato de o Locatário ser profissional ou pessoa jurídica não exclui automaticamente a aplicação do Código de Defesa do Consumidor. A condição de consumidor dependerá da finalidade da contratação e, quando for o caso, da vulnerabilidade concreta do Locatário. Para fins de processamento automático, a Plataforma presume a condição de consumidor, salvo declaração em contrário feita pelo Locatário na Reserva; essa declaração não afasta direito que a lei lhe assegure, e o Locatário pode demonstrar sua condição de consumidor pela Central de Resolução.
 
 4.3. **Efeitos.** Exercido o direito dentro do prazo de 7 dias, o reembolso observa as seguintes regras, aplicadas a cada Ocorrência da Reserva:
-- (a) **Ocorrências futuras, ainda não iniciadas**: reembolso **integral** do Valor Base e da Taxa de Limpeza correspondentes, além da parcela **proporcional** da Taxa de Serviço SpaceHour;
-- (b) **Ocorrência em andamento** no momento do exercício: reembolso do Valor Base correspondente **proporcional ao tempo ainda não utilizado**, com a parcela proporcional da Taxa de Serviço SpaceHour;
-- (c) **Ocorrências já integralmente utilizadas**: não há reembolso, porque o serviço foi prestado a pedido do consumidor, que dele usufruiu.
+- (a) **Ocorrências futuras, ainda não iniciadas**: reembolso **integral** do Valor Base e da Taxa de Limpeza correspondentes;
+- (b) **Ocorrência em andamento** no momento do exercício: reembolso do Valor Base correspondente **proporcional ao tempo ainda não utilizado**;
+- (c) **Ocorrências já integralmente utilizadas**: não há reembolso, porque o serviço foi prestado a pedido do consumidor, que dele usufruiu;
+- (d) **Taxas de Parceiro**: reembolsadas na mesma proporção do Valor Base reembolsado (cláusula 5.4).
 
 4.4. Se nenhuma Ocorrência tiver começado, o reembolso abrange **todos os valores pagos**. O início da primeira Ocorrência **não extingue** o direito de arrependimento, que permanece exercível, dentro do prazo legal, nos termos da cláusula 4.3.
 
@@ -81,11 +86,11 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
 5.3. **Taxa de Limpeza.** A Taxa de Limpeza de toda Ocorrência cancelada que ainda não começou é **sempre devolvida integralmente**, independentemente da política, pois o serviço de limpeza não será realizado.
 
-5.4. **Taxa de Serviço SpaceHour.** A Taxa de Serviço SpaceHour paga pelo Locatário é devolvida **proporcionalmente ao número de Ocorrências que recebem reembolso integral (100%)** do Valor Base, em relação ao total de Ocorrências da Reserva. Ocorrências reembolsadas em 50% ou 0% não geram devolução da Taxa de Serviço SpaceHour correspondente.
+5.4. **Taxas de Parceiro.** A Taxa de Intermediação e a Taxa de Atendimento, quando cobradas, são devolvidas **na mesma proporção do Valor Base reembolsado** em relação ao Valor Base total da Reserva, em qualquer hipótese de reembolso (cortesia, arrependimento, política do Anúncio, cancelamento pelo Anfitrião, circunstância atenuante ou decisão de Incidente). Exemplo: se 87,5% do Valor Base for reembolsado, 87,5% de cada Taxa de Parceiro também é. O Corretor e o Zelador Parceiros recebem apenas a parcela não reembolsada (Termo de Parceria — Corretor e Zelador Parceiros, cláusula 12).
 
-5.5. **Exemplo.** Série semanal de 4 Ocorrências, política Moderada, cancelada fora do prazo de arrependimento quando faltam 30 horas para a primeira. A primeira Ocorrência recebe 50% do Valor Base proporcional; as três seguintes (mais de 72 horas) recebem 100%. A Taxa de Limpeza das 4 Ocorrências é devolvida integralmente. A Taxa de Serviço SpaceHour é devolvida em 3/4.
+5.5. **Exemplo.** Série semanal de 4 Ocorrências, política Moderada, cancelada fora do prazo de arrependimento quando faltam 30 horas para a primeira. A primeira Ocorrência recebe 50% do Valor Base proporcional; as três seguintes (mais de 72 horas) recebem 100%. A Taxa de Limpeza das 4 Ocorrências é devolvida integralmente. O Valor Base reembolsado é de (0,5 + 1 + 1 + 1) ÷ 4 = 87,5%; por isso, se a Reserva tiver Taxa de Intermediação de R$ 50,00 e Taxa de Atendimento de R$ 150,00, o Locatário recebe de volta R$ 43,75 e R$ 131,25, respectivamente (R$ 175,00 no total).
 
-5.6. **Não comparecimento.** O não comparecimento sem cancelamento não gera reembolso do Valor Base nem da Taxa de Serviço SpaceHour da Ocorrência, ressalvado o direito de arrependimento. A Taxa de Limpeza não utilizada é devolvida quando o Anfitrião confirmar que a limpeza não foi necessária.
+5.6. **Não comparecimento.** O não comparecimento sem cancelamento não gera reembolso do Valor Base da Ocorrência nem da parcela correspondente das Taxas de Parceiro, ressalvado o direito de arrependimento. A Taxa de Limpeza não utilizada é devolvida quando o Anfitrião confirmar que a limpeza não foi necessária.
 
 5.7. **Saída antecipada.** Fora do prazo de arrependimento, encerrar a Ocorrência antes do horário previsto não gera reembolso das horas não utilizadas.
 
@@ -95,7 +100,7 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 |---|---|---|---|---|---|
 | Valor Base | 100% | 100% das Ocorrências futuras; proporcional ao tempo não utilizado da Ocorrência em andamento; 0% das já utilizadas | Conforme faixa, por Ocorrência | 100% | 0% |
 | Taxa de Limpeza | 100% | 100% das Ocorrências não iniciadas | 100% das Ocorrências não iniciadas | 100% | Devolvida se a limpeza não foi necessária |
-| Taxa de Serviço SpaceHour do Locatário | 100% | Proporcional ao Valor Base reembolsado | Proporcional às Ocorrências com 100% | 100% | 0% |
+| Taxas de Parceiro (Intermediação e Atendimento) | 100% | Mesma proporção do Valor Base reembolsado | Mesma proporção do Valor Base reembolsado | 100% | 0% |
 
 ## 7. Cancelamento pelo Anfitrião
 
@@ -117,7 +122,7 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
 8.1. Consideram-se circunstâncias atenuantes eventos imprevisíveis ou inevitáveis, posteriores à Reserva, que impeçam a sua realização, tais como: desastres naturais; interdição do imóvel ou do edifício por autoridade; falta prolongada de energia ou água no Espaço; epidemias com restrições oficiais; morte ou doença grave súbita do Locatário, do Anfitrião ou de familiar próximo; convocação judicial, eleitoral ou militar; e dano grave ao Espaço que o torne inutilizável.
 
-8.2. Comprovada a circunstância com documentos idôneos (atestado, ato da autoridade, boletim, laudo), apresentados pela Central de Resolução em até 14 dias do cancelamento, o Locatário recebe **reembolso integral** das Ocorrências afetadas e o Anfitrião não sofre cláusula penal nem Advertência.
+8.2. Comprovada a circunstância com documentos idôneos (atestado, ato da autoridade, boletim, laudo), apresentados pela Central de Resolução em até 14 dias do cancelamento, o Locatário recebe **reembolso integral** das Ocorrências afetadas, com as Taxas de Parceiro na proporção da cláusula 5.4, e o Anfitrião não sofre cláusula penal nem Advertência.
 
 8.3. Não são circunstâncias atenuantes: mudança de agenda, falta de Clientes Finais, condições climáticas comuns, problemas de transporte previsíveis ou obrigações conhecidas no momento da Reserva.
 
@@ -140,3 +145,5 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 10.1. Valores devidos pelo Locatário em razão de Incidentes decididos (Penalidades e Medidas) podem ser compensados com reembolsos pendentes, mediante informação detalhada.
 
 10.2. Dúvidas ou divergências sobre o cálculo do reembolso podem ser apresentadas pela Central de Resolução e Disputas.
+
+10.3. **Falha de Parceiro.** Quando o Locatário for prejudicado por falha do Corretor Parceiro ou do Zelador Parceiro (por exemplo, falta de acesso por ausência do Zelador), recebe o mesmo reembolso previsto para a falha do Anfitrião correspondente (Penalidades e Medidas, cláusula 8), sem prejuízo da responsabilidade do Parceiro perante o Anfitrião e a Operadora.

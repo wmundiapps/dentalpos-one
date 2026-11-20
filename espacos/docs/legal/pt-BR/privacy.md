@@ -1,12 +1,14 @@
 # Política de Privacidade
 
-Versão 2026-10-12 · Vigência a partir de 12/10/2026
+> Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
+
+Versão 2026-11-20 · Vigência a partir de 20/12/2026
 
 ## 1. Quem somos e a quem se aplica
 
 1.1. Esta Política integra os Termos de Uso (anexo "j") e explica como **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, com sede na **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230** (a "Operadora"), trata dados pessoais na Plataforma SpaceHour, na qualidade de **controladora**, nos termos da Lei Geral de Proteção de Dados Pessoais — LGPD (Lei nº 13.709/2018).
 
-1.2. Aplica-se a Anfitriões, Locatários, Fiadores, cônjuges de Fiadores, Clientes Finais que utilizem a ferramenta de avaliação, visitantes do site, representantes de pessoas jurídicas e responsáveis por empresas contatadas para anunciar na Plataforma.
+1.2. Aplica-se a Anfitriões, Locatários, Corretores Parceiros, Zeladores Parceiros e seus Prepostos, Fiadores, cônjuges de Fiadores, Clientes Finais que utilizem a ferramenta de avaliação, visitantes do site, representantes de pessoas jurídicas e responsáveis por empresas contatadas para anunciar na Plataforma.
 
 1.3. **Encarregado (DPO):** **Robson Ravel de Oliveira — info@wmundi.com**. Atendimento geral: support@space-hour.com.
 
@@ -25,6 +27,7 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 | Reservas | Datas, horários, atividade declarada, número de pessoas, mensagens, check-in/check-out, fotos, histórico de cancelamentos | Usuários e Plataforma |
 | Pagamentos | Identificador e situação da transação, meio de pagamento, valores, estornos, CPF ou CNPJ do pagador (exigido pelo Asaas), identificação da conta de recebimento do Anfitrião no processador (os dados completos de cartão são coletados diretamente pelo Mercado Pago ou pelo Asaas e não são recebidos pela Plataforma) | Titular e processadores de pagamento |
 | Fiador e cônjuge | Nome, e-mail, telefone, CPF ou CNPJ, relação com o Locatário, estado civil, regime de bens, nome, CPF e e-mail do cônjuge, aceites, limite de responsabilidade | Locatário, Fiador e cônjuge |
+| Parceiros (Corretor e Zelador) | Nome ou razão social, CPF ou CNPJ, telefone, e-mail, chave Pix de titularidade própria, cidades de atuação, número e situação da inscrição no CRECI (Corretor), Vínculos com Anúncios, vistorias e fotos dos Espaços, registros de atendimento, avaliações, Demonstrativos, repasses, documentos fiscais e RPA, aceites (data, hora, IP e versão) e, quando solicitada, certidão de antecedentes criminais (Zelador) | Titular, base pública do CRECI, Anfitrião, Locatário e Plataforma |
 | Reputação e conformidade | Avaliações, Incidentes, evidências, Advertências, suspensões | Usuários e Plataforma |
 | Técnicos | IP, identificadores de dispositivo, navegador, registros de acesso, cookies; IP e navegador usados no cadastro e na confirmação do e-mail; provedor do e-mail | Coleta automática |
 | Clientes Finais | Notas e comentário da avaliação, apelido opcional, data; sem cadastro | Cliente Final |
@@ -99,6 +102,8 @@ Os arquivos ficam cifrados, cada acesso é registrado e são eliminados 90 dias 
 
 4.7. Não vendemos dados pessoais.
 
+4.8. **Corretores e Zeladores Parceiros.** Quando o Anúncio tiver Parceiro vinculado, após a aprovação do pagamento, o Corretor Parceiro e o Zelador Parceiro recebem, por e-mail e por WhatsApp ou Telegram, o nome, o telefone, o e-mail, a profissão e, quando exigido, o registro profissional do Locatário, além dos dados da Reserva (Espaço, datas, horários, atividade e número de pessoas), **somente para atender aquela Reserva** (entrega de acesso, vistorias e atendimento operacional), com base na execução do contrato (LGPD, art. 7º, V). Os Parceiros tratam esses dados como operadores, sob as instruções do Termo de Confidencialidade e Proteção de Dados (Parceiros), que proíbe qualquer outro uso e exige a eliminação em até 90 dias após o check-out. O Locatário recebe o nome do Zelador da Reserva, e o nome e o número do CRECI do Corretor são exibidos no Anúncio.
+
 ## 5. Transferência internacional
 
 5.1. Alguns prestadores de serviço, em especial de hospedagem em nuvem e de inteligência artificial, podem tratar dados em servidores localizados fora do Brasil (por exemplo, nos Estados Unidos).
@@ -122,6 +127,9 @@ Os arquivos ficam cifrados, cada acesso é registrado e são eliminados 90 dias 
 | Resultado das verificações de identidade e de registro profissional (dados informados, decisão e fundamentos) e registros de acesso aos arquivos | Enquanto a conta existir e, após o encerramento, pelo prazo prescricional aplicável a eventuais responsabilidades |
 | Documentos de título de ocupação e de consentimento do proprietário ou locador | Enquanto o Anúncio existir e, após, pelo prazo prescricional aplicável |
 | Feedback do aplicativo | Até 3 anos, ou prazo menor quando anonimizado |
+| Dados do Locatário enviados a Parceiros (cópia em poder do Parceiro) | Até 90 dias após o check-out da última Ocorrência (Termo de Confidencialidade e Proteção de Dados (Parceiros), cláusula 7) |
+| Certidão de antecedentes criminais de Zelador | Até 90 dias após a decisão do cadastro |
+| Cadastro, Vínculos, vistorias e repasses de Parceiros | Enquanto a parceria existir e, após, pelo prazo fiscal e prescricional aplicável |
 
 6.1. Encerrados os prazos, os dados são eliminados ou anonimizados.
 

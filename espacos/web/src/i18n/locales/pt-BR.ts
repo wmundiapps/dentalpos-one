@@ -187,6 +187,8 @@ const ptBR = {
   'price.dailyApplied': 'Diária aplicada em {n} dia(s)',
   'price.cleaning': 'Taxa de limpeza',
   'price.serviceFee': 'Taxa de serviço (tributos incluídos)',
+  'price.brokerFee': 'Corretor parceiro (uma vez por reserva)',
+  'price.caretakerFee': 'Zelador parceiro: acesso, vistoria e atendimento',
   'price.tax': 'Tributo sobre a taxa ({tax})',
   'price.total': 'Total',
   'price.deposit': 'Caução (pré-autorização, devolvida)',
@@ -525,6 +527,9 @@ const ptBR = {
   'legal.cancellation-refunds': 'Cancelamento e Reembolso',
   'legal.penalties': 'Penalidades',
   'legal.space-norms': 'Normas de Conduta nos Espaços',
+  'legal.partner-terms': 'Termo de Parceria (Corretor e Zelador)',
+  'legal.partner-confidentiality': 'Confidencialidade e Dados (Parceiros)',
+  'legal.partner-conduct': 'Regras de Conduta dos Parceiros',
   'legal.guarantor-deposit': 'Fiança e Caução',
   'legal.reviews': 'Avaliações',
   'legal.payments': 'Pagamentos',
@@ -1123,6 +1128,7 @@ const ptBR = {
   'val.package_max_days': 'O pacote pode durar no máximo {max} dias.',
   'val.package_max_weekdays': 'No pacote, escolha no máximo {max} dias da semana.',
   'admin.tabProspecting': 'Captação',
+  'admin.tabPartners': 'Parceiros',
 };
 
 export default ptBR;

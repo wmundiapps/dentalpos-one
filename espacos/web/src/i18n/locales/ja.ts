@@ -187,6 +187,8 @@ const ja: Dict = {
   'price.dailyApplied': '{n} 日分に日額料金を適用',
   'price.cleaning': '清掃料金',
   'price.serviceFee': 'サービス手数料',
+  'price.brokerFee': 'Partner broker (once per booking)',
+  'price.caretakerFee': 'Partner caretaker: access, inspection and support',
   'price.tax': '手数料にかかる税金（{tax}）',
   'price.total': '合計',
   'price.deposit': '保証金（仮売上、返金されます）',
@@ -525,6 +527,9 @@ const ja: Dict = {
   'legal.cancellation-refunds': 'キャンセルと返金',
   'legal.penalties': '違約金・ペナルティ',
   'legal.space-norms': 'スペース内での行動規範',
+  'legal.partner-terms': 'Partner Agreement (Broker and Caretaker)',
+  'legal.partner-confidentiality': 'Confidentiality and Data (Partners)',
+  'legal.partner-conduct': 'Partner Conduct Rules',
   'legal.guarantor-deposit': '保証人と保証金',
   'legal.reviews': 'レビュー',
   'legal.payments': '国際決済',
@@ -1121,6 +1126,7 @@ const ja: Dict = {
   'val.package_max_days': 'A package can last at most {max} days.',
   'val.package_max_weekdays': 'Choose at most {max} weekdays in a package.',
   'admin.tabProspecting': 'Prospecting',
+  'admin.tabPartners': 'Partners',
 };
 
 export default ja;

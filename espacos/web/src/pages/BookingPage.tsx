@@ -1,3 +1,4 @@
+import { BookingPartners } from './Partners';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
@@ -160,6 +161,8 @@ export default function BookingPage() {
           {panel === 'review' && <ReviewPanel isHost={isHost} bookingId={b.id} onDone={() => { setPanel(null); load(); }} />}
           {panel === 'incident' && <IncidentPanel b={b} types={isHost ? HOST_TYPES : GUEST_TYPES} onDone={() => { setPanel(null); load(); }} />}
           {panel === 'invites' && <InvitesPanel b={b} onDone={load} />}
+
+          {['confirmed', 'checked_in', 'completed'].includes(b.status) && <BookingPartners bookingId={b.id} isGuest={!isHost} />}
 
           {b.incidents.length > 0 && (
             <section className="section">

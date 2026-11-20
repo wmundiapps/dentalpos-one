@@ -3,13 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
 import { useI18n, type DictKey } from '../i18n';
 import { useApp } from '../state';
-import { AMENITIES, BOOKING_LIMITS, CATEGORIES, CATEGORY_ICONS, FEES, HEALTH_CATEGORIES } from '../../../shared/rules';
+import { AMENITIES, BOOKING_LIMITS, CATEGORIES, CATEGORY_ICONS, FEES, HEALTH_CATEGORIES, feesAt } from '../../../shared/rules';
 import { LAUNCH_COUNTRIES, COUNTRY_BY_CODE } from '../../../shared/countries';
 import type { Listing, TimeRange, Weekday } from '../../../shared/types';
 import { countryName, flag, timeSlots } from '../format';
 import { errorText } from '../errors';
 import { useMercadoPagoPrompt } from '../components/MercadoPagoPrompt';
 import { PhotoUploader } from '../components/PhotoUploader';
+import { ListingPartners } from './Partners';
 import { AddressMap } from '../components/AddressMap';
 import { PlacePicker } from '../components/PlacePicker';
 
@@ -82,6 +83,7 @@ export default function ListingEditor() {
   const { me, country } = useApp();
   const nav = useNavigate();
   const [f, setF] = useState<Form>(() => blank(country || me?.countryCode || 'BR'));
+  const [loadedId, setLoadedId] = useState<string>();
   const [blockedText, setBlockedText] = useState('');
   const [error, setError] = useState<{ text: string; section?: number } | null>(null);
   const invalidShown = useRef(false);
@@ -95,6 +97,7 @@ export default function ListingEditor() {
     api<Listing[]>('/host/listings').then((ls) => {
       const l = ls.find((x) => x.id === id);
       if (!l) return;
+      setLoadedId(l.id);
       const { id: _i, hostId: _h, createdAt: _c, currency: _cu, timezone: _tz, ...rest } = l;
       setF({ ...rest, occupancyConsent: !!l.occupancyConsentAt } as Form);
       setBlockedText(l.blockedDates.join('\n'));
@@ -252,7 +255,7 @@ export default function ListingEditor() {
           <label>{t('form.cleaningFee')}<NumInput min={0} step="0.01" placeholder="0" value={f.cleaningFee || undefined} onChange={(v) => set('cleaningFee', v ?? 0)} /></label>
           <label>{t('form.deposit')}<NumInput min={0} step="0.01" placeholder="0" value={f.securityDeposit || undefined} onChange={(v) => set('securityDeposit', v ?? 0)} /></label>
           <p className="muted small span2">🔒 {t('editor.depositHelp')} <Link to="/regras/guarantor-deposit">{t('legal.guarantor-deposit')}</Link></p>
-          <p className="muted small span2">{t('editor.feesHelp', { guest: FEES.guestServiceFeeRate * 100, host: FEES.hostServiceFeeRate * 100, clean: FEES.maxCleaningFeeRate * 100, dep: FEES.maxDepositMultiple })}</p>
+          <p className="muted small span2">{t('editor.feesHelp', { guest: feesAt().guestServiceFeeRate * 100, host: feesAt().hostServiceFeeRate * 100, clean: FEES.maxCleaningFeeRate * 100, dep: FEES.maxDepositMultiple })}</p>
         </section>
 
         <section id="sec-6" className="section form-grid">
@@ -300,6 +303,7 @@ export default function ListingEditor() {
           </div>
         </section>
       </form>
+      {id && loadedId === id && <ListingPartners listingId={id} />}
     </div>
   );
 }

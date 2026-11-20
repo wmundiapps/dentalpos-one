@@ -187,6 +187,8 @@ const hi: Dict = {
   'price.dailyApplied': '{n} दिन(ओं) पर दैनिक दर लागू',
   'price.cleaning': 'सफ़ाई शुल्क',
   'price.serviceFee': 'सेवा शुल्क',
+  'price.brokerFee': 'Partner broker (once per booking)',
+  'price.caretakerFee': 'Partner caretaker: access, inspection and support',
   'price.tax': 'शुल्क पर कर ({tax})',
   'price.total': 'कुल',
   'price.deposit': 'सुरक्षा जमा राशि (पूर्व-प्राधिकरण, वापस की जाएगी)',
@@ -525,6 +527,9 @@ const hi: Dict = {
   'legal.cancellation-refunds': 'रद्दीकरण और वापसी',
   'legal.penalties': 'दंड',
   'legal.space-norms': 'जगहों में आचरण के नियम',
+  'legal.partner-terms': 'Partner Agreement (Broker and Caretaker)',
+  'legal.partner-confidentiality': 'Confidentiality and Data (Partners)',
+  'legal.partner-conduct': 'Partner Conduct Rules',
   'legal.guarantor-deposit': 'ज़मानतदार और सुरक्षा जमा राशि',
   'legal.reviews': 'समीक्षाएँ',
   'legal.payments': 'अंतरराष्ट्रीय भुगतान',
@@ -1121,6 +1126,7 @@ const hi: Dict = {
   'val.package_max_days': 'A package can last at most {max} days.',
   'val.package_max_weekdays': 'Choose at most {max} weekdays in a package.',
   'admin.tabProspecting': 'Prospecting',
+  'admin.tabPartners': 'Partners',
 };
 
 export default hi;

@@ -1,10 +1,12 @@
 # Pagamentos
 
-Versão 2026-10-12 · Vigência a partir de 12/10/2026
+> Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
+
+Versão 2026-11-20 · Vigência a partir de 20/12/2026
 
 ## 1. Objeto e processadores
 
-1.1. Este documento integra os Termos de Uso (anexo "g") e descreve como funcionam a cobrança, o recebimento pelo Anfitrião, os estornos e as cobranças adicionais relativas às Reservas, conforme os meios de pagamento efetivamente disponíveis na Plataforma.
+1.1. Este documento integra os Termos de Uso (anexo "g") e descreve como funcionam a cobrança, o recebimento pelo Anfitrião, as Taxas de Parceiro e o repasse aos Corretores e Zeladores Parceiros, os estornos e as cobranças adicionais relativas às Reservas, conforme os meios de pagamento efetivamente disponíveis na Plataforma.
 
 1.2. **Processadores.** Os pagamentos são processados por instituições de pagamento parceiras, em ambiente próprio delas (*checkout* hospedado):
 - (a) **Mercado Pago**, por meio do *Checkout Pro*; e
@@ -24,22 +26,45 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 |---|---|
 | Valor Base | Soma, por Ocorrência, de horas × preço por hora, ou preço de diária para Ocorrências de 6 horas ou mais quando mais vantajoso; deduzido o desconto de pacote, quando houver (Regras de Reserva e Uso, cláusula 2.3) |
 | Taxa de Limpeza | Valor fixo por Ocorrência, definido pelo Anfitrião, limitado a 30% do Valor Base |
-| **Taxa de Serviço SpaceHour** | **15%** sobre (Valor Base + Taxa de Limpeza), **tributos incluídos** |
+| **Taxa de Intermediação** (somente se o Anúncio tiver Corretor Parceiro com Vínculo ativo) | **Uma por Reserva**: o maior valor entre **R$ 50,00** e **10% do maior Valor do Dia** da Reserva (cláusula 12.2) |
+| **Taxa de Atendimento** (somente se o Anúncio tiver Zelador Parceiro com Vínculo ativo) | **Uma por Reserva**: valor fixo do Anúncio, definido pela Operadora (cláusula 12.3) |
 | **Total** | Soma dos itens acima |
 
-2.2. Nenhum tributo é acrescentado à parte sobre a Taxa de Serviço SpaceHour: os tributos incidentes sobre a remuneração da Operadora estão incluídos no percentual de 15%.
+2.2. **O Locatário não paga Taxa de Serviço SpaceHour.** A remuneração da Operadora pela intermediação é a Taxa de Serviço do Anfitrião (cláusula 2.3), descontada do valor da locação. Nenhum tributo é acrescentado à parte sobre os componentes da tabela da cláusula 2.1.
 
 2.3. O valor destinado ao Anfitrião é:
 
 | Componente | Cálculo |
 |---|---|
 | Valor Base + Taxa de Limpeza | Integral |
-| (–) Taxa de Serviço do Anfitrião | **5%** sobre (Valor Base + Taxa de Limpeza) |
-| **Valor do Anfitrião** | Resultado, antes das tarifas do processador (cláusula 5) |
+| (–) Taxa de Serviço do Anfitrião (Taxa de Serviço SpaceHour) | **20%** sobre (Valor Base + Taxa de Limpeza), **tributos incluídos** |
+| **Valor do Anfitrião** | **80%** de (Valor Base + Taxa de Limpeza), antes das tarifas do processador (cláusula 4) |
 
-2.4. **Exemplo.** Reserva de 4 horas a R$ 80,00/hora, Taxa de Limpeza de R$ 30,00. Valor Base: R$ 320,00. Taxa de Serviço SpaceHour: 15% × R$ 350,00 = R$ 52,50. **Total pago pelo Locatário: R$ 402,50.** Taxa de Serviço do Anfitrião: 5% × R$ 350,00 = R$ 17,50. **Valor do Anfitrião: R$ 332,50**, antes das tarifas do processador. Remuneração da Operadora: R$ 70,00 (R$ 52,50 + R$ 17,50).
+As Taxas de Parceiro não integram a base de cálculo do Valor do Anfitrião nem da Taxa de Serviço do Anfitrião.
 
-2.5. O detalhamento completo é exibido antes da confirmação. Não há cobranças ocultas.
+2.4. **Exemplos.**
+
+(a) **Anúncio sem Parceiros.** Reserva de 4 horas a R$ 80,00/hora, Taxa de Limpeza de R$ 30,00. Valor Base: R$ 320,00. **Total pago pelo Locatário: R$ 350,00.** Taxa de Serviço do Anfitrião: 20% × R$ 350,00 = R$ 70,00. **Valor do Anfitrião: R$ 280,00**, antes das tarifas do processador. Remuneração da Operadora: R$ 70,00.
+
+(b) **Anúncio com Corretor e Zelador — Reserva de 1 dia.** Diária com Valor Base de R$ 1.000,00, sem Taxa de Limpeza. Taxa de Intermediação: 10% × R$ 1.000,00 = R$ 100,00 (maior que R$ 50,00). Taxa de Atendimento do Anúncio: R$ 150,00.
+
+| | Valor |
+|---|---|
+| Locação (Valor Base + Taxa de Limpeza) | R$ 1.000,00 |
+| Taxa de Intermediação | R$ 100,00 |
+| Taxa de Atendimento | R$ 150,00 |
+| **Total pago pelo Locatário** | **R$ 1.250,00** |
+| Valor do Anfitrião (80% da locação), creditado direto na conta dele | R$ 800,00 |
+| Recebido pela Operadora | R$ 450,00 |
+| (–) Repasse ao Corretor Parceiro | R$ 100,00 |
+| (–) Repasse ao Zelador Parceiro | R$ 150,00 |
+| **Remuneração da Operadora (20% da locação)** | **R$ 200,00** |
+
+(c) **Anúncio com Corretor e Zelador — série de 10 Ocorrências.** Série semanal de 10 Ocorrências de R$ 100,00 cada, sem Taxa de Limpeza: locação de R$ 1.000,00. Maior Valor do Dia: R$ 100,00; 10% = R$ 10,00, menor que o mínimo, logo Taxa de Intermediação de **R$ 50,00**. Taxa de Atendimento: R$ 150,00 (uma por Reserva). **Total pago pelo Locatário: R$ 1.200,00.** Valor do Anfitrião: R$ 800,00. Recebido pela Operadora: R$ 400,00, dos quais R$ 50,00 são repassados ao Corretor e R$ 150,00 ao Zelador, restando à Operadora R$ 200,00.
+
+2.5. O detalhamento completo, com cada Taxa de Parceiro discriminada e o nome do Parceiro correspondente, é exibido antes da confirmação. Não há cobranças ocultas.
+
+2.6. **Transição.** As Reservas cujo pagamento tenha sido aprovado antes de 20/12/2026 continuam sujeitas à versão 2026-10-12 deste documento (Taxa de Serviço SpaceHour de 15% paga pelo Locatário e Taxa de Serviço do Anfitrião de 5%), inclusive quanto a reembolsos (Termos de Uso, cláusula 14.2).
 
 ## 3. Meios de pagamento e momento da cobrança
 
@@ -66,17 +91,17 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
 3.6. **Confirmação.** Aprovado o pagamento, a Reserva segue para o aceite do Fiador (quando exigido) e, em seguida, é confirmada automaticamente (Reserva instantânea) ou submetida ao Anfitrião (Reserva por solicitação), conforme as Regras de Reserva e Uso, cláusula 4.
 
-3.7. **Quitação.** O pagamento aprovado pelo processador quita a obrigação do Locatário de pagar o preço da Reserva perante o Anfitrião.
+3.7. **Quitação.** O pagamento aprovado pelo processador quita a obrigação do Locatário de pagar o preço da Reserva perante o Anfitrião e as Taxas de Parceiro perante a Operadora. O Locatário faz **um único pagamento** por Reserva, que abrange todos os componentes da cláusula 2.1.
 
 ## 4. Divisão do pagamento e recebimento pelo Anfitrião
 
-4.1. **Divisão automática (*split*).** O pagamento é dividido pelo próprio processador entre o Anfitrião e a Operadora, sem que a Operadora receba ou guarde a parcela do Anfitrião:
+4.1. **Divisão automática (*split*).** O pagamento único do Locatário é dividido pelo próprio processador entre o Anfitrião e a Operadora, sem que a Operadora receba ou guarde a parcela do Anfitrião. O Valor do Anfitrião (80% da locação) vai direto para a conta do Anfitrião; o restante (Taxa de Serviço do Anfitrião e Taxas de Parceiro) fica com a Operadora, que repassa as Taxas de Parceiro na forma da cláusula 13:
 
 | | Mercado Pago | Asaas |
 |---|---|---|
 | **Quem recebe o pagamento** | A transação é criada em nome do Anfitrião, na conta Mercado Pago dele conectada à Plataforma | A cobrança é emitida pela conta Asaas da Operadora, com divisão automática para a carteira Asaas do Anfitrião |
 | **Parcela do Anfitrião** | Creditada pelo Mercado Pago na conta do Anfitrião no momento da aprovação | Creditada pelo Asaas na carteira do Anfitrião quando o pagamento é confirmado, no percentual correspondente ao Valor do Anfitrião sobre o total |
-| **Remuneração da Operadora** | Retida pelo Mercado Pago no ato, como tarifa de *marketplace*, correspondente à Taxa de Serviço SpaceHour e à Taxa de Serviço do Anfitrião | Parcela remanescente, que permanece na conta da Operadora |
+| **Parcela da Operadora** | Retida pelo Mercado Pago no ato, como tarifa de *marketplace*, correspondente à Taxa de Serviço do Anfitrião e às Taxas de Parceiro | Parcela remanescente, que permanece na conta da Operadora |
 | **Tarifa do processador** | Descontada pelo Mercado Pago da parcela do Anfitrião, conforme as condições da conta dele | Como a divisão é percentual sobre o valor líquido, a tarifa do Asaas é suportada proporcionalmente pelo Anfitrião e pela Operadora |
 | **Disponibilidade do saldo** | Conforme os prazos do Mercado Pago para o meio de pagamento utilizado | Conforme os prazos do Asaas para o meio de pagamento utilizado |
 
@@ -94,7 +119,9 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
 5.2. **Efeito sobre a divisão.** Como o valor foi dividido no momento do pagamento, o estorno é suportado pelas contas que o receberam, segundo as regras do processador. Quando a divisão do estorno pelo processador não corresponder à responsabilidade de cada parte prevista na Política de Cancelamento e Reembolso ou em decisão de Incidente, a diferença é acertada entre a Operadora e o Anfitrião por compensação ou cobrança.
 
-5.3. Reembolsos que decorram de falha do Anfitrião (cancelamento pelo Anfitrião, falta de acesso, Anúncio impreciso) reduzem o valor recebido pelo Anfitrião; quando o saldo dele no processador não comportar o estorno, o valor pode ser cobrado do Anfitrião.
+5.3. Reembolsos que decorram de falha do Anfitrião (cancelamento pelo Anfitrião, falta de acesso, Anúncio impreciso) reduzem o valor recebido pelo Anfitrião; quando o saldo dele no processador não comportar o estorno, o valor pode ser cobrado do Anfitrião. Quando a falta de acesso decorrer exclusivamente de falha do Zelador Parceiro, o prejuízo é suportado pelo Zelador (Termo de Parceria, cláusula 13), e a Operadora acerta a diferença com o Anfitrião por compensação.
+
+5.4. **Taxas de Parceiro.** As Taxas de Parceiro são reembolsadas ao Locatário **na mesma proporção** do Valor Base reembolsado (Política de Cancelamento e Reembolso, cláusula 5.4), pelo mesmo meio de pagamento, a partir da parcela da Operadora. Reembolsos feitos depois do repasse ao Parceiro são compensados com repasses futuros (cláusula 13.5).
 
 ## 6. Cobranças adicionais
 
@@ -124,7 +151,7 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
 10.1. O Locatário recebe comprovante eletrônico de cada pagamento, com o detalhamento dos componentes.
 
-10.2. A Operadora emite a nota fiscal de serviço eletrônica (NFS-e) referente à sua remuneração (Taxa de Serviço SpaceHour e Taxa de Serviço do Anfitrião), conforme a legislação municipal aplicável e, na transição da Reforma Tributária (Lei Complementar nº 214/2025), observará as obrigações que lhe forem atribuídas.
+10.2. A Operadora emite a nota fiscal de serviço eletrônica (NFS-e) referente aos valores que recebe: ao Anfitrião, pela Taxa de Serviço do Anfitrião; e ao Locatário, pelas Taxas de Parceiro, conforme a legislação municipal aplicável e, na transição da Reforma Tributária (Lei Complementar nº 214/2025), observará as obrigações que lhe forem atribuídas.
 
 10.3. O documento fiscal relativo ao **Valor Base e à Taxa de Limpeza**, quando exigido, é de responsabilidade do Anfitrião, que deve emiti-lo ao Locatário conforme a legislação aplicável. A Plataforma disponibiliza os dados necessários.
 
@@ -137,3 +164,29 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 11.2. A Plataforma pode recusar ou cancelar Reservas com indícios de fraude, uso de cartão de terceiros ou operações simuladas, com estorno do valor pago, e comunicar as autoridades competentes nos termos da lei.
 
 11.3. Os processadores podem atuar como controladores independentes de parte dos dados de pagamento, conforme suas próprias políticas de privacidade (Política de Privacidade).
+
+## 12. Taxas de Parceiro
+
+12.1. **Quando existem.** As Taxas de Parceiro são cobradas do Locatário somente quando o Anúncio tiver, na data da aprovação do pagamento, Corretor Parceiro ou Zelador Parceiro com Vínculo ativo, consentido pelo Anfitrião (Obrigações do Anfitrião, cláusula 17). Anúncio sem Parceiro não tem Taxa de Parceiro. Cada Taxa é cobrada **uma única vez por Reserva**, qualquer que seja o número de dias ou de Ocorrências.
+
+12.2. **Taxa de Intermediação (Corretor Parceiro).** O maior valor entre **R$ 50,00** e **10% do maior Valor do Dia** da Reserva. "Valor do Dia" é a parcela do Valor Base das Ocorrências de uma mesma data, calculada pelas regras de preço do Anúncio e deduzido o desconto de pacote na mesma proporção, sem Taxa de Limpeza (Termo de Parceria, cláusula 2.1). Remunera a captação do Espaço e a intermediação feita pelo Corretor Parceiro, inscrito no CRECI.
+
+12.3. **Taxa de Atendimento (Zelador Parceiro).** Valor fixo por Anúncio, definido pela Operadora conforme a cidade, o porte do Espaço e a complexidade do acesso, exibido no Anúncio e no resumo da Reserva antes do pagamento. Remunera a entrega do acesso, as vistorias de entrada e de saída e o atendimento operacional ao Locatário durante as Ocorrências. A alteração do valor não alcança Reservas já pagas.
+
+12.4. **Nada é pago diretamente ao Parceiro.** O Locatário não paga nenhum valor diretamente ao Corretor ou ao Zelador, nem gorjeta. Qualquer pedido nesse sentido deve ser comunicado à Central de Resolução (cláusula 9; Regras de Conduta e Atendimento (Parceiros), cláusula 8).
+
+12.5. **Arredondamento.** Os cálculos são arredondados para o centavo mais próximo.
+
+## 13. Repasse aos Parceiros
+
+13.1. **Quem paga.** As Taxas de Parceiro são recebidas pela Operadora no *split* (cláusula 4.1) e repassadas por ela ao Parceiro. O Anfitrião não paga nem recebe Taxas de Parceiro.
+
+13.2. **Prazo.** O repasse é feito **até o dia 10 de cada mês**, relativo às Reservas concluídas (check-out da última Ocorrência registrado) no mês anterior, **líquido de reembolsos**, compensações e retenções tributárias.
+
+13.3. **Forma.** Exclusivamente por **Pix para a chave do próprio Parceiro**, vinculada ao mesmo CPF ou CNPJ do cadastro.
+
+13.4. **Documento fiscal.** O Parceiro pessoa jurídica (inclusive MEI) emite nota fiscal em nome da Operadora; o Parceiro pessoa física sem CNPJ recebe por Recibo de Pagamento a Autônomo (RPA), com as retenções legais (Termo de Parceria, cláusula 11).
+
+13.5. **Compensação.** Reembolsos, contestações (*chargebacks*) e valores devidos pelo Parceiro após o repasse são compensados com repasses futuros (Termo de Parceria, cláusula 12.5).
+
+13.6. As demais regras do repasse estão no Termo de Parceria — Corretor e Zelador Parceiros, cláusula 10.

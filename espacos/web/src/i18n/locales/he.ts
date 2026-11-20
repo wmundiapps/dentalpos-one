@@ -187,6 +187,8 @@ const he: Dict = {
   'price.dailyApplied': 'תעריף יומי הוחל על {n} יום/ימים',
   'price.cleaning': 'דמי ניקיון',
   'price.serviceFee': 'דמי שירות',
+  'price.brokerFee': 'Partner broker (once per booking)',
+  'price.caretakerFee': 'Partner caretaker: access, inspection and support',
   'price.tax': 'מס על העמלה ({tax})',
   'price.total': 'סה"כ',
   'price.deposit': 'פיקדון (אישור מקדים, מוחזר)',
@@ -525,6 +527,9 @@ const he: Dict = {
   'legal.cancellation-refunds': 'ביטול והחזר כספי',
   'legal.penalties': 'קנסות',
   'legal.space-norms': 'כללי התנהגות בחללים',
+  'legal.partner-terms': 'Partner Agreement (Broker and Caretaker)',
+  'legal.partner-confidentiality': 'Confidentiality and Data (Partners)',
+  'legal.partner-conduct': 'Partner Conduct Rules',
   'legal.guarantor-deposit': 'ערב ופיקדון',
   'legal.reviews': 'ביקורות',
   'legal.payments': 'תשלומים בינלאומיים',
@@ -1121,6 +1126,7 @@ const he: Dict = {
   'val.package_max_days': 'A package can last at most {max} days.',
   'val.package_max_weekdays': 'Choose at most {max} weekdays in a package.',
   'admin.tabProspecting': 'Prospecting',
+  'admin.tabPartners': 'Partners',
 };
 
 export default he;

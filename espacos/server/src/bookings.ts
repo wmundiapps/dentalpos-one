@@ -8,6 +8,7 @@ import * as repo from './repo.js';
 import { ACTIVE_STATUSES } from './repo.js';
 import { HttpError, addStrike, assertCanTransact } from './auth.js';
 import { notify } from './notify.js';
+import { onBookingCancelled, onBookingCompleted, onBookingConfirmed } from './partners.js';
 import {
   type Gateway, type PaymentUpdate, capturePayment, chargeExtra, gatewayForBooking, gatewayOf, holdDeposit, markFailed, markPaid, newPayment,
   payHost, refundPayment, releaseDeposit, startCheckout, supportsHold, voidPayment,
@@ -17,7 +18,7 @@ import {
   BOOKING_LIMITS, FEES, addDays, GUARANTOR_RULES, INCIDENT_RESPONSE_HOURS, OVERSTAY, PENALTIES, REVIEW_RULES, RULES_VERSION, spouseConsentRequired,
   computeGuestRefund, computePrice, daysBetween, guarantorRequired, hostCancellationPenalty, occurrenceEndUtc,
   occurrenceHours, occurrenceStartUtc, roundMoney, suggestedPenalty, validateOccurrences,
-  bookingPattern,
+  bookingPattern, partnerFeesOf,
 } from '../../shared/rules.js';
 import { getCountry } from '../../shared/countries.js';
 import { isLaunched } from './launch.js';
@@ -326,6 +327,8 @@ async function confirm(tx: Db, b: Booking, l: Listing) {
   }
   await notify(tx, { userId: b.guestId }, 'booking_confirmed', `Reserva confirmada: "${l.title}" — ${whenText(b)}. O endereço completo e o mapa já estão disponíveis na reserva.`, `/reservas/${b.id}`);
   await notify(tx, { userId: b.hostId }, 'booking_confirmed', `Reserva confirmada em "${l.title}" — ${whenText(b)}.`, `/anfitriao/reservas/${b.id}`);
+  // Corretor e zelador: valor a repassar e troca de contatos com o locatário
+  await onBookingConfirmed(tx, b, l);
 }
 
 async function voidBookingPayment(tx: Db, b: Booking, l: Pick<Listing, 'countryCode'>) {
@@ -446,9 +449,10 @@ export function guestCancel(guest: User, bookingId: string, reason: string, now 
       if (p) {
         await releaseDeposit(await gw(l, p), p);
         const kept = b.price.baseAmount - r.refundBase + (b.price.cleaningFee - r.refundCleaning);
-        p.payoutAmount = roundMoney(kept * (1 - FEES.hostServiceFeeRate), p.currency);
+        p.payoutAmount = roundMoney(kept * (1 - (b.price.hostServiceFeeRate ?? (b.price.baseAmount + b.price.cleaningFee ? b.price.hostServiceFee / (b.price.baseAmount + b.price.cleaningFee) : FEES.hostServiceFeeRate))), p.currency);
         if (p.payoutAmount <= 0) p.payoutStatus = 'cancelled';
       }
+      await onBookingCancelled(tx, b, r.refundPartnerFees ?? 0);
       await notify(tx, { userId: b.hostId }, 'booking_cancelled', `O locatário cancelou a reserva em "${l.title}".`, `/anfitriao/reservas/${b.id}`);
     }
     b.status = 'cancelled_guest';
@@ -474,6 +478,7 @@ export function hostCancel(host: User, bookingId: string, reason: string, extenu
       await repo.savePayment(tx, p);
     }
     b.refundAmount = b.price.total;
+    await onBookingCancelled(tx, b, partnerFeesOf(b.price)); // devolução integral: parceiros não recebem
     b.status = 'cancelled_host';
     b.cancelledAt = now.toISOString();
     b.cancellationReason = reason;
@@ -543,7 +548,10 @@ export function checkOut(guest: User, bookingId: string, now = new Date()): Prom
     }
     const remaining = b.occurrences.some((x) => !b.attendance.find((a) => a.date === x.date)?.checkOutAt && occurrenceEndUtc(l, x).getTime() > now.getTime());
     b.status = remaining ? 'confirmed' : 'completed';
-    if (!remaining) b.completedAt = now.toISOString();
+    if (!remaining) {
+      b.completedAt = now.toISOString();
+      await onBookingCompleted(tx, b);
+    }
     await repo.saveBooking(tx, b);
     return b;
   });
@@ -719,6 +727,7 @@ export async function tick(now = new Date()) {
       if (b.status === 'confirmed' && now.getTime() > end) {
         b.status = 'completed';
         b.completedAt = new Date(end).toISOString();
+        await onBookingCompleted(tx, b);
         changed = true;
       }
       if (b.status === 'checked_in' && now.getTime() > end + 3 * 3600000) {
@@ -727,6 +736,7 @@ export async function tick(now = new Date()) {
         if (att) att.checkOutAt = new Date(end).toISOString();
         b.status = 'completed';
         b.completedAt = new Date(end).toISOString();
+        await onBookingCompleted(tx, b);
         changed = true;
       }
       if (p && p.depositStatus === 'held' && ['completed', 'cancelled_guest', 'cancelled_host'].includes(b.status) && now.getTime() > end + FEES.depositReleaseHours * 3600000) {

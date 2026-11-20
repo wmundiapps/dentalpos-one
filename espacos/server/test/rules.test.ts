@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addDays, bookingPattern, spouseConsentRequired, computeGuestRefund, computePrice, overstayCharge, todayInZone, validateOccurrences, weekdayOf, zonedToUtc } from '../../shared/rules.js';
+import { addDays, bookingPattern, brokerFee, spouseConsentRequired, computeGuestRefund, computePrice, overstayCharge, todayInZone, validateOccurrences, weekdayOf, zonedToUtc } from '../../shared/rules.js';
 import type { Listing } from '../../shared/types.js';
 
 const tz = 'America/Sao_Paulo';
+const NEW = new Date('2026-12-21T12:00:00Z');
 const listing: Listing = {
   id: 'l', hostId: 'h', title: 't', description: 'd', category: 'dental', countryCode: 'BR', city: 'São Paulo', timezone: tz,
   address: 'x', capacity: 3, amenities: [], equipment: '', photos: [], currency: 'BRL', pricePerHour: 100, minHours: 1,
@@ -20,14 +21,45 @@ test('fuso horário: São Paulo UTC-3', () => {
   assert.equal(zonedToUtc('2026-03-10', '09:00', tz).toISOString(), '2026-03-10T12:00:00.000Z');
 });
 
-test('preço: base + limpeza + taxa de serviço 15% com tributos incluídos (sem ISS à parte)', () => {
-  const p = computePrice(listing, [{ date: d(10), start: '09:00', end: '11:00' }]);
-  assert.equal(p.baseAmount, 200);
-  assert.equal(p.cleaningFee, 20);
+test('preço até 19/12/2026: 15% do locatário + 5% do anfitrião (aviso de 30 dias)', () => {
+  const p = computePrice(listing, [{ date: d(10), start: '09:00', end: '11:00' }], new Date('2026-12-19T12:00:00Z'));
   assert.equal(p.guestServiceFee, 33);
-  assert.equal(p.taxOnServiceFee, 0);
   assert.equal(p.total, 253);
   assert.equal(p.hostPayout, 209);
+});
+
+test('preço a partir de 20/12/2026: locatário paga base + limpeza; anfitrião recebe 80%, SpaceHour fica com 20%', () => {
+  const p = computePrice(listing, [{ date: d(10), start: '09:00', end: '11:00' }], NEW);
+  assert.equal(p.baseAmount, 200);
+  assert.equal(p.cleaningFee, 20);
+  assert.equal(p.guestServiceFee, 0);
+  assert.equal(p.taxOnServiceFee, 0);
+  assert.equal(p.total, 220);
+  assert.equal(p.hostServiceFee, 44);
+  assert.equal(p.hostPayout, 176);
+  assert.equal(p.partners, undefined);
+});
+
+test('parceiros: corretor R$ 50 ou 10% da diária mais cara (uma vez por reserva) e zelador fixo por reserva, por fora da divisão', () => {
+  assert.equal(brokerFee([100, 300], 'BRL'), 50);
+  assert.equal(brokerFee([800, 1000], 'BRL'), 100);
+  const withPartners = { ...listing, pricePerHour: 125, cleaningFee: 0, brokerId: 'usr_b', caretakerId: 'usr_c', caretakerFee: 150 };
+  // 2 dias de 4 h (R$ 500/dia): locação R$ 1.000; corretor max(50, 10% de 500) = 50; zelador 150
+  const occ = [{ date: d(10), start: '08:00', end: '12:00' }, { date: d(11), start: '08:00', end: '12:00' }];
+  const p = computePrice(withPartners, occ, NEW);
+  assert.equal(p.baseAmount, 1000);
+  assert.equal(p.brokerFee, 50);
+  assert.equal(p.caretakerFee, 150);
+  assert.equal(p.total, 1200);
+  assert.equal(p.hostPayout, 800);
+  assert.equal(p.total - p.hostPayout, 400, 'SpaceHour recebe 200 + taxas dos parceiros e repassa 200');
+  // Um dia de R$ 1.200 (12 h): corretor 10% = 120
+  const big = computePrice({ ...withPartners, pricePerHour: 100 }, [{ date: d(10), start: '07:00', end: '19:00' }], NEW);
+  assert.equal(big.brokerFee, 120);
+  // Cancelamento com devolução integral devolve também as taxas dos parceiros
+  const r = computeGuestRefund({ listing: withPartners, policy: 'flexible', occurrences: occ, price: p, bookedAt: new Date(Date.now() - 3600000) });
+  assert.equal(r.refundPartnerFees, 200);
+  assert.equal(r.total, 1200);
 });
 
 test('limites: sem pernoite, máx 12 h, granularidade 30 min', () => {

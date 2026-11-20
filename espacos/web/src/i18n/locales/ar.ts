@@ -187,6 +187,8 @@ const ar: Dict = {
   'price.dailyApplied': 'تم تطبيق السعر اليومي على {n} يوم',
   'price.cleaning': 'رسوم التنظيف',
   'price.serviceFee': 'رسوم الخدمة',
+  'price.brokerFee': 'Partner broker (once per booking)',
+  'price.caretakerFee': 'Partner caretaker: access, inspection and support',
   'price.tax': 'الضريبة على الرسوم ({tax})',
   'price.total': 'الإجمالي',
   'price.deposit': 'التأمين (تفويض مسبق، يُرَدّ)',
@@ -525,6 +527,9 @@ const ar: Dict = {
   'legal.cancellation-refunds': 'الإلغاء والاسترداد',
   'legal.penalties': 'العقوبات',
   'legal.space-norms': 'قواعد السلوك في المساحات',
+  'legal.partner-terms': 'Partner Agreement (Broker and Caretaker)',
+  'legal.partner-confidentiality': 'Confidentiality and Data (Partners)',
+  'legal.partner-conduct': 'Partner Conduct Rules',
   'legal.guarantor-deposit': 'الضامن والتأمين',
   'legal.reviews': 'التقييمات',
   'legal.payments': 'المدفوعات الدولية',
@@ -1121,6 +1126,7 @@ const ar: Dict = {
   'val.package_max_days': 'A package can last at most {max} days.',
   'val.package_max_weekdays': 'Choose at most {max} weekdays in a package.',
   'admin.tabProspecting': 'Prospecting',
+  'admin.tabPartners': 'Partners',
 };
 
 export default ar;

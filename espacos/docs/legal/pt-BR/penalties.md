@@ -1,6 +1,8 @@
 # Penalidades e Medidas
 
-Versão 2026-10-12 · Vigência a partir de 12/10/2026
+> Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
+
+Versão 2026-11-20 · Vigência a partir de 20/12/2026
 
 ## 1. Objeto e princípios
 
@@ -161,6 +163,8 @@ Não incide cláusula penal nas hipóteses da Política de Cancelamento e Reembo
 8.1. **3 cancelamentos pelo Anfitrião em 12 meses** levam à suspensão da conta de Anfitrião, aplicando-se o mesmo sistema de Advertências da cláusula 4.
 
 8.2. Reembolsos devidos ao Locatário por falha do Anfitrião são feitos por estorno da transação, que reduz o valor recebido pelo Anfitrião, ou cobrados dele (Pagamentos).
+
+8.3. **Falha exclusiva de Parceiro.** Quando a falta de acesso ou outra falha da tabela acima decorrer exclusivamente do Zelador Parceiro ou do Corretor Parceiro, o Locatário recebe o mesmo reembolso, mas o Anfitrião não recebe Advertência, e o Parceiro responde na forma do Termo de Parceria — Corretor e Zelador Parceiros e das Regras de Conduta e Atendimento (Parceiros) (Obrigações do Anfitrião, cláusula 17.5).
 
 ## 9. Outras consequências do Locatário sem conteúdo pecuniário próprio
 
