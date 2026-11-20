@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, MenuItem, Paper, Table, TableBody, TableCell,
 import { useState } from "react";
 import { Bar, COLORS, Kpi, KpiRow, LoadBox, Pick, Section, call, fmtDate, fmtPct, semaforo, useApi, useCursos, useRunner, useToast } from "../desempenho/kit";
 import { ehGestao, X } from "./comum";
+import MemoriaCoordenacao from "./MemoriaCoordenacao";
 
 const FAIXA: Record<string, { cor: string; rotulo: string }> = {
   PRONTO: { cor: COLORS.ok, rotulo: "Pronto" }, ATENCAO: { cor: COLORS.warn, rotulo: "Atenção" }, CRITICO: { cor: COLORS.bad, rotulo: "Crítico" }, SEM_DADOS: { cor: COLORS.mute, rotulo: "Sem dados" },
@@ -22,6 +23,7 @@ export default function Coordenacao({ exames }: { exames: Array<{ id: string; no
   return (
     <Box>
       {node}
+      <MemoriaCoordenacao />
       <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
         <Pick label="Curso" value={programId} onChange={setProgramId} options={cursos} minWidth={260} all="Escolha o curso" />
         <Pick label="Exame" value={exameId} onChange={setExameId} options={exames.map((e) => ({ value: e.id, label: e.nome }))} minWidth={260} all="Todos os ENADE" />
