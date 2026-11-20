@@ -7,6 +7,7 @@ import { ensureConversation, sendOut, saveState } from './messaging.js';
 import { processCampaigns, render, firstName } from './campaigns.js';
 import { expirePendingPayments } from './payments.js';
 import { rollClub, chargeClubVisits } from './club.js';
+import { expireTopups } from './wallet.js';
 import { blockHash } from './prospect.js';
 import { cfg } from './config.js';
 
@@ -157,6 +158,7 @@ export async function tick(now = new Date()) {
     await trials(now);
     await housekeeping(now);
     await expirePendingPayments(now);
+    await expireTopups(now);
     stats.invites = await sendInvites(now);
     const salons = await db.all("SELECT * FROM salons WHERE status IN ('trial','active','past_due')");
     for (const salon of salons) {

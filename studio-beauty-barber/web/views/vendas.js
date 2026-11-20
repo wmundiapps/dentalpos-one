@@ -1,8 +1,8 @@
 import { h, get, post, brl, fmtDateTime, clear, toast, fail, debounce, fmtPhone, todayLocal, addDays, copyText, modal, confirmBox } from '../lib.js';
 import { pageHead } from './_ui.js';
 
-const METHODS = { cash: 'Dinheiro', card: 'Cartão', pix: 'Pix (manual)', pix_asaas: 'Pix com QR (Asaas)', other: 'Outro' };
-const SSTAT = { paid: ['Paga', 'ok'], open: ['Aberta', 'info'], pending: ['Aguardando Pix', 'warn'], cancelled: ['Cancelada', 'bad'] };
+const METHODS = { cash: 'Dinheiro', card: 'Cartão', pix: 'Pix (manual)', pix_asaas: 'Pix com QR (Asaas)', wallet: 'Crédito da carteira', other: 'Outro' };
+const SSTAT = { paid: ['Paga', 'ok'], open: ['Aberta', 'info'], pending: ['Aguardando Pix', 'warn'], cancelled: ['Cancelada', 'bad'], refunded: ['Estornada', 'bad'] };
 
 export async function render(root, ctx) {
   const { session } = ctx;
@@ -26,7 +26,8 @@ export async function render(root, ctx) {
           h('td', {}, brl(x.total_cents)), h('td', {}, h('span', { class: `chip ${k}` }, l)),
           h('td', { class: 'nowrap' },
             x.status === 'pending' ? h('button', { class: 'btn sm', onclick: async () => { try { await post(`/api/sales/${x.id}/pay`); toast('Pagamento confirmado', 'ok'); load(); } catch (e) { fail(e); } } }, 'Confirmar recebimento') : null,
-            isMgr && x.status !== 'paid' && x.status !== 'cancelled' ? h('button', { class: 'btn sm danger', onclick: async () => { if (await confirmBox('Cancelar esta venda?', 'Cancelar venda')) { try { await post(`/api/sales/${x.id}/cancel`); load(); } catch (e) { fail(e); } } } }, 'Cancelar') : null)); }))) : h('p', { class: 'empty' }, 'Nenhuma venda no período.')),
+            isMgr && x.status === 'paid' && x.payment_method === 'wallet' && x.wallet_cents ? h('button', { class: 'btn sm danger', onclick: async () => { if (await confirmBox(`Estornar ${brl(x.wallet_cents)} para a carteira do cliente? A comanda será desfeita.`, 'Estornar crédito')) { try { await post(`/api/wallet/sales/${x.id}/reverse`); toast('Crédito devolvido à carteira', 'ok'); load(); } catch (e) { fail(e); } } } }, 'Estornar') : null,
+            isMgr && x.status !== 'paid' && x.status !== 'cancelled' && x.status !== 'refunded' ? h('button', { class: 'btn sm danger', onclick: async () => { if (await confirmBox('Cancelar esta venda?', 'Cancelar venda')) { try { await post(`/api/sales/${x.id}/cancel`); load(); } catch (e) { fail(e); } } } }, 'Cancelar') : null)); }))) : h('p', { class: 'empty' }, 'Nenhuma venda no período.')),
       c ? h('div', { class: 'card', style: { marginTop: '14px' } }, h('h3', {}, 'Comissões do período'), h('div', { class: 'scroll-x' }, h('table', { class: 'table' },
         h('thead', {}, h('tr', {}, ['Profissional', 'Vendas', 'Faturamento', '%', 'Comissão'].map((t) => h('th', {}, t)))),
         h('tbody', {}, c.rows.map((r) => h('tr', {}, h('td', {}, r.name), h('td', {}, r.sales), h('td', {}, brl(r.revenue_cents)), h('td', {}, `${r.commission_pct}%`), h('td', {}, h('b', {}, brl(r.commission_cents))))))))) : null);
@@ -40,7 +41,7 @@ export async function render(root, ctx) {
 const kpi = (l, v) => h('div', { class: 'card kpi' }, h('div', { class: 'label' }, l), h('div', { class: 'value' }, v));
 
 async function checkout(ctx, done, apptId) {
-  const [{ services }, { products }, { staff }] = await Promise.all([get('/api/services'), get('/api/products'), get('/api/staff')]);
+  const [{ services }, { products }, { staff }, { clients }] = await Promise.all([get('/api/services'), get('/api/products'), get('/api/staff'), get('/api/clients')]);
   let appt = null;
   if (apptId) { const t = todayLocal(ctx.session.salon.timezone); const r = await get(`/api/appointments?from=${addDays(t, -30)}&to=${addDays(t, 30)}`); appt = r.appointments.find((a) => a.id === apptId); }
   const items = new Map(); // key -> {kind, ref_id, name, qty, unit}
@@ -50,26 +51,49 @@ async function checkout(ctx, done, apptId) {
     const total = h('div', { class: 'big' });
     const disc = h('input', { type: 'text', value: '0', inputmode: 'decimal', style: { maxWidth: '120px' } });
     const method = h('select', {}, Object.entries(METHODS).map(([v, l]) => h('option', { value: v }, l)));
+    const cli = h('select', {}, h('option', { value: '' }, 'Cliente (obrigatório para pagar com crédito)'), clients.map((c) => h('option', { value: c.id, selected: appt && c.id === appt.client_id }, c.name)));
+    let wal = null; // { balance_cents, discount_pct } do cliente escolhido
+    const walBox = h('p', { class: 'small' });
     const stf = h('select', {}, h('option', { value: '' }, 'Profissional (comissão)'), staff.filter((s) => s.active).map((s) => h('option', { value: s.id, selected: appt && s.id === appt.staff_id }, s.name)));
     const parse = (s) => Math.round(Number(String(s).replace(/\./g, '').replace(',', '.')) * 100) || 0;
-    const calc = () => { const sub = [...items.values()].reduce((a, i) => a + i.qty * i.unit, 0); return { sub, tot: Math.max(0, sub - Math.min(parse(disc.value), sub)) }; };
+    const calc = () => {
+      const sub = [...items.values()].reduce((a, i) => a + i.qty * i.unit, 0);
+      const manual = Math.min(parse(disc.value), sub);
+      const svc = [...items.values()].filter((i) => i.kind === 'service').reduce((a, i) => a + i.qty * i.unit, 0);
+      const wd = method.value === 'wallet' && wal ? Math.round(Math.max(0, svc - manual) * wal.discount_pct / 100) : 0;
+      return { sub, wd, tot: Math.max(0, sub - manual - wd) };
+    };
+    const paintWallet = () => {
+      walBox.textContent = '';
+      if (method.value !== 'wallet') return;
+      if (!cli.value || !wal) { walBox.textContent = 'Escolha o cliente para ver o saldo e o desconto do crédito.'; return; }
+      const c = calc();
+      walBox.textContent = `Saldo: ${brl(wal.balance_cents)} · Desconto do crédito (${wal.discount_pct}% nos serviços): −${brl(c.wd)}${c.tot > wal.balance_cents ? ` · Faltam ${brl(c.tot - wal.balance_cents)}: recarregue em Carteira de crédito.` : ''}`;
+    };
+    const loadWallet = async () => {
+      wal = null;
+      if (cli.value) { try { wal = await get(`/api/wallet/clients/${cli.value}`); } catch { wal = null; } }
+      paint();
+    };
     const paint = () => {
       clear(list).append(items.size ? [...items].map(([k, i]) => h('div', { class: 'row spread', style: { padding: '6px 0' } }, h('span', {}, i.name), h('span', { class: 'row' },
         h('input', { type: 'number', min: 1, max: 99, value: i.qty, style: { width: '64px' }, onchange: (e) => { i.qty = Math.max(1, Number(e.target.value) || 1); paint(); } }), brl(i.qty * i.unit),
         h('button', { class: 'btn sm', onclick: () => { items.delete(k); paint(); } }, '✕')))) : h('p', { class: 'muted small' }, 'Adicione serviços ou produtos.'));
-      total.textContent = `Total: ${brl(calc().tot)}`;
+      const c = calc();
+      total.textContent = `Total: ${brl(c.tot)}`;
+      paintWallet();
     };
     const add = (kind, arr) => h('select', { onchange: (e) => { const x = arr.find((a) => a.id === e.target.value); if (x) { const k = `${kind}:${x.id}`; const cur = items.get(k); cur ? cur.qty++ : items.set(k, { kind, ref_id: x.id, name: x.name, qty: 1, unit: x.price_cents }); paint(); } e.target.value = ''; } },
       h('option', { value: '' }, kind === 'service' ? '+ Serviço' : '+ Produto'), arr.filter((a) => a.active).map((a) => h('option', { value: a.id }, `${a.name} — ${brl(a.price_cents)}`)));
-    disc.addEventListener('input', paint);
+    disc.addEventListener('input', paint); method.addEventListener('change', paint); cli.addEventListener('change', loadWallet);
     const out = h('div', {});
     body.append(h('div', { class: 'stack' }, h('div', { class: 'grid g2' }, add('service', services), add('product', products)), list,
-      h('div', { class: 'grid g2' }, h('label', { class: 'f' }, 'Desconto (R$)', disc), h('label', { class: 'f' }, 'Forma de pagamento', method)), stf, total, out,
+      h('div', { class: 'grid g2' }, h('label', { class: 'f' }, 'Desconto (R$)', disc), h('label', { class: 'f' }, 'Forma de pagamento', method)), cli, walBox, stf, total, out,
       h('button', { class: 'btn primary block', onclick: async (e) => {
         if (!items.size) return toast('Adicione pelo menos um item.', 'bad');
         e.target.disabled = true;
         try {
-          const r = await post('/api/sales', { appointment_id: appt?.id, staff_id: stf.value || undefined, payment_method: method.value, discount_cents: parse(disc.value),
+          const r = await post('/api/sales', { appointment_id: appt?.id, client_id: cli.value || undefined, staff_id: stf.value || undefined, payment_method: method.value, discount_cents: parse(disc.value),
             items: [...items.values()].map((i) => ({ kind: i.kind, ref_id: i.ref_id, qty: i.qty })) });
           done();
           if (r.pix) {
@@ -77,9 +101,10 @@ async function checkout(ctx, done, apptId) {
               h('code', { class: 'break' }, r.pix.payload), h('button', { class: 'btn sm', onclick: () => copyText(r.pix.payload) }, 'Copiar Pix copia e cola'),
               r.pix.note ? h('p', { class: 'small muted' }, r.pix.note) : null, h('p', { class: 'small muted' }, 'A confirmação chega automaticamente pelo Asaas.')));
             e.target.remove();
-          } else { toast('Venda registrada', 'ok'); close(); }
+          } else { toast(r.wallet_discount_cents ? `Venda registrada. Desconto do crédito: ${brl(r.wallet_discount_cents)}` : 'Venda registrada', 'ok'); close(); }
         } catch (ex) { fail(ex); e.target.disabled = false; }
       } }, 'Fechar comanda')));
     paint();
+    if (cli.value) loadWallet();
   }, { wide: true });
 }

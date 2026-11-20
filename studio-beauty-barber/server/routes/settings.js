@@ -41,6 +41,7 @@ export default function register(r) {
         quiet_start: s.quiet_start, quiet_end: s.quiet_end, logo: s.logo_path ? `/uploads/${s.logo_path}` : null,
         automations: automations(s), booking_url: `${cfg.appUrl}/s/${s.slug}`,
         deposit_required: !!s.deposit_required, noshow_retention_pct: s.noshow_retention_pct, free_cancel_hours: s.free_cancel_hours,
+        wallet_enabled: !!s.wallet_enabled, wallet_discount_pct: s.wallet_discount_pct,
         cashback: (json(s.brand_json, {}).cashback) || { enabled: false },
         finder: (json(s.brand_json, {}).finder) || { enabled: false },
         brand: profileOf(s), brand_defaults: { masc: defaultsFor('masc'), fem: defaultsFor('fem'), mix: defaultsFor('mix') }, mode_labels: MODE_LABEL,
@@ -52,6 +53,7 @@ export default function register(r) {
       name: 'str?:2:80', phone: 'phone?', email: 'email?', address: 'str?:0:200', city: 'str?:0:80',
       allowed_domains: 'str?:0:300', bot_enabled: 'bool?', quiet_start: 'int?:0:23', quiet_end: 'int?:0:23',
       deposit_required: 'bool?', noshow_retention_pct: 'int?:0:100', free_cancel_hours: 'int?:0:168',
+      wallet_enabled: 'bool?', wallet_discount_pct: 'int?:0:50',
     });
     const hours = ctx.body?.hours ? validHours(ctx.body.hours) : null;
     let brand = json(ctx.salon.brand_json, {});
@@ -80,8 +82,9 @@ export default function register(r) {
          city = COALESCE(?, city), allowed_domains = COALESCE(?, allowed_domains), bot_enabled = COALESCE(?, bot_enabled),
          quiet_start = COALESCE(?, quiet_start), quiet_end = COALESCE(?, quiet_end),
          deposit_required = COALESCE(?, deposit_required), noshow_retention_pct = COALESCE(?, noshow_retention_pct), free_cancel_hours = COALESCE(?, free_cancel_hours),
+         wallet_enabled = COALESCE(?, wallet_enabled), wallet_discount_pct = COALESCE(?, wallet_discount_pct),
          hours_json = COALESCE(?, hours_json), brand_json = ? WHERE id = ?`,
-      [d.name, d.phone, d.email, d.address, d.city, d.allowed_domains?.toLowerCase() ?? null, d.bot_enabled, d.quiet_start, d.quiet_end, d.deposit_required, d.noshow_retention_pct, d.free_cancel_hours,
+      [d.name, d.phone, d.email, d.address, d.city, d.allowed_domains?.toLowerCase() ?? null, d.bot_enabled, d.quiet_start, d.quiet_end, d.deposit_required, d.noshow_retention_pct, d.free_cancel_hours, d.wallet_enabled, d.wallet_discount_pct,
         hours ? JSON.stringify(hours) : null, JSON.stringify(brand), ctx.salon.id]);
     await audit(ctx, 'settings_updated', 'salon', ctx.salon.id);
     return { ok: true };

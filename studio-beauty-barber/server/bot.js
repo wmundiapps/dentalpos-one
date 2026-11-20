@@ -7,6 +7,7 @@ import { ensureConversation, storeMessage, sendOut, parseState, saveState, addOp
 import { getSlots, nextAvailableDays, hoursText } from './availability.js';
 import { createAppointment, findOrCreateClient, upsertLead, setAppointmentStatus } from './domain.js';
 import { aiReply } from './integrations/ai.js';
+import { getBalance, discountPct } from './wallet.js';
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
 const has = (t, re) => re.test(t);
@@ -252,6 +253,12 @@ async function decide(salon, conv, state, rawText, client) {
   if (has(t, /\b(agendar|marcar|reservar|agenda|horario disponivel|quero um horario)\b/) || (!state.step && t === '1')) {
     state.flow = 'book';
     return askService(salon, state);
+  }
+  if (has(t, /\b(saldo|meu credito|meus creditos|carteira)\b/)) {
+    if (!salon.wallet_enabled) return { text: 'Este espaço não usa carteira de crédito. Posso ajudar com outra coisa?' };
+    if (!client) return { text: 'Não encontrei o seu cadastro neste número. Responda "atendente" e a equipe te ajuda.' };
+    const bal = await getBalance(salon.id, client.id);
+    return { text: bal > 0 ? `Seu saldo de crédito é ${brl(bal)}. Usando o crédito você ganha ${discountPct(salon)}% de desconto nos serviços. 😉 Para recarregar, é só falar com a equipe.` : `Você ainda não tem crédito. Recarregando e usando o saldo nos serviços você ganha ${discountPct(salon)}% de desconto! Responda "atendente" para recarregar.` };
   }
   if (has(t, /\b(preco|precos|valor|valores|quanto custa|quanto e|tabela|servicos|cardapio)\b/) || (!state.step && t === '2')) return { text: await priceList(salon) };
   if (has(t, /\b(endereco|onde fica|localizacao|como chegar|local)\b/) || (!state.step && t === '3')) {

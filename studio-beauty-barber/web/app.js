@@ -9,6 +9,7 @@ const ROUTES = [
   { path: 'catalogo', label: 'Serviços e equipe', icon: 'scissors', mod: './views/catalogo.js', min: 'manager' },
   { path: 'vendas', label: 'Vendas e caixa', icon: 'cart', mod: './views/vendas.js', min: 'reception' },
   { path: 'clube', label: 'Clube de assinatura', icon: 'repeat', mod: './views/clube.js', min: 'reception' },
+  { path: 'carteira', label: 'Carteira de crédito', icon: 'wallet', mod: './views/carteira.js', min: 'reception' },
   { sep: true },
   { path: 'leads', label: 'Funil de leads', icon: 'funnel', mod: './views/leads.js' },
   { path: 'conversas', label: 'Conversas', icon: 'chat', mod: './views/conversas.js', badge: 'unread' },

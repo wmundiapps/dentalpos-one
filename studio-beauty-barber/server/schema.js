@@ -507,4 +507,56 @@ CREATE TABLE IF NOT EXISTS consent_sources (
 );
 `,
   },
+  {
+    id: 8,
+    // Carteira de crédito: o cliente recarrega (Pix pelo Asaas do salão ou no balcão) e paga atendimentos com o saldo,
+    // ganhando um desconto nos serviços. O saldo fica em wallet_accounts (atômico) e todo movimento em wallet_ledger.
+    rls: ['wallet_accounts', 'wallet_topups', 'wallet_ledger'],
+    sql: `
+ALTER TABLE salons ADD COLUMN wallet_enabled INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE salons ADD COLUMN wallet_discount_pct INTEGER NOT NULL DEFAULT 10;
+ALTER TABLE sales ADD COLUMN wallet_cents INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sales ADD COLUMN wallet_discount_cents INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS wallet_accounts (
+  salon_id TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  balance_cents INTEGER NOT NULL DEFAULT 0 CHECK (balance_cents >= 0),
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (salon_id, client_id)
+);
+
+CREATE TABLE IF NOT EXISTS wallet_topups (
+  id TEXT PRIMARY KEY,
+  salon_id TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  method TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  asaas_payment_id TEXT,
+  pix_payload TEXT,
+  invoice_url TEXT,
+  created_by TEXT,
+  created_at TEXT NOT NULL,
+  paid_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_topups_salon ON wallet_topups(salon_id, status, created_at);
+
+CREATE TABLE IF NOT EXISTS wallet_ledger (
+  id TEXT PRIMARY KEY,
+  salon_id TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  balance_after INTEGER NOT NULL DEFAULT 0,
+  ref_id TEXT NOT NULL,
+  note TEXT,
+  user_id TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE (kind, ref_id)
+);
+CREATE INDEX IF NOT EXISTS idx_ledger_client ON wallet_ledger(salon_id, client_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_ledger_salon ON wallet_ledger(salon_id, created_at);
+`,
+  },
 ];

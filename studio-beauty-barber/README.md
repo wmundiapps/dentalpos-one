@@ -33,3 +33,10 @@ Créditos de WhatsApp, SMS e ligações são pagos pelo salão direto às operad
 - **Captação** (só no salão comercial, definido por `HQ_SLUG`): busca na base de CNPJ da Receita por segmento e local, funil, planilha com link de WhatsApp, bloqueio de quem pediu para sair e convite por e-mail agendado (dias úteis, 8h–18h, com link para sair). Carga da base: `node tools/receita-import/importar.mjs --ufs=PR` (rodar de um computador no Brasil).
 - **Conta vitalícia:** coluna `salons.lifetime` (sem teste, sem limite de profissionais, nunca suspensa por cobrança). Liga-se direto no banco.
 - Testes: 43 (`npm test` em SQLite; `npm run test:pg` com `TEST_DATABASE_URL` em PostgreSQL).
+
+## Atualização — Carteira de crédito (20/11/2026)
+- **Carteira de crédito** (`server/wallet.js`, `server/routes/wallet.js`, tela "Carteira de crédito"): o cliente recarrega por Pix (cobrança no Asaas do próprio salão, confirmada pelo webhook) ou no balcão (dinheiro, cartão, Pix fora do Asaas) e paga comandas com o saldo.
+- **Benefício:** pagando com crédito, o cliente ganha desconto só nos serviços (padrão 10%, ajustável de 0 a 50% em Configurações; produtos não têm desconto).
+- **Controles:** saldo atômico e nunca negativo (`wallet_accounts`), extrato de todo movimento (`wallet_ledger`, cada recarga/uso só entra uma vez), recepção lança no balcão até R$ 1.000, ajuste manual e estorno de comanda só gerente/dono (com motivo e auditoria), Pix pendente vence em 3 dias, Pix estornado/contestado no Asaas desconta do saldo, painel mostra o total que o salão deve aos clientes.
+- **Cliente:** mensagem automática na recarga e no uso; o robô responde "saldo" no WhatsApp.
+- Banco: migração 8 (tabelas com RLS ligado, sem política). Testes: 68 (`tests/wallet.test.js`). Nada foi testado contra o Asaas real: use o sandbox primeiro. Detalhes e pendências em `docs/CARTEIRA.md`.
