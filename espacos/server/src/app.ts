@@ -15,6 +15,7 @@ import { feedbackRouter } from './routes/feedback.js';
 import { payoutsRouter } from './routes/payouts.js';
 import { marketingRouter } from './routes/marketing.js';
 import { prospectingRouter } from './routes/prospecting.js';
+import { partnersRouter, telegramWebhook } from './routes/partners.js';
 import { runJobs } from './jobs.js';
 import { one, pool } from './db.js';
 import { marketplaceEnabled } from './payments/mpAccounts.js';
@@ -49,6 +50,7 @@ export function createApp() {
     next();
   });
   app.use('/api', webhooksRouter); // corpo bruto (assinatura) — antes do express.json
+  app.use('/api', telegramWebhook);
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -101,7 +103,7 @@ export function createApp() {
     }
     next();
   });
-  app.use('/api', assistantRouter, authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter, marketingRouter, prospectingRouter);
+  app.use('/api', assistantRouter, authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter, marketingRouter, prospectingRouter, partnersRouter);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found')));
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

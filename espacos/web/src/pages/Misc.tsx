@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { PartnersAdmin } from './Partners';
 import { Link, useParams } from 'react-router-dom';
 import { api, apiBlobUrl, openProtectedFile } from '../api';
 import { useI18n, type DictKey } from '../i18n';
@@ -86,18 +87,18 @@ function Incidents() {
   );
 }
 
-type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant' | 'users' | 'contacts' | 'prospecting';
+type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant' | 'users' | 'contacts' | 'prospecting' | 'partners';
 
 export function Admin() {
   const { t } = useI18n();
-  const [tab, setTab] = useState<Tab>('verifications');
+  const [tab, setTab] = useState<Tab>(() => (window.location.pathname.endsWith('/parceiros') ? 'partners' : 'verifications'));
   return (
     <div className="container">
       <h1>{t('admin.title')}</h1>
       <div className="segmented" role="tablist">
-        {(['verifications', 'users', 'contacts', 'prospecting', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
+        {(['verifications', 'users', 'contacts', 'prospecting', 'partners', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : k === 'users' ? 'admin.tabUsers' : k === 'contacts' ? 'admin.tabContacts' : k === 'prospecting' ? 'admin.tabProspecting' : 'admin.tabFeedback')}
+            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : k === 'users' ? 'admin.tabUsers' : k === 'contacts' ? 'admin.tabContacts' : k === 'prospecting' ? 'admin.tabProspecting' : k === 'partners' ? 'admin.tabPartners' : 'admin.tabFeedback')}
           </button>
         ))}
       </div>
@@ -109,6 +110,7 @@ export function Admin() {
       {tab === 'users' && <UsersAdmin />}
       {tab === 'contacts' && <ContactsAdmin />}
       {tab === 'prospecting' && <ProspectingAdmin />}
+      {tab === 'partners' && <PartnersAdmin />}
     </div>
   );
 }

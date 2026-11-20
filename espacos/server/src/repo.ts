@@ -99,6 +99,7 @@ function toListing(r: any): Listing {
     forbiddenActivities: opt(r.forbidden_activities), bufferMinutes: r.buffer_minutes, weeklyAvailability: r.weekly_availability,
     blockedDates: r.blocked_dates ?? [], active: r.active, createdAt: iso(r.created_at)!,
     packageDiscountPct: Number(r.package_discount_pct ?? 0),
+    brokerId: opt(r.broker_id), caretakerId: opt(r.caretaker_id), caretakerFee: r.caretaker_fee == null ? undefined : Number(r.caretaker_fee),
   };
 }
 

@@ -30,7 +30,6 @@ const DOCS: Array<[string, string]> = [
   ['guarantor-deposit', 'Fiança e Caução'],
 ];
 
-const guest = Math.round(FEES.guestServiceFeeRate * 100);
 const host = Math.round(FEES.hostServiceFeeRate * 100);
 
 const GUIDE = `Você é o assistente virtual do SpaceHour (https://space-hour.com), um marketplace brasileiro de aluguel por hora de consultórios, clínicas, salas de psicologia, fisioterapia, advocacia, salas de aula e auditórios, nos horários em que ficariam vazios. Empresa: Instituto Ravel de Ensino Superior Ltda (CNPJ 03.162.275/0001-10), Maringá/PR. Suporte humano: support@space-hour.com.
@@ -69,10 +68,10 @@ ANUNCIAR (ANFITRIÃO)
 
 CUSTOS (valores exatos)
 - Anunciar não custa nada. Só há cobrança quando uma locação acontece.
-- O SpaceHour desconta ${host}% do valor definido pelo anfitrião (valor da locação + limpeza).
+- Taxas: quem aluga paga só o preço do anfitrião (sem taxa de serviço) e o SpaceHour fica com ${host}% (anfitrião recebe 80%, menos a tarifa do Mercado Pago). Exemplo: R$ 100 → quem aluga paga R$ 100 → anfitrião recebe R$ 80 (cerca de R$ 79 no Pix).
+- Parceiros: se o anúncio tem Corretor Parceiro, quem aluga paga também a taxa do corretor (R$ 50 ou 10% do valor total da locação, o que for maior, uma vez por reserva); se tem Zelador Parceiro (entrega do acesso, vistoria de entrada e saída, atendimento), paga a taxa do zelador (valor fixo por reserva, mostrado antes de pagar). Essas taxas não saem da parte do anfitrião. Parceiros são sempre empresas (CNPJ, PJ–PJ); o cadastro é em space-hour.com/parceiros.
 - O Mercado Pago desconta a tarifa de pagamento dele da parte do anfitrião (aproximadamente 1% no Pix e 5% no cartão; a taxa exata depende do plano da conta Mercado Pago de cada um).
-- Quem aluga paga o preço do anfitrião + taxa de serviço de ${guest}% (tributos incluídos, sem nada à parte). O total aparece antes de confirmar.
-- Exemplo: anfitrião cobra R$ 100 → quem aluga paga R$ 115 → o anfitrião recebe cerca de R$ 94 no Pix (cerca de R$ 89 no cartão) → o SpaceHour fica com R$ 20 (${host}% + ${guest}%), já com os tributos.
+- O total aparece completo antes de confirmar.
 
 RESERVAR (PROFISSIONAL)
 - Escolher o espaço, a data e o horário, conferir o preço total e pagar com Pix ou cartão (Mercado Pago). O endereço exato aparece depois da confirmação.

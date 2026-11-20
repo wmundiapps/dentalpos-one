@@ -1,6 +1,8 @@
 # SpaceHour Brasil – Termos de Uso
 
-Versão 2026-10-12 · Vigência a partir de 12/10/2026
+> Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
+
+Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 ## 1. Partes e aceitação
 
@@ -26,6 +28,8 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
 1.6. Em caso de conflito entre documentos, prevalece, nesta ordem: (i) a norma legal cogente aplicável; (ii) o documento específico sobre o tema; (iii) estes Termos. As normas internas publicadas pelo Anfitrião no Anúncio complementam, mas não podem contrariar, os documentos da Plataforma.
 
+1.7. **Parceiros.** Os Corretores Parceiros e os Zeladores Parceiros, além destes Termos no que lhes for aplicável, aderem ao Termo de Parceria — Corretor e Zelador Parceiros (`partner-terms`), ao Termo de Confidencialidade e Proteção de Dados (Parceiros) (`partner-confidentiality`) e às Regras de Conduta e Atendimento (Parceiros) (`partner-conduct`), que regem a relação entre eles e a Operadora e estão publicados para consulta de todos os Usuários.
+
 ## 2. Definições
 
 2.1. Para os fins destes Termos e de todos os documentos anexos, os termos abaixo, grafados com inicial maiúscula, têm o seguinte significado:
@@ -45,7 +49,12 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 | **Ocorrência** | Cada período contínuo de uso de um Espaço, em uma data, com horário de início e término, dentro de uma Reserva (por exemplo, cada terça-feira de uma série semanal). |
 | **Valor Base** | Soma dos preços por hora ou por diária das Ocorrências de uma Reserva, deduzido eventual desconto de pacote, sem taxas. |
 | **Taxa de Limpeza** | Valor fixo por Ocorrência definido pelo Anfitrião, limitado a 30% do Valor Base. |
-| **Taxa de Serviço SpaceHour** | Remuneração da Operadora pela intermediação: 15% pagos pelo Locatário, com tributos incluídos, e 5% descontados do valor destinado ao Anfitrião, ambos calculados sobre o Valor Base mais a Taxa de Limpeza. |
+| **Taxa de Serviço SpaceHour** | Remuneração da Operadora pela intermediação, cobrada **somente do Anfitrião** (também chamada **Taxa de Serviço do Anfitrião**): 20% do Valor Base mais a Taxa de Limpeza, com tributos incluídos, descontados do valor pago pelo Locatário antes do crédito ao Anfitrião, que recebe os 80% restantes. O Locatário não paga Taxa de Serviço SpaceHour. |
+| **Corretor Parceiro** | Pessoa jurídica com CNPJ ativo e inscrição ativa no CRECI (CRECI jurídico, Lei nº 6.530/1978), com corretor responsável técnico, aprovada pela Operadora, que capta e cadastra Espaços, faz a intermediação das Reservas e pode auxiliar o Anfitrião na gestão do Anúncio, vinculada a cada Anúncio com o consentimento do Anfitrião (Termo de Parceria — Corretor e Zelador Parceiros). |
+| **Zelador Parceiro** | Pessoa jurídica com CNPJ ativo, prestadora de serviços independente, aprovada pela Operadora, que, nos Anúncios a que estiver vinculado com o consentimento do Anfitrião, entrega as chaves ou o acesso, abre e fecha o Espaço, faz as vistorias de entrada e de saída com fotos e atende o Locatário em problemas operacionais durante as Ocorrências. A mesma empresa pode ser Corretor Parceiro e Zelador Parceiro. |
+| **Taxa de Intermediação** | Valor pago pelo Locatário, uma vez por Reserva, quando o Anúncio tiver Corretor Parceiro vinculado: o maior entre R$ 50,00 e 10% do valor total da locação (Valor Base + Taxa de Limpeza) da Reserva (Pagamentos, cláusula 12.2). |
+| **Taxa de Atendimento** | Valor fixo pago pelo Locatário, uma vez por Reserva, quando o Anúncio tiver Zelador Parceiro vinculado, definido pela Operadora para cada Anúncio e exibido antes do pagamento (Pagamentos, cláusula 12.3). |
+| **Taxas de Parceiro** | A Taxa de Intermediação e a Taxa de Atendimento, em conjunto. São recebidas pela Operadora e repassadas aos Parceiros, e são reembolsadas na mesma proporção do Valor Base (Política de Cancelamento e Reembolso, cláusula 5.4). |
 | **Caução** | Valor de garantia definido pelo Anfitrião no Anúncio, limitado a 3 vezes o Valor Base, destinado a garantir danos e penalidades. Enquanto nenhum meio de pagamento disponível permitir pré-autorização pela Plataforma, a Caução é substituída pela exigência de Fiador (documento Fiança e Caução). |
 | **Incidente** | Registro formal, aberto na Central de Resolução, de um fato ocorrido em uma Reserva que pode gerar cobrança, Advertência ou outra medida (por exemplo, atraso na saída ou dano). Não se confunde com Ocorrência, que designa o período reservado. |
 | **Advertência** | Anotação no histórico do Usuário decorrente de infração, com efeitos previstos no documento Penalidades e Medidas. |
@@ -75,13 +84,15 @@ Essas características descrevem o modelo de negócio da Plataforma e não podem
 
 ## 4. Papel da Plataforma
 
-4.1. A Operadora presta serviço de **intermediação digital**: disponibiliza o ambiente tecnológico para que Anfitriões anunciem Espaços e Locatários os reservem; viabiliza o pagamento por meio de instituições de pagamento parceiras (**Mercado Pago** e **Asaas**), com divisão automática do valor (*split*) entre o Anfitrião e a Operadora, sem que os dados de cartão transitem pelos servidores da Plataforma; administra o convite e o aceite do Fiador e, quando exigido, do cônjuge do Fiador; realiza verificações de identidade e pré-triagem de registro profissional; mantém a Central de Resolução; e aplica as regras destes Termos.
+4.1. A Operadora presta serviço de **intermediação digital**: disponibiliza o ambiente tecnológico para que Anfitriões anunciem Espaços e Locatários os reservem; viabiliza o pagamento por meio de instituições de pagamento parceiras (**Mercado Pago** e **Asaas**), com divisão automática do valor (*split*) entre o Anfitrião e a Operadora, e repassa as Taxas de Parceiro aos Corretores e Zeladores Parceiros, sem que os dados de cartão transitem pelos servidores da Plataforma; administra o convite e o aceite do Fiador e, quando exigido, do cônjuge do Fiador; realiza verificações de identidade e pré-triagem de registro profissional; mantém a Central de Resolução; e aplica as regras destes Termos.
 
 4.2. A Operadora não é proprietária, possuidora, administradora nem cedente dos Espaços, não presta os serviços profissionais realizados nos Espaços e não é empregadora, preposta ou representante de Anfitriões ou Locatários.
 
 4.3. A Operadora não garante a veracidade integral das informações prestadas pelos Usuários, mas adota medidas razoáveis de verificação (cláusula 6) e pode remover Anúncios ou contas que violem estes Termos.
 
 4.4. A Operadora responde, nos termos da legislação aplicável, inclusive do Código de Defesa do Consumidor, pelos serviços que presta e pelas atividades que desempenha diretamente, tais como intermediação, informação, processamento de pagamentos por meio dos parceiros, verificação, segurança da Plataforma, atendimento e condução de Incidentes.
+
+4.5. **Parceiros.** Os Corretores Parceiros e os Zeladores Parceiros são prestadores de serviços independentes, sem vínculo de emprego com a Operadora ou com o Anfitrião, e não podem representar a Operadora, assumir obrigações em seu nome nem receber qualquer valor diretamente dos Usuários. Sua atuação não transfere ao Parceiro a responsabilidade do Anfitrião pelo Espaço (cláusula 12.1).
 
 ## 5. Elegibilidade
 
@@ -121,7 +132,7 @@ Essas características descrevem o modelo de negócio da Plataforma e não podem
 
 ## 8. Proibição de contornar a Plataforma
 
-8.1. É proibido ao Anfitrião e ao Locatário, em relação a contatos iniciados pela Plataforma: (a) solicitar, oferecer ou aceitar pagamento fora da Plataforma; (b) combinar Reservas diretamente para evitar a Taxa de Serviço SpaceHour; (c) trocar dados de contato antes da confirmação da Reserva com esse propósito; (d) usar a Plataforma apenas para captar contrapartes.
+8.1. É proibido ao Anfitrião e ao Locatário, em relação a contatos iniciados pela Plataforma: (a) solicitar, oferecer ou aceitar pagamento fora da Plataforma; (b) combinar Reservas diretamente para evitar a Taxa de Serviço SpaceHour ou as Taxas de Parceiro; (c) trocar dados de contato antes da confirmação da Reserva com esse propósito; (d) usar a Plataforma apenas para captar contrapartes.
 
 8.2. Pagamentos realizados fora da Plataforma não contam com Fiança, reembolso, Central de Resolução ou qualquer proteção da Plataforma.
 
@@ -135,9 +146,9 @@ Essas características descrevem o modelo de negócio da Plataforma e não podem
 
 ## 10. Preço, taxas e pagamentos
 
-10.1. Os preços são fixados pelo Anfitrião em reais (BRL). Ao Valor Base somam-se a Taxa de Limpeza e a **Taxa de Serviço SpaceHour de 15%, tributos incluídos**, sem acréscimo de tributo destacado à parte. Do valor destinado ao Anfitrião é descontada a Taxa de Serviço do Anfitrião (5%). O detalhamento consta do documento Pagamentos e é exibido antes da confirmação.
+10.1. Os preços são fixados pelo Anfitrião em reais (BRL). O Locatário paga o Valor Base, a Taxa de Limpeza e, somente quando o Anúncio tiver Parceiro vinculado, a **Taxa de Intermediação** e a **Taxa de Atendimento**, uma vez por Reserva cada, sem acréscimo de tributo destacado à parte. **O Locatário não paga Taxa de Serviço SpaceHour.** Da soma do Valor Base e da Taxa de Limpeza, o Anfitrião recebe **80%** e a Operadora retém a **Taxa de Serviço SpaceHour de 20%, tributos incluídos**. O detalhamento consta do documento Pagamentos e é exibido antes da confirmação.
 
-10.2. Não há cobrança de valores ocultos. O pagamento aprovado pelo processador quita a obrigação de pagamento do preço da Reserva perante o Anfitrião. A forma de cobrança, o momento em que o valor é debitado, o recebimento pelo Anfitrião e os estornos variam conforme o meio de pagamento e estão descritos no documento Pagamentos.
+10.2. Não há cobrança de valores ocultos. O pagamento aprovado pelo processador quita a obrigação de pagamento do preço da Reserva perante o Anfitrião e das Taxas de Parceiro perante a Operadora. A forma de cobrança, o momento em que o valor é debitado, o recebimento pelo Anfitrião e os estornos variam conforme o meio de pagamento e estão descritos no documento Pagamentos.
 
 ## 11. Propriedade intelectual
 
@@ -155,7 +166,7 @@ Essas características descrevem o modelo de negócio da Plataforma e não podem
 
 12.3. A Operadora não responde por indisponibilidades temporárias da Plataforma decorrentes de manutenção programada e previamente comunicada, caso fortuito ou força maior, sem prejuízo dos direitos do consumidor.
 
-12.4. Fora das relações de consumo e ressalvados dolo, culpa grave e hipóteses em que a lei vede limitação, a responsabilidade total da Operadora perante um Usuário fica limitada ao montante das Taxas de Serviço SpaceHour efetivamente recebidas pela Operadora daquele Usuário nos 12 meses anteriores ao fato, e não abrange lucros cessantes, perda de chance ou danos indiretos.
+12.4. Fora das relações de consumo e ressalvados dolo, culpa grave e hipóteses em que a lei vede limitação, a responsabilidade total da Operadora perante um Usuário fica limitada ao montante da Taxa de Serviço SpaceHour efetivamente retida pela Operadora nas Reservas daquele Usuário nos 12 meses anteriores ao fato, excluídas as Taxas de Parceiro repassadas, e não abrange lucros cessantes, perda de chance ou danos indiretos.
 
 12.5. Nada nestes Termos exclui ou limita responsabilidade que não possa ser excluída ou limitada por lei, nem os direitos irrenunciáveis do consumidor previstos no Código de Defesa do Consumidor (em especial, arts. 25 e 51, I).
 

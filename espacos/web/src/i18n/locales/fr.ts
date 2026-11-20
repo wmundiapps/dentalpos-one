@@ -187,6 +187,8 @@ const fr: Dict = {
   'price.dailyApplied': 'Tarif journalier appliqué à {n} jour(s)',
   'price.cleaning': 'Frais de ménage',
   'price.serviceFee': 'Frais de service',
+  'price.brokerFee': 'Partner broker (once per booking)',
+  'price.caretakerFee': 'Partner caretaker: access, inspection and support',
   'price.tax': 'Taxe sur les frais ({tax})',
   'price.total': 'Total',
   'price.deposit': 'Caution (préautorisation, remboursée)',
@@ -525,6 +527,9 @@ const fr: Dict = {
   'legal.cancellation-refunds': 'Annulation et Remboursement',
   'legal.penalties': 'Pénalités',
   'legal.space-norms': 'Règles de Conduite dans les Espaces',
+  'legal.partner-terms': 'Partner Agreement (Broker and Caretaker)',
+  'legal.partner-confidentiality': 'Confidentiality and Data (Partners)',
+  'legal.partner-conduct': 'Partner Conduct Rules',
   'legal.guarantor-deposit': 'Garant et Caution',
   'legal.reviews': 'Avis',
   'legal.payments': 'Paiements Internationaux',
@@ -1121,6 +1126,7 @@ const fr: Dict = {
   'val.package_max_days': 'A package can last at most {max} days.',
   'val.package_max_weekdays': 'Choose at most {max} weekdays in a package.',
   'admin.tabProspecting': 'Prospecting',
+  'admin.tabPartners': 'Partners',
 };
 
 export default fr;

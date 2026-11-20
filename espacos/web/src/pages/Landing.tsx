@@ -2,12 +2,20 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../state';
 import { track } from '../tracking';
-import { FEES } from '../../../shared/rules';
+import { feesAt } from '../../../shared/rules';
+
+const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+// Taxas vigentes (20/11/2026: só 20% do anfitrião; quem aluga não paga taxa de serviço)
+const FEES = feesAt();
+const NEW_MODEL = FEES.guestServiceFeeRate === 0;
+const CHANGE_NOTE = '';
+const pay100 = brl(100 * (1 + FEES.guestServiceFeeRate));
+const net100 = (n: number) => brl(Math.round(100 * (1 - FEES.hostServiceFeeRate) * (1 - n)));
 
 // Landing pages das campanhas (Meta, Google, links diretos). Lançamento só no
 // Brasil: textos em português. /anuncie → anfitriões; /profissionais → locatários.
 
-const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 function useTitle(title: string) {
   useEffect(() => {
@@ -112,8 +120,9 @@ export function HostLanding() {
           ['Conecte o Mercado Pago', 'Com isso o anúncio fica visível e você recebe cada reserva direto na sua conta.'],
         ]} />
         <Faq items={[
-          ['Quanto custa anunciar?', `Nada. Não há mensalidade: você só paga quando uma locação acontece. Nessa hora, o SpaceHour desconta ${fee} do valor que você definiu e o Mercado Pago desconta a tarifa de pagamento dele (cerca de 1% no Pix e cerca de 5% no cartão; confira no seu painel do Mercado Pago). Exemplo: você cobra R$ 100 e recebe cerca de R$ 94 no Pix ou R$ 89 no cartão.`],
-          ['E quem aluga, paga o quê?', `Quem aluga paga o seu preço mais uma taxa de serviço de ${Math.round(FEES.guestServiceFeeRate * 100)}% ao SpaceHour, com os tributos já incluídos. No exemplo de R$ 100, o profissional paga R$ 115. Esse valor aparece completo antes de ele confirmar a reserva, e a taxa não sai do seu bolso.`],
+          ['Quanto custa anunciar?', `Nada. Não há mensalidade: você só paga quando uma locação acontece. Nessa hora, o SpaceHour desconta ${fee} do valor que você definiu e o Mercado Pago desconta a tarifa de pagamento dele (cerca de 1% no Pix e cerca de 5% no cartão; confira no seu painel do Mercado Pago). Exemplo: você cobra R$ 100 e recebe cerca de ${net100(0.01)} no Pix ou ${net100(0.05)} no cartão.${CHANGE_NOTE}`],
+          ['E quem aluga, paga o quê?', `${NEW_MODEL ? 'Quem aluga paga o seu preço, sem taxa de serviço' : `Quem aluga paga o seu preço mais uma taxa de serviço de ${Math.round(FEES.guestServiceFeeRate * 100)}% ao SpaceHour, com os tributos já incluídos`}. No exemplo de R$ 100, o profissional paga ${pay100}. Se o seu espaço tiver Corretor ou Zelador Parceiro, quem aluga paga também a taxa deles, que não sai do seu bolso. Tudo aparece antes de confirmar a reserva.`],
+          ['Posso ter alguém para entregar a chave e conferir a sala?', 'Pode. Um Zelador Parceiro entrega o acesso, faz a vistoria de entrada e de saída com fotos e atende o locatário durante a reserva. A taxa dele é paga pelo locatário. Veja em space-hour.com/parceiros.'],
           ['Quando recebo o dinheiro?', 'O pagamento é processado pelo Mercado Pago e a sua parte vai direto para a sua conta Mercado Pago, dentro do prazo de liberação dela.'],
           ['E se alguém danificar algo?', 'Você pode exigir caução e fiador no anúncio. Se houver um problema, abra um incidente na reserva: a nossa equipe faz a mediação e o responsável recebe advertência.'],
           ['Posso alugar um consultório de saúde?', 'Pode. Você continua responsável pelo alvará, pela vigilância sanitária e pelas regras do seu conselho. Leia as Obrigações do Anfitrião antes de publicar.'],
@@ -158,7 +167,7 @@ export function ProLanding() {
         ]} />
         <Faq items={[
           ['Preciso assinar contrato?', 'Não. Cada reserva segue os Termos de Uso e as regras do espaço, que você aceita ao reservar.'],
-          ['Quanto custa?', `O preço por hora é definido pelo anfitrião. Somam-se a taxa de limpeza (se houver), a taxa de serviço do SpaceHour de ${Math.round(FEES.guestServiceFeeRate * 100)}%, com os tributos já incluídos. Exemplo: se o espaço custa R$ 100, você paga R$ 115. O total aparece antes de você pagar, sem surpresa.`],
+          ['Quanto custa?', `O preço por hora é definido pelo anfitrião. Somam-se a taxa de limpeza (se houver), ${NEW_MODEL ? 'e, se o espaço tiver, as taxas do Corretor e do Zelador Parceiro (atendimento, entrega do acesso e vistoria)' : `a taxa de serviço do SpaceHour de ${Math.round(FEES.guestServiceFeeRate * 100)}%, com os tributos já incluídos`}. Exemplo: se o espaço custa R$ 100, você paga ${pay100}${NEW_MODEL ? ' mais as taxas de parceiros, se houver' : ''}. O total aparece antes de você pagar, sem surpresa.`],
           ['Por que pedem meu registro profissional?', 'Salas de saúde e de outras profissões regulamentadas só podem ser usadas por profissionais habilitados. O registro protege você, o anfitrião e os seus pacientes.'],
           ['Posso reservar toda semana no mesmo horário?', 'Pode. Na reserva você escolhe vários dias de uma vez, respeitando os limites do espaço.'],
         ]} />
@@ -233,7 +242,7 @@ export function GeneralLanding() {
           ['⭐', 'Avaliações dos dois lados', 'Espaço e profissional se avaliam depois de cada reserva. Regras claras de cancelamento e mediação em caso de problema.'],
         ]} />
         <Faq items={[
-          ['Quanto custa usar o SpaceHour?', `Anunciar e se cadastrar é grátis. Quem tem o espaço paga ${fee} por reserva, mais a tarifa do Mercado Pago. Quem aluga paga o preço do anfitrião mais uma taxa de serviço de ${Math.round(FEES.guestServiceFeeRate * 100)}%, com os tributos já incluídos.`],
+          ['Quanto custa usar o SpaceHour?', `Anunciar e se cadastrar é grátis. Quem tem o espaço paga ${fee} por reserva, mais a tarifa do Mercado Pago. ${NEW_MODEL ? 'Quem aluga paga o preço do anfitrião, mais as taxas de Corretor e Zelador Parceiro quando o espaço tem esse atendimento.' : `Quem aluga paga o preço do anfitrião mais uma taxa de serviço de ${Math.round(FEES.guestServiceFeeRate * 100)}%, com os tributos já incluídos.`}${CHANGE_NOTE}`],
           ['Preciso assinar contrato?', 'Não. Cada reserva segue os Termos de Uso e as regras do espaço, aceitos no momento da reserva.'],
           ['Em quais cidades funciona?', 'Começamos por Maringá e região. Londrina e Curitiba vêm em seguida. Você já pode anunciar o seu espaço em qualquer cidade do Brasil.'],
           ['Quem está por trás do SpaceHour?', 'O SpaceHour é operado pelo Instituto Ravel de Ensino Superior Ltda (CNPJ 03.162.275/0001-10), de Maringá/PR.'],

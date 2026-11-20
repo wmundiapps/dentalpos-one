@@ -2,7 +2,7 @@ import type { LocaleCode } from '../../shared/types';
 
 export const LEGAL_DOCS = [
   'terms', 'booking-rules', 'cancellation-refunds', 'penalties', 'space-norms', 'guarantor-deposit',
-  'reviews', 'payments', 'host-obligations', 'disputes', 'privacy',
+  'reviews', 'payments', 'host-obligations', 'disputes', 'privacy', 'partner-terms', 'partner-confidentiality', 'partner-conduct',
 ] as const;
 export type LegalDoc = (typeof LEGAL_DOCS)[number];
 

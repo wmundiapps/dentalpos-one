@@ -187,6 +187,8 @@ const zh: Dict = {
   'price.dailyApplied': '{n} 天适用日租价',
   'price.cleaning': '清洁费',
   'price.serviceFee': '服务费',
+  'price.brokerFee': 'Partner broker (once per booking)',
+  'price.caretakerFee': 'Partner caretaker: access, inspection and support',
   'price.tax': '服务费税款（{tax}）',
   'price.total': '总计',
   'price.deposit': '押金（预授权，将退还）',
@@ -525,6 +527,9 @@ const zh: Dict = {
   'legal.cancellation-refunds': '取消与退款',
   'legal.penalties': '罚则',
   'legal.space-norms': '空间使用行为规范',
+  'legal.partner-terms': 'Partner Agreement (Broker and Caretaker)',
+  'legal.partner-confidentiality': 'Confidentiality and Data (Partners)',
+  'legal.partner-conduct': 'Partner Conduct Rules',
   'legal.guarantor-deposit': '担保人与押金',
   'legal.reviews': '评价',
   'legal.payments': '国际支付',
@@ -1121,6 +1126,7 @@ const zh: Dict = {
   'val.package_max_days': 'A package can last at most {max} days.',
   'val.package_max_weekdays': 'Choose at most {max} weekdays in a package.',
   'admin.tabProspecting': 'Prospecting',
+  'admin.tabPartners': 'Partners',
 };
 
 export default zh;

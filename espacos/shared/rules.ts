@@ -7,7 +7,7 @@ import type {
 } from './types.js';
 import { getCountry } from './countries.js';
 
-export const RULES_VERSION = '2026-10-12';
+export const RULES_VERSION = '2026-11-20';
 
 /** Fiador casado precisa da autorização do cônjuge (CC art. 1.647, III), salvo na separação convencional (absoluta) de bens. */
 export const spouseConsentRequired = (m?: string, r?: string) => m === 'married' && r !== 'separation_conventional';
@@ -37,14 +37,41 @@ export const BOOKING_LIMITS = {
 } as const;
 
 // ───────────── Taxas da plataforma ─────────────
+// Modelo aprovado em 20/11/2026 (sem reservas nem anfitriões ativos até então, vale já):
+// o locatário não paga taxa de serviço sobre a locação e a comissão do SpaceHour é de 20% (anfitrião fica com 80%).
+export function feesAt(_now: Date = new Date()) {
+  return { guestServiceFeeRate: FEES.guestServiceFeeRate, hostServiceFeeRate: FEES.hostServiceFeeRate };
+}
 export const FEES = {
-  guestServiceFeeRate: 0.15,  // taxa de serviço paga pelo locatário
-  hostServiceFeeRate: 0.05,   // taxa de serviço descontada do repasse ao anfitrião
+  guestServiceFeeRate: 0,     // o locatário não paga taxa de serviço sobre a locação
+  hostServiceFeeRate: 0.20,   // comissão do SpaceHour: 20% da locação (anfitrião recebe 80%), tributos incluídos
   payoutDelayHours: 24,       // repasse ao anfitrião 24 h após o início da (primeira) ocorrência
   depositReleaseHours: 72,    // caução liberada 72 h após o check-out se não houver ocorrência
   maxCleaningFeeRate: 0.30,   // taxa de limpeza limitada a 30% do valor base
   maxDepositMultiple: 3,      // caução limitada a 3x o valor base
 } as const;
+
+// ───────────── Parceiros (corretor e zelador) ─────────────
+// Taxas pagas pelo locatário "por fora" da locação, uma vez por reserva (independente do número de dias).
+// O SpaceHour recebe junto com a comissão e repassa ao parceiro até o dia 10 do mês seguinte ao check-out.
+export const PARTNER_RULES = {
+  brokerMinFee: 50,              // corretor: R$ 50 ou 10% do valor total da locação, o que for maior
+  brokerRate: 0.10,
+  caretakerMinFee: 20,           // zelador: valor fixo por reserva, definido por anúncio (cidade, tamanho)
+  caretakerMaxFee: 500,
+  payoutDay: 10,                 // repasse ao parceiro até o dia 10 do mês seguinte
+  inspectionMinPhotos: 4,        // vistoria de entrada e de saída: no mínimo 4 fotos
+  inspectionDeadlineHours: 2,    // registrada em até 2 h do evento
+  checkInToleranceMinutes: 15,   // atraso máximo do zelador na entrega do acesso
+  responseMinutes: 30,           // resposta ao locatário durante a reserva
+  hostEndNoticeDays: 30,         // anfitrião encerra o vínculo com 30 dias de aviso (justa causa: na hora)
+  dataRetentionDays: 90,         // parceiro deixa de ver os dados do locatário 90 dias após o check-out
+} as const;
+
+/** Taxa do corretor: o maior entre R$ 50 e 10% do valor total da locação (valor base + limpeza), uma vez por reserva. */
+export function brokerFee(rentalTotal: number, currency: string): number {
+  return roundMoney(Math.max(PARTNER_RULES.brokerMinFee, rentalTotal * PARTNER_RULES.brokerRate), currency);
+}
 
 // ───────────── Política de cancelamento (locatário) ─────────────
 export interface CancellationTier { minHoursBefore: number; refundRate: number }
@@ -217,7 +244,8 @@ export function roundMoney(value: number, currency: string): number {
 }
 
 // ───────────── Preço ─────────────
-export function computePrice(listing: Listing, occurrences: Occurrence[]): PriceBreakdown {
+export function computePrice(listing: Listing, occurrences: Occurrence[], now: Date = new Date()): PriceBreakdown {
+  const rates = feesAt(now);
   const country = getCountry(listing.countryCode);
   const cur = listing.currency;
   let base = 0;
@@ -228,28 +256,41 @@ export function computePrice(listing: Listing, occurrences: Occurrence[]): Price
     hours += h;
     // Diária: aplica pricePerDay quando for mais vantajoso para o locatário
     const hourly = h * listing.pricePerHour;
-    if (listing.pricePerDay && h >= 6 && listing.pricePerDay < hourly) {
-      base += listing.pricePerDay;
-      days += 1;
-    } else {
-      base += hourly;
-    }
+    const value = listing.pricePerDay && h >= 6 && listing.pricePerDay < hourly ? listing.pricePerDay : hourly;
+    if (value !== hourly) days += 1;
+    base += value;
   }
   const discountRate = packageDiscountRate(listing, occurrences);
   const packageDiscount = roundMoney(base * discountRate, cur);
   base = roundMoney(base - packageDiscount, cur);
   const cleaningFee = roundMoney(listing.cleaningFee * occurrences.length, cur);
-  const guestServiceFee = roundMoney((base + cleaningFee) * FEES.guestServiceFeeRate, cur);
+  const guestServiceFee = roundMoney((base + cleaningFee) * rates.guestServiceFeeRate, cur);
   const taxOnServiceFee = roundMoney(guestServiceFee * country.taxRate, cur);
-  const total = roundMoney(base + cleaningFee + guestServiceFee + taxOnServiceFee, cur);
-  const hostServiceFee = roundMoney((base + cleaningFee) * FEES.hostServiceFeeRate, cur);
+  // Parceiros do anúncio: uma taxa de cada por reserva, paga pelo locatário
+  const partners: NonNullable<PriceBreakdown['partners']> = [];
+  if (listing.brokerId) partners.push({ role: 'broker', userId: listing.brokerId, amount: brokerFee(base + cleaningFee, cur) });
+  if (listing.caretakerId && listing.caretakerFee) {
+    const fee = Math.min(Math.max(listing.caretakerFee, PARTNER_RULES.caretakerMinFee), PARTNER_RULES.caretakerMaxFee);
+    partners.push({ role: 'caretaker', userId: listing.caretakerId, amount: roundMoney(fee, cur) });
+  }
+  const brokerAmount = partners.find((p) => p.role === 'broker')?.amount ?? 0;
+  const caretakerAmount = partners.find((p) => p.role === 'caretaker')?.amount ?? 0;
+  const total = roundMoney(base + cleaningFee + guestServiceFee + taxOnServiceFee + brokerAmount + caretakerAmount, cur);
+  const hostServiceFee = roundMoney((base + cleaningFee) * rates.hostServiceFeeRate, cur);
   const hostPayout = roundMoney(base + cleaningFee - hostServiceFee, cur);
   return {
     currency: cur, hours, days, occurrences: occurrences.length, baseAmount: base, cleaningFee, guestServiceFee,
     taxOnServiceFee, taxName: country.taxName, total, hostServiceFee, hostPayout, securityDeposit: listing.securityDeposit,
+    hostServiceFeeRate: rates.hostServiceFeeRate,
     ...(packageDiscount > 0 ? { packageDiscount } : {}),
+    ...(brokerAmount ? { brokerFee: brokerAmount } : {}),
+    ...(caretakerAmount ? { caretakerFee: caretakerAmount } : {}),
+    ...(partners.length ? { partners } : {}),
   };
 }
+
+/** Taxas de parceiros da reserva (corretor + zelador). */
+export const partnerFeesOf = (p: Pick<PriceBreakdown, 'brokerFee' | 'caretakerFee'>) => (p.brokerFee ?? 0) + (p.caretakerFee ?? 0);
 
 // ───────────── Validação de reserva ─────────────
 export interface ValidationContext {
@@ -365,6 +406,8 @@ export interface RefundResult {
   refundCleaning: number;
   refundServiceFee: number;
   refundTax: number;
+  /** Taxas de corretor e zelador devolvidas na mesma proporção do valor base. */
+  refundPartnerFees: number;
   total: number;
   rule: 'grace' | 'withdrawal' | 'policy' | 'host_cancel' | 'no_refund_started';
   rate: number;
@@ -397,7 +440,7 @@ export function computeGuestRefund(params: {
   if (grace || (withdrawalWindow && nothingStarted)) {
     return {
       refundBase: price.baseAmount, refundCleaning: price.cleaningFee, refundServiceFee: price.guestServiceFee,
-      refundTax: price.taxOnServiceFee, total: price.total, rule: grace ? 'grace' : 'withdrawal', rate: 1,
+      refundTax: price.taxOnServiceFee, refundPartnerFees: partnerFeesOf(price), total: price.total, rule: grace ? 'grace' : 'withdrawal', rate: 1,
     };
   }
   // Arrependimento (CDC art. 49) com o uso já iniciado: ocorrências futuras voltam inteiras, a que está em
@@ -415,10 +458,11 @@ export function computeGuestRefund(params: {
     const share = price.baseAmount ? refundBase / price.baseAmount : 0;
     const refundServiceFee = price.guestServiceFee * share;
     const refundTax = price.taxOnServiceFee * share;
-    const total = roundMoney(refundBase + refundCleaning + refundServiceFee + refundTax, cur);
+    const refundPartnerFees = roundMoney(partnerFeesOf(price) * share, cur);
+    const total = roundMoney(refundBase + refundCleaning + refundServiceFee + refundTax + refundPartnerFees, cur);
     return {
       refundBase: roundMoney(refundBase, cur), refundCleaning: roundMoney(refundCleaning, cur), refundServiceFee: roundMoney(refundServiceFee, cur),
-      refundTax: roundMoney(refundTax, cur), total, rule: 'withdrawal', rate: price.total ? total / price.total : 0,
+      refundTax: roundMoney(refundTax, cur), refundPartnerFees, total, rule: 'withdrawal', rate: price.total ? total / price.total : 0,
     };
   }
 
@@ -440,10 +484,12 @@ export function computeGuestRefund(params: {
   const feeShare = fullyRefundedCount / occurrences.length;
   const refundServiceFee = price.guestServiceFee * feeShare;
   const refundTax = price.taxOnServiceFee * feeShare;
-  const total = roundMoney(refundBase + refundCleaning + refundServiceFee + refundTax, cur);
+  // Corretor e zelador: devolvidos na mesma proporção do valor base
+  const refundPartnerFees = roundMoney(partnerFeesOf(price) * (price.baseAmount ? refundBase / price.baseAmount : 0), cur);
+  const total = roundMoney(refundBase + refundCleaning + refundServiceFee + refundTax + refundPartnerFees, cur);
   return {
     refundBase: roundMoney(refundBase, cur), refundCleaning: roundMoney(refundCleaning, cur),
-    refundServiceFee: roundMoney(refundServiceFee, cur), refundTax: roundMoney(refundTax, cur), total,
+    refundServiceFee: roundMoney(refundServiceFee, cur), refundTax: roundMoney(refundTax, cur), refundPartnerFees, total,
     rule: nothingStarted ? 'policy' : 'no_refund_started', rate: price.total ? total / price.total : 0,
   };
 }

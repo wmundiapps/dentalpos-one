@@ -1,6 +1,8 @@
 # Obrigações do Anfitrião
 
-Versão 2026-10-12 · Vigência a partir de 12/10/2026
+> Minuta de 20/11/2026 — pendente de revisão da Dra. Roberta.
+
+Versão 2026-11-20 · Vigência a partir de 20/11/2026
 
 ## 1. Objeto
 
@@ -114,6 +116,24 @@ Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
 ## 16. Taxa de Serviço e recebimento
 
-16.1. Do valor pago pelo Locatário a título de Valor Base e Taxa de Limpeza é descontada a Taxa de Serviço do Anfitrião de **5%**. O valor do Anfitrião é creditado pelo próprio processador (Mercado Pago ou Asaas) na conta do Anfitrião conectada à Plataforma, por divisão automática do pagamento (*split*), quando o pagamento é aprovado, e fica disponível para saque conforme os prazos do processador. A tarifa do processador é suportada na forma do documento Pagamentos, cláusula 4.
+16.1. Do valor pago pelo Locatário a título de Valor Base e Taxa de Limpeza é descontada a Taxa de Serviço do Anfitrião (Taxa de Serviço SpaceHour) de **20%, tributos incluídos**, e o Anfitrião recebe os **80%** restantes. As Taxas de Parceiro pagas pelo Locatário não são do Anfitrião nem reduzem o seu valor. O valor do Anfitrião é creditado pelo próprio processador (Mercado Pago ou Asaas) na conta do Anfitrião conectada à Plataforma, por divisão automática do pagamento (*split*), quando o pagamento é aprovado, e fica disponível para saque conforme os prazos do processador. A tarifa do processador é suportada na forma do documento Pagamentos, cláusula 4.
 
 16.2. Estornos ao Locatário reduzem o valor recebido pelo Anfitrião na forma do documento Pagamentos, cláusula 5.
+
+## 17. Corretores e Zeladores Parceiros no Anúncio
+
+17.1. **Consentimento.** Nenhum Corretor Parceiro ou Zelador Parceiro é vinculado ao Anúncio sem o **consentimento expresso do Anfitrião**, dado na Plataforma para cada Parceiro e para cada Anúncio. O Anfitrião vê, antes de consentir, o nome do Parceiro, a modalidade, o número do CRECI jurídico (no caso do Corretor), a Taxa de Parceiro que será cobrada do Locatário e a avaliação do Parceiro. Cada Anúncio tem no máximo 1 Corretor e 1 Zelador com Vínculo ativo (Termo de Parceria — Corretor e Zelador Parceiros, cláusula 6).
+
+17.2. **Encerramento.** O Anfitrião pode encerrar o Vínculo de um Parceiro sem motivo, com aviso prévio de **30 dias** pela Plataforma, ou **imediatamente, por justa causa**, nas hipóteses do Termo de Parceria, cláusula 6.5. Encerrado o Vínculo, as Taxas de Parceiro deixam de ser cobradas nas novas Reservas; o Corretor conserva a Taxa de Intermediação das Reservas já pagas (Termo de Parceria, cláusula 6.8).
+
+17.3. **Chaves e informações.** O Anfitrião entrega ao Zelador as chaves, cartões, controles e códigos necessários, com registro na Plataforma, e pode exigir a devolução a qualquer tempo, inclusive ao fim do Vínculo, no prazo de 24 horas. O Anfitrião deve trocar os segredos e códigos sempre que encerrar um Vínculo de Zelador ou houver suspeita de cópia.
+
+17.4. **Gestão pelo Corretor.** O Anfitrião pode conceder ao Corretor permissão para gerir o Anúncio, nos limites do Termo de Parceria, cláusula 7.2, e revogá-la a qualquer tempo. Os atos praticados pelo Corretor dentro da permissão são do Anfitrião perante o Locatário e a Operadora, sem prejuízo de regresso contra o Corretor em caso de culpa.
+
+17.5. **O Anfitrião continua responsável.** A atuação de Parceiros **não transfere** ao Parceiro nem à Operadora as obrigações do Anfitrião perante o Locatário quanto ao Espaço: título de ocupação, licenças, Anúncio preciso, limpeza, equipamentos, segurança e acesso no horário (cláusulas 2 a 9). Se o Zelador falhar no acesso, o Locatário recebe o reembolso integral da cláusula 9.2; porém, quando a falha for **exclusivamente do Zelador**, o Anfitrião não recebe Advertência, e o prejuízo é suportado pelo Zelador, com acerto entre a Operadora e o Anfitrião por compensação (Pagamentos, cláusula 5.3).
+
+17.6. **Indisponibilidade ou falta de Zelador.** Quando o Zelador estiver indisponível, suspenso ou desvinculado e não houver substituto aceito, o Anfitrião presta o acesso diretamente, na forma da cláusula 9 (Termo de Parceria, cláusulas 6.9 e 8.6).
+
+17.7. **Nenhum pagamento direto.** O Anfitrião não paga ao Parceiro valores relativos às Reservas nem pede ao Parceiro que cobre algo do Locatário. Serviços que o Anfitrião contratar com a mesma empresa sem relação com as Reservas (por exemplo, limpeza periódica) devem ser declarados na Plataforma e não podem substituir nem duplicar as Taxas de Parceiro (Regras de Conduta e Atendimento (Parceiros), cláusula 8.1).
+
+17.8. **Conflito de interesses.** O Anfitrião declara na Plataforma se o Parceiro é seu parente até o 2º grau, cônjuge, companheiro, sócio ou empregado. O Anfitrião, seus sócios, administradores e empregados não podem ser Corretor Parceiro com direito à Taxa de Intermediação em seus próprios Anúncios (Termo de Parceria, cláusula 7.3).

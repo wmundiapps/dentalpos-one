@@ -17,7 +17,7 @@ export function Footer() {
         </div>
         <div>
           <strong>{t('footer.policies')}</strong>
-          <ul>{LEGAL_DOCS.map((d) => <li key={d}><Link to={`/regras/${d}`}>{t(`legal.${d}` as never)}</Link></li>)}</ul>
+          <ul>{LEGAL_DOCS.filter((d) => !d.startsWith('partner-')).map((d) => <li key={d}><Link to={`/regras/${d}`}>{t(`legal.${d}` as never)}</Link></li>)}</ul>
         </div>
         <div>
           <strong>{t('footer.hosting')}</strong>
@@ -25,6 +25,7 @@ export function Footer() {
             <li><Link to="/anfitriao/novo">{t('nav.newListing')}</Link></li>
             <li><Link to="/regras/host-obligations">{t('legal.host-obligations')}</Link></li>
             <li><Link to="/regras/penalties">{t('legal.penalties')}</Link></li>
+            <li><Link to="/parceiros">Seja parceiro (corretor ou zelador)</Link></li>
           </ul>
         </div>
         <div>
