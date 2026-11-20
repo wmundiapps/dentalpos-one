@@ -50,6 +50,7 @@ import SchoolIcon from "@mui/icons-material/School";
 import SendIcon from "@mui/icons-material/Send";
 import SettingsInputAntennaIcon from "@mui/icons-material/SettingsInputAntenna";
 import SettingsIcon from "@mui/icons-material/Settings";
+import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
@@ -470,6 +471,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Segurança da conta (2 etapas)","/seguranca",<ShieldIcon/>),
       item("Segurança da conta","/seguranca",<AdminPanelSettingsIcon/>),
       item("Eventos de segurança","/seguranca/eventos",<AdminPanelSettingsIcon/>),
+      item("Segurança e Certificações","/edu/seguranca-certificacoes",<VerifiedUserOutlinedIcon/>),
       item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),
       item("Central de feedback (EduMaster)","/edu/feedback",<BugReportIcon/>),
     ])

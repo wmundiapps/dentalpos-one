@@ -116,6 +116,7 @@ import Reports from "../pages/Reports";
 import ServiceEvaluations from "../pages/ServiceEvaluations";
 import Sales from "../pages/Sales";
 import Settings from "../pages/Settings";
+import EduSegurancaCertificacoes from "../pages/edu/EduSegurancaCertificacoes";
 import Stock from "../pages/Stock";
 import TreatmentPlanning from "../pages/TreatmentPlanning";
 import PlatformAdministration from "../pages/PlatformAdministration";
@@ -290,6 +291,11 @@ export default function AppRoutes() {
       <Route
         path="/configuracoes"
         element={<Settings />}
+      />
+
+      <Route
+        path="/edu/seguranca-certificacoes"
+        element={<EduSegurancaCertificacoes />}
       />
 
       <Route
