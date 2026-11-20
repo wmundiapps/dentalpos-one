@@ -2628,6 +2628,23 @@ model DunningNotice {
   @@index([clinicId, createdAt])
 }
 
+
+/// Execuções de backup do banco e testes de restauração (prova de que a cópia existe e restaura).
+model PlatformBackupRun {
+  id         String   @id @default(cuid())
+  kind       String   // BACKUP | RESTORE_TEST
+  status     String   // RUNNING | OK | FAILED
+  objectKey  String?
+  bytes      BigInt?
+  sha256     String?
+  durationMs Int?
+  detail     Json?
+  startedAt  DateTime @default(now())
+  finishedAt DateTime?
+
+  @@index([kind, status, startedAt])
+}
+
 // ==== EDUMASTER:BEGIN (gerado por scripts/merge-edu-schema.js - edite prisma/edu/*.prisma) ====
 
 // ---- edu/core.prisma ----

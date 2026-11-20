@@ -6,6 +6,7 @@ import app from './app'
 import { prisma } from './lib/prisma'
 import { assertRuntimeConfiguration, runtimeChecks } from './config/runtime'
 import { startAppointmentReminderWorker } from './services/appointmentReminderService'
+import { loadBackupState, startBackupScheduler } from './services/backupService'
 
 const PORT = Number(process.env.PORT) || 3000
 let server: ReturnType<typeof app.listen> | undefined
@@ -13,6 +14,8 @@ let reminderTimer: ReturnType<typeof setInterval> | undefined
 
 async function startServer() {
   try {
+    await prisma.$connect()
+    await loadBackupState() // backup/restauração reais já registrados entram no preflight
     assertRuntimeConfiguration()
 
     if (process.env.NODE_ENV !== 'production') {
@@ -26,6 +29,7 @@ async function startServer() {
     console.log('✅ Banco de dados conectado.')
 
     reminderTimer = startAppointmentReminderWorker()
+    startBackupScheduler()
 
     server = app.listen(PORT, '0.0.0.0', () => {
       console.log('=================================')

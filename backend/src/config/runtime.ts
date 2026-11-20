@@ -1,3 +1,5 @@
+import { backupState } from '../services/backupService'
+
 export interface RuntimeCheck {
   key: string
   label: string
@@ -25,8 +27,11 @@ export function runtimeChecks(): RuntimeCheck[] {
   const appEnv = value('APP_ENV') || nodeEnv
   const corsOrigin = value('CORS_ORIGIN')
   const publicUrl = value('PUBLIC_APP_URL')
-  const backupEnabled = value('BACKUP_ENABLED') === 'true'
-  const restoreTest = value('BACKUP_LAST_RESTORE_TEST_AT')
+  // Backup e restauração valem quando há execução REAL registrada (backupService) ou quando o operador declarou por variável de ambiente.
+  const backupRecent = Boolean(backupState.lastBackupOkAt && Date.now() - backupState.lastBackupOkAt.getTime() < 36 * 3_600_000)
+  const restoreRecent = Boolean(backupState.lastRestoreOkAt && Date.now() - backupState.lastRestoreOkAt.getTime() < 45 * 86_400_000)
+  const backupEnabled = value('BACKUP_ENABLED') === 'true' || backupRecent
+  const restoreTest = value('BACKUP_LAST_RESTORE_TEST_AT') || (restoreRecent && backupState.lastRestoreOkAt ? backupState.lastRestoreOkAt.toISOString() : '')
 
   return [
     {
