@@ -1,0 +1,50 @@
+/* Jogo da memória (ENADE · ENAMED · OAB). Cores vêm do tema do sistema via variáveis --mem-*. */
+.mem{--mem-qbg:#e2f1f3;--mem-ok-bg:#dff3e6;--mem-ok:#1b8a4b;--mem-bad-bg:#fbe3e3;--mem-bad:#c13a3a;--mem-back:#0b7a85;--mem-back2:#0a6670;--mem-backA:#42528f;--mem-backA2:#38477c;color:var(--mem-fg);display:flex;flex-direction:column;gap:12px;max-width:980px}
+.mem.mem-dark{--mem-qbg:#16363d;--mem-ok-bg:#12382a;--mem-ok:#4cc582;--mem-bad-bg:#401c1e;--mem-bad:#ef7676;--mem-back:#0f5963;--mem-back2:#0c4a53;--mem-backA:#34427a;--mem-backA2:#2b3868}
+.mem-title{margin:0;font-size:1.1rem}
+.mem-muted{color:var(--mem-muted);line-height:1.5;font-size:.88rem;margin:0}
+.mem-eyebrow{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mem-muted);font-weight:600}
+.mem-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:8px}
+.mem-pick label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--mem-muted)}
+.mem-pick select{font:inherit;font-size:.9rem;padding:8px 10px;border-radius:8px;border:1px solid var(--mem-line);background:var(--mem-surface);color:var(--mem-fg)}
+.mem-series{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.mem-chip{flex:none;display:flex;align-items:center;gap:6px;font:600 .82rem inherit;font-family:inherit;padding:6px 12px;border-radius:999px;border:1px solid var(--mem-line);background:var(--mem-surface);color:var(--mem-fg);cursor:pointer}
+.mem-chip.on{border-color:var(--mem-accent);box-shadow:inset 0 0 0 1px var(--mem-accent);color:var(--mem-accent)}
+.mem-chip:disabled{opacity:.5;cursor:not-allowed}
+.mem-alert{padding:14px;border:1px solid var(--mem-line);border-radius:10px;background:var(--mem-surface)}
+.mem-game{border:1px solid var(--mem-line);border-radius:14px;background:var(--mem-surface);padding:12px;display:flex;flex-direction:column;gap:10px}
+.mem-bar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:.8rem;color:var(--mem-muted)}
+.mem-bar b{color:var(--mem-fg)}
+.mem-track{flex:1 1 120px;height:6px;border-radius:99px;background:var(--mem-line);overflow:hidden}
+.mem-track i{display:block;height:100%;background:var(--mem-accent);transition:width .4s}
+.mem-msg{min-height:2.6em;font-size:.85rem;line-height:1.35;color:var(--mem-muted)}
+.mem-msg.ok{color:var(--mem-ok)}.mem-msg.bad{color:var(--mem-bad)}
+.mem-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+@media(min-width:720px){.mem-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}}
+.mem-card{position:relative;height:clamp(64px,11dvh,108px);padding:0;background:none;border:0;border-radius:12px;perspective:700px;color:inherit;font-family:inherit;cursor:pointer}
+.mem-in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .55s}
+.mem-card.closed .mem-in{transform:rotateY(180deg)}
+.mem-face,.mem-back{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;align-items:center;justify-content:center;text-align:center;padding:5px;overflow-wrap:anywhere;line-height:1.22;font-size:clamp(.68rem,2.9vw,.85rem)}
+.mem-face{background:var(--mem-surface);border:1.5px solid var(--mem-line);font-weight:600}
+.mem-card.q .mem-face{background:var(--mem-qbg);border-color:var(--mem-accent);font-weight:500}
+.mem-card:not(:disabled):hover .mem-face{border-color:var(--mem-accent)}
+.mem-back{transform:rotateY(180deg);font-weight:800;font-size:1.4rem;color:#fff;background:repeating-linear-gradient(45deg,var(--mem-back),var(--mem-back) 8px,var(--mem-back2) 8px,var(--mem-back2) 16px);border:1.5px solid var(--mem-back2)}
+.mem-card.a .mem-back{background:repeating-linear-gradient(45deg,var(--mem-backA),var(--mem-backA) 8px,var(--mem-backA2) 8px,var(--mem-backA2) 16px);border-color:var(--mem-backA2)}
+.mem-card.sel .mem-face{border-color:var(--mem-accent);box-shadow:0 0 0 2px var(--mem-accent)}
+.mem-card.matched .mem-face{background:var(--mem-ok-bg);border-color:var(--mem-ok);color:var(--mem-ok)}
+.mem-card.wrong .mem-face{background:var(--mem-bad-bg);border-color:var(--mem-bad);color:var(--mem-bad)}
+.mem-card:disabled{cursor:default}
+.mem-card:focus-visible,.mem-chip:focus-visible,.mem-btn:focus-visible{outline:3px solid var(--mem-accent);outline-offset:2px}
+.mem-actions{display:flex;flex-wrap:wrap;gap:10px}
+.mem-btn{font:600 .9rem inherit;font-family:inherit;padding:10px 16px;border-radius:10px;border:1px solid var(--mem-accent);background:var(--mem-accent);color:#fff;cursor:pointer}
+.mem-btn.ghost{background:none;color:var(--mem-fg);border-color:var(--mem-line)}
+.mem-result{display:flex;flex-wrap:wrap;gap:20px;align-items:center;border-top:1px solid var(--mem-line);padding-top:12px}
+.mem-nota{font-size:2.8rem;font-weight:800;line-height:1;color:var(--mem-accent)}
+.mem-result-text{flex:1 1 220px}.mem-result-text h3{margin:0 0 4px}
+.mem-h{margin:18px 0 0;font-size:1rem}
+.mem-themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.mem-theme{border:1px solid var(--mem-line);border-radius:12px;background:var(--mem-surface);padding:12px;display:flex;flex-direction:column;gap:8px}
+.mem-meds{display:flex;gap:6px;flex-wrap:wrap}
+.mem-master{align-self:flex-start;font-size:.7rem;font-weight:800;color:#b98512;border:1px solid #b98512;border-radius:6px;padding:2px 8px}
+.mem-legend{font-size:.8rem}
+@media(prefers-reduced-motion:reduce){.mem-in,.mem-track i{transition:none}}
