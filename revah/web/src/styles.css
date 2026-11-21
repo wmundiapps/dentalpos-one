@@ -2249,3 +2249,48 @@ textarea:focus {
   opacity: 0.6;
   font-style: italic;
 }
+
+/* Carrossel de ofertas (prévia e Torre de Controle) */
+.carousel-card {
+  width: 240px;
+  max-width: 100%;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface, #fff);
+}
+.carousel-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: var(--surface-2, #0f2018);
+}
+.carousel-img-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+}
+.carousel-body {
+  padding: 10px 12px;
+}
+.carousel-btn {
+  padding: 9px 12px;
+  border-top: 1px solid var(--border, #e5e7eb);
+  text-align: center;
+  font-weight: 600;
+  color: #5fd39c;
+  font-size: 14px;
+}
+.carousel-btn.muted {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+.carousel-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}

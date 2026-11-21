@@ -21,6 +21,7 @@ export const TRIGGERS = [
   { key: 'message.received', label: 'Mensagem recebida' },
   { key: 'call.completed', label: 'Ligação finalizada' },
   { key: 'lead.imported', label: 'Lead importado para o CRM' },
+  { key: 'carousel.click', label: 'Carrossel: contato escolheu um card' },
   { key: 'dentalpos.appointment.scheduled', label: 'DentalPos: agendamento criado' },
   { key: 'dentalpos.appointment.reminder', label: 'DentalPos: lembrete de consulta' },
   { key: 'dentalpos.appointment.no_show', label: 'DentalPos: falta' },

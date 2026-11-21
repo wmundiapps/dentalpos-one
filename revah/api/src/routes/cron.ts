@@ -5,6 +5,7 @@ import { ah } from '../lib/errors'
 import { billingMaintenance } from '../services/billing'
 import { processDueJobs } from '../services/jobs'
 import { syncDueLeadSources } from '../services/leads/linkedin'
+import { checkWhatsAppQuality } from '../services/carousel'
 
 const r = Router()
 
@@ -17,7 +18,8 @@ r.all(
     if (config.cronSecret ? !safeEqual(token, config.cronSecret) : isProduction) return res.sendStatus(401)
     const billing = await billingMaintenance().catch((e) => ({ error: String(e?.message || e) }))
     const leadSources = await syncDueLeadSources().catch((e) => ({ error: String(e?.message || e) }))
-    res.json({ ...(await processDueJobs({ maxMs: Number(req.query.maxMs || 40_000) })), billing, leadSources })
+    const whatsappQuality = await checkWhatsAppQuality().catch((e) => ({ error: String(e?.message || e) }))
+    res.json({ ...(await processDueJobs({ maxMs: Number(req.query.maxMs || 40_000) })), billing, leadSources, whatsappQuality })
   }),
 )
 

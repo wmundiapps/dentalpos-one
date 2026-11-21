@@ -132,6 +132,17 @@ class RevahClient {
     syncPatients(apiKey, patients) {
         return this.request('/integrations/dentalpos/patients/sync', { method: 'POST', body: { patients }, headers: { 'X-Api-Key': apiKey } });
     }
+    /**
+     * Envia o catálogo de ofertas (cards do carrossel). Idempotente por externalRef; itens da mesma origem
+     * que não vierem são desativados (deactivateMissing, padrão true).
+     */
+    syncCatalog(apiKey, items, opts = {}) {
+        return this.request('/integrations/dentalpos/catalog/sync', {
+            method: 'POST',
+            body: { items, source: opts.source || 'DENTALPOS', deactivateMissing: opts.deactivateMissing ?? true },
+            headers: { 'X-Api-Key': apiKey },
+        });
+    }
     status(apiKey) {
         return this.request('/integrations/dentalpos/status', { headers: { 'X-Api-Key': apiKey } });
     }

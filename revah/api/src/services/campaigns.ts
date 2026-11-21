@@ -7,6 +7,7 @@ import { registerJobHandler, type JobOutcome } from './jobs'
 import { sendMessage } from './messaging'
 import { assertCanLaunchCampaign } from './plans'
 import { suppressedSet } from './suppression'
+import { getCarousel } from './carouselFormat'
 import { queueCall } from './voice/engine'
 import { startOfToday } from './leads/invites'
 
@@ -66,6 +67,13 @@ export async function launchCampaign(tenant: Tenant, campaignId: string) {
   if (!campaign) throw notFound('Campanha não encontrada.')
   if (!['DRAFT', 'SCHEDULED'].includes(campaign.status) || campaign.startedAt) throw conflict('Esta campanha já foi disparada.')
   const channel = campaign.channel as Channel
+  if (campaign.carousel) {
+    if (!getCarousel(campaign)) throw badRequest('Revise os cards do carrossel (mínimo 2, máximo 10, todos com imagem).')
+    if (!['WHATSAPP', 'TELEGRAM'].includes(channel)) throw badRequest('O carrossel funciona no WhatsApp e no Telegram.')
+    if (channel === 'WHATSAPP' && campaign.waTemplateStatus !== 'APPROVED') {
+      throw conflict('O carrossel do WhatsApp só pode ser disparado depois que a Meta aprovar o modelo. Use "Enviar para aprovação" e aguarde.')
+    }
+  }
   const targets = await resolveAudience(tenant.id, channel, (campaign.audience || {}) as Audience)
   const valid = targets.filter((t) => t.destination)
   if (!valid.length) throw badRequest('Nenhum contato válido para este canal.')
@@ -184,6 +192,7 @@ async function campaignSendJob(job: Job): Promise<JobOutcome> {
   }
   const vars = contactVars(contact || { name: recipient.name }, { minha_empresa: tenant.name })
   const tpl = campaign.waTemplate as { name: string; language?: string; params?: string[] } | null
+  const carousel = getCarousel(campaign)
   const r = await sendMessage({
     tenant,
     channel: campaign.channel as Channel,
@@ -196,6 +205,7 @@ async function campaignSendJob(job: Job): Promise<JobOutcome> {
     campaignId: campaign.id,
     appendOptOutHint: campaign.appendOptOutHint,
     skipUsageCheck: true,
+    carousel: carousel ? { campaignId: campaign.id, carousel } : null,
   })
   await prisma.campaignRecipient.update({
     where: { id: recipient.id },

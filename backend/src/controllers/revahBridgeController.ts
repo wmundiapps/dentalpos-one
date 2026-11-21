@@ -76,6 +76,7 @@ export async function webhook(req: Request, res: Response) {
     'revah.opt_out': `Paciente pediu para não receber mensagens (${data.channel || 'canal'}).`,
     'revah.appointment_requested': `Pedido de agendamento pelo ${data.channel || 'chatbot'}: ${[data.preferredDate, data.preferredTime].filter(Boolean).join(' ') || 'data a combinar'}${data.notes ? ` — ${data.notes}` : ''}`,
     'revah.call_completed': `Ligação automática concluída: ${data.outcome || data.status || ''} ${data.summary || ''}`.trim(),
+    'revah.carousel_click': `Paciente escolheu "${data.card || 'oferta'}" no carrossel "${data.campaignName || 'campanha'}" (${data.channel || 'canal'}).`,
   }
   await writeAudit({
     clinicId,

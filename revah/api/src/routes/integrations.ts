@@ -8,6 +8,7 @@ import { emitEvent } from '../services/automations'
 import { upsertContact } from '../services/contacts'
 import { ingestDentalposEvent, provisionClinic, setLicense, syncPatients, verifyServerSignature } from '../services/dentalpos'
 import { sendMessage } from '../services/messaging'
+import { syncCatalog } from '../services/catalog'
 import { trialStatus } from '../services/plans'
 import { linkedinCallback } from '../services/leads/linkedin'
 import { config } from '../config'
@@ -78,7 +79,23 @@ r.get(
   }),
 )
 
+// Catálogo de ofertas para o carrossel: tratamentos do DentalPos/CompletoDonto e cursos do EduMaster.
+r.post(
+  '/integrations/dentalpos/catalog/sync',
+  requireApiKey,
+  ah(async (req: AuthedRequest, res) => {
+    const source = req.body?.source === 'EDUMASTER' ? 'EDUMASTER' : 'DENTALPOS'
+    res.json(await syncCatalog(req.tenant.id, source, req.body?.items, { deactivateMissing: req.body?.deactivateMissing !== false }))
+  }),
+)
+
 // --- API pública v1 (qualquer sistema) --------------------------------------
+r.post(
+  '/v1/catalog',
+  requireApiKey,
+  ah(async (req: AuthedRequest, res) => res.json(await syncCatalog(req.tenant.id, 'API', req.body?.items, { deactivateMissing: Boolean(req.body?.deactivateMissing) }))),
+)
+
 r.post(
   '/v1/contacts',
   requireApiKey,

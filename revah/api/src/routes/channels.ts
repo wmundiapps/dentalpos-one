@@ -11,6 +11,7 @@ import { audit } from '../services/audit'
 import { adapterFor, PROVIDERS } from '../services/channels/providers'
 import { sendMessage } from '../services/messaging'
 import { assertCanAddChannel } from '../services/plans'
+import { completeEmbeddedSignup, embeddedSignupConfig } from '../services/channels/embeddedSignup'
 
 const r = Router()
 
@@ -79,6 +80,22 @@ r.get(
   ah(async (req: AuthedRequest, res) => {
     const rows = await prisma.channelAccount.findMany({ where: { tenantId: req.tenant.id }, orderBy: [{ channel: 'asc' }, { createdAt: 'asc' }] })
     res.json(rows.map(publicAccount))
+  }),
+)
+
+// Cadastro Incorporado do WhatsApp: o cliente conecta o próprio número pela janela da Meta.
+r.get('/channels/whatsapp/embedded-signup', (_req, res) => res.json(embeddedSignupConfig()))
+
+r.post(
+  '/channels/whatsapp/embedded-signup',
+  requireRole('OWNER', 'ADMIN'),
+  ah(async (req: AuthedRequest, res) => {
+    const b = z
+      .object({ code: z.string().min(10).max(2000), wabaId: z.string().max(40), phoneNumberId: z.string().max(40), label: z.string().trim().max(80).nullable().optional() })
+      .parse(req.body)
+    const account = await completeEmbeddedSignup(req.tenant, b)
+    await audit(req.tenant.id, req.user.id, 'CHANNEL_EMBEDDED_SIGNUP', 'ChannelAccount', account.id, { wabaId: b.wabaId })
+    res.status(201).json({ account: publicAccount(account), connection: { ok: true, info: 'WhatsApp conectado pela Meta.' } })
   }),
 )
 

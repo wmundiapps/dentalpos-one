@@ -1,6 +1,6 @@
 // Ponte CompletoDonto -> REVAH. Toda a comunicação passa pelo @revah/dentalpos-one-adapter
 // (API assinada, SSO e eventos). Nenhuma tabela do REVAH é acessada daqui.
-import { RevahClient, verifyRevahWebhook, type RevahEvent, type RevahPlan } from '@revah/dentalpos-one-adapter'
+import { RevahClient, verifyRevahWebhook, type RevahCatalogItem, type RevahEvent, type RevahPlan } from '@revah/dentalpos-one-adapter'
 import { prisma } from '../lib/prisma'
 import { decryptSecret, encryptSecret } from './secretVault'
 
@@ -14,6 +14,7 @@ interface RevahFlagMetadata {
   provisionedAt?: string
   lastSyncAt?: string
   lastSyncResult?: unknown
+  lastCatalogSyncAt?: string
 }
 
 export function revahConfigured() {
@@ -203,9 +204,67 @@ export async function syncClinicWithRevah(clinicId: string) {
     sent += r.results.filter((x) => !x.error).length
     errors += r.results.filter((x) => x.error).length
   }
-  const result = { events: events.length, sent, errors }
-  await saveMeta(clinicId, row.tenantId, { lastSyncAt: startedAt.toISOString(), lastSyncResult: result })
+  // Catálogo de tratamentos para o carrossel de ofertas (no máximo 1 vez por dia).
+  let catalog: unknown = null
+  const catalogDue = !meta.lastCatalogSyncAt || Date.now() - new Date(meta.lastCatalogSyncAt).getTime() > 86_400_000
+  if (catalogDue) {
+    catalog = await revah()
+      .syncCatalog(apiKey, await collectTreatmentCatalog(clinicId), { source: 'DENTALPOS' })
+      .catch((e: any) => ({ error: e?.message || String(e) }))
+  }
+  const result = { events: events.length, sent, errors, ...(catalog ? { catalog } : {}) }
+  await saveMeta(clinicId, row.tenantId, {
+    lastSyncAt: startedAt.toISOString(),
+    lastSyncResult: result,
+    ...(catalogDue && catalog && !(catalog as any).error ? { lastCatalogSyncAt: startedAt.toISOString() } : {}),
+  })
   return result
+}
+
+// Envia itens de catálogo de outro módulo (ex.: cursos do EduMaster) para o Marketing da clínica.
+export async function syncRevahCatalogItems(clinicId: string, items: RevahCatalogItem[], source: 'DENTALPOS' | 'EDUMASTER') {
+  const { row } = await getRevahFlag(clinicId)
+  if (!row?.enabled) return { skipped: 'Marketing desativado para esta clínica.' }
+  const provisioned = await ensureProvisioned(clinicId)
+  const apiKey = decryptSecret<string>(provisioned.encryptedApiKey)
+  if (!apiKey) return { skipped: 'sem chave' }
+  return revah().syncCatalog(apiKey, items, { source })
+}
+
+function slug(v: string) {
+  return v
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80)
+}
+
+// Tratamentos que a clínica mais realiza (planos de tratamento dos últimos 12 meses) + especialidades dos dentistas.
+// Vão para o catálogo do Marketing, de onde a clínica monta os cards do carrossel (a imagem ela escolhe lá).
+export async function collectTreatmentCatalog(clinicId: string): Promise<RevahCatalogItem[]> {
+  const since = new Date(Date.now() - 365 * 86_400_000)
+  const [procedures, doctors] = await Promise.all([
+    prisma.treatmentItem.groupBy({ by: ['procedure'], where: { clinicId, createdAt: { gte: since } }, _count: { _all: true }, orderBy: { _count: { procedure: 'desc' } }, take: 40 }),
+    prisma.doctor.findMany({ where: { clinicId }, select: { specialty: true } }),
+  ])
+  const items: RevahCatalogItem[] = []
+  const seen = new Set<string>()
+  for (const s of doctors.map((d) => (d.specialty || '').trim()).filter(Boolean)) {
+    const ref = `dentalpos:specialty:${slug(s)}`
+    if (!slug(s) || seen.has(ref)) continue
+    seen.add(ref)
+    items.push({ externalRef: ref, kind: 'SERVICO', title: s.slice(0, 60), subtitle: 'Especialidade' })
+  }
+  for (const p of procedures) {
+    const name = (p.procedure || '').trim()
+    const ref = `dentalpos:procedure:${slug(name)}`
+    if (!slug(name) || seen.has(ref)) continue
+    seen.add(ref)
+    items.push({ externalRef: ref, kind: 'TRATAMENTO', title: name.slice(0, 60) })
+  }
+  return items
 }
 
 export async function syncAllClinics() {

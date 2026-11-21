@@ -80,8 +80,21 @@ export interface ProvisionResult {
   webhookSecret: string | null
 }
 
+/** Item do catálogo de ofertas (cards do carrossel): tratamento, curso, produto... */
+export interface RevahCatalogItem {
+  /** Identificador estável no sistema de origem, ex.: "dentalpos:procedure:123" ou "edumaster:oferta:abc". */
+  externalRef: string
+  kind?: 'CURSO' | 'TRATAMENTO' | 'PRODUTO' | 'SERVICO' | 'OFERTA'
+  title: string
+  subtitle?: string | null
+  imageUrl?: string | null
+  url?: string | null
+  isActive?: boolean
+}
+
 export interface RevahWebhookPayload {
-  type: 'revah.opt_out' | 'revah.appointment_requested' | 'revah.call_completed' | string
+  /** revah.carousel_click: contato escolheu um card do carrossel (data: campaignId, card, catalogExternalRef, contactId, externalRef, phone...). */
+  type: 'revah.opt_out' | 'revah.appointment_requested' | 'revah.call_completed' | 'revah.carousel_click' | string
   tenantId: string
   occurredAt: string
   data: Record<string, unknown>
@@ -223,6 +236,18 @@ export class RevahClient {
 
   syncPatients(apiKey: string, patients: RevahPatient[]) {
     return this.request<{ synced: number }>('/integrations/dentalpos/patients/sync', { method: 'POST', body: { patients }, headers: { 'X-Api-Key': apiKey } })
+  }
+
+  /**
+   * Envia o catálogo de ofertas (cards do carrossel). Idempotente por externalRef; itens da mesma origem
+   * que não vierem são desativados (deactivateMissing, padrão true).
+   */
+  syncCatalog(apiKey: string, items: RevahCatalogItem[], opts: { source?: 'DENTALPOS' | 'EDUMASTER'; deactivateMissing?: boolean } = {}) {
+    return this.request<{ upserted: number; deactivated: number }>('/integrations/dentalpos/catalog/sync', {
+      method: 'POST',
+      body: { items, source: opts.source || 'DENTALPOS', deactivateMissing: opts.deactivateMissing ?? true },
+      headers: { 'X-Api-Key': apiKey },
+    })
   }
 
   status(apiKey: string) {

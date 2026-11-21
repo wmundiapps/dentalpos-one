@@ -10,6 +10,7 @@ import { constructStripeEvent, handleAsaasEvent, handleStripeEvent } from '../se
 import { upsertContact } from '../services/contacts'
 import { emitEvent } from '../services/automations'
 import { handleInbound } from '../services/inbound'
+import { applyTemplateStatusUpdate, decodePayload, handleTelegramCallback, registerCarouselClick } from '../services/carousel'
 import { ingestAndImportAdLead } from '../services/leads'
 import { fetchAdLead } from '../services/leads/providers'
 import { updateDeliveryStatus } from '../services/messaging'
@@ -100,6 +101,11 @@ r.post(
       if (body.object === 'whatsapp_business_account') {
         for (const change of entry.changes || []) {
           const v = change.value || {}
+          // Aprovação/rejeição do modelo do carrossel.
+          if (change.field === 'message_template_status_update') {
+            tasks.push(() => applyTemplateStatusUpdate(String(v.message_template_name || ''), String(v.event || ''), v.reason || null))
+            continue
+          }
           const phoneNumberId = v.metadata?.phone_number_id
           if (!phoneNumberId) continue
           const account = await prisma.channelAccount.findFirst({ where: { provider: 'META_CLOUD', externalId: String(phoneNumberId), isActive: true }, include: { tenant: true } })
@@ -109,6 +115,15 @@ r.post(
           for (const m of v.messages || []) {
             const name = (v.contacts || []).find((x: any) => x.wa_id === m.from)?.profile?.name
             const address = normalizePhone(m.from) || m.from
+            const click = m.type === 'button' ? decodePayload(m.button?.payload) : null
+            if (click && click.action !== 'g') {
+              tasks.push(async () => {
+                const r = await handleInbound({ tenant: account.tenant, account, channel: 'WHATSAPP', address, name, text: waText(m), providerMessageId: m.id, metadata: { type: m.type, carousel: click }, skipBot: true })
+                if ((r as any)?.duplicate) return
+                await registerCarouselClick({ tenant: account.tenant, account, channel: 'WHATSAPP', address, name, campaignId: click.campaignId, index: click.index, action: click.action as 'i' | 'x' })
+              })
+              continue
+            }
             tasks.push(() => handleInbound({ tenant: account.tenant, account, channel: 'WHATSAPP', address, name, text: waText(m), providerMessageId: m.id, metadata: { type: m.type } }))
           }
           for (const s of v.statuses || []) {
@@ -164,6 +179,11 @@ r.post(
     if (!account || account.provider !== 'TELEGRAM') return res.sendStatus(404)
     const token = String(req.headers['x-telegram-bot-api-secret-token'] || '')
     if (!safeEqual(token, account.webhookSecret)) return res.sendStatus(401)
+    // Setas e botões do carrossel.
+    if (req.body?.callback_query) {
+      await handleTelegramCallback(account.tenant, account, req.body.callback_query).catch((e) => console.error('[revah] telegram callback', e?.message))
+      return res.sendStatus(200)
+    }
     const m = req.body?.message
     if (m?.chat?.id && m.chat.type === 'private') {
       const name = [m.from?.first_name, m.from?.last_name].filter(Boolean).join(' ') || m.from?.username

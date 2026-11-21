@@ -62,6 +62,7 @@ model Tenant {
   notes          Note[]
   auditLogs      AuditLog[]
   templates      MessageTemplate[]
+  catalogItems   CatalogItem[]
 }
 
 model User {
@@ -362,6 +363,11 @@ model Campaign {
   subject          String?
   voiceScript      String?
   waTemplate       Json? // { name, language, params[] } — obrigatório fora da janela de 24h na API oficial
+  // Carrossel de ofertas: { cards: [{ title, subtitle?, imageUrl, buttonText, buttonUrl?, catalogItemId?, tag? }] }.
+  // WhatsApp: template CAROUSEL aprovado pela Meta. Telegram: um card com setas ◀ ▶ e botão de interesse.
+  carousel            Json?
+  waTemplateStatus    String? // PENDING | APPROVED | REJECTED | PAUSED | DISABLED (status do template do carrossel na Meta)
+  waTemplateRejection String?
   audience         Json // { tagIds?: string[], contactIds?: string[], manual?: {name?, destination}[] }
   status           String    @default("DRAFT") // DRAFT | SCHEDULED | RUNNING | PAUSED | COMPLETED | CANCELED
   scheduledAt      DateTime?
@@ -378,8 +384,49 @@ model Campaign {
   updatedAt        DateTime  @updatedAt
 
   recipients CampaignRecipient[]
+  clicks     CampaignClick[]
 
   @@index([tenantId, createdAt])
+}
+
+// Clique em um card do carrossel (cada clique vira conversa atribuída e etapa no CRM).
+model CampaignClick {
+  id             String   @id @default(cuid())
+  tenantId       String
+  campaignId     String
+  campaign       Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId      String?
+  recipientId    String?
+  channel        String
+  cardIndex      Int
+  cardTitle      String
+  action         String // INTEREST | OPT_OUT
+  conversationId String?
+  assignedUserId String?
+  createdAt      DateTime @default(now())
+
+  @@index([campaignId, cardIndex])
+  @@index([tenantId, createdAt])
+}
+
+// Catálogo de ofertas usado para montar cards (cursos do EduMaster, tratamentos do DentalPos, produtos...).
+model CatalogItem {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  source      String   @default("MANUAL") // MANUAL | DENTALPOS | EDUMASTER | API
+  externalRef String? // ex.: "edumaster:oferta:<id>", "dentalpos:procedure:<id>"
+  kind        String   @default("OFERTA") // CURSO | TRATAMENTO | PRODUTO | SERVICO | OFERTA
+  title       String
+  subtitle    String?
+  imageUrl    String?
+  url         String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, externalRef])
+  @@index([tenantId, isActive])
 }
 
 model CampaignRecipient {

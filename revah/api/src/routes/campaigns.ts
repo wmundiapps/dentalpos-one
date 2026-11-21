@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { Prisma } from '@prisma/client'
 import { assertCleanText } from '../lib/contentFilter'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
@@ -8,6 +9,7 @@ import type { AuthedRequest } from '../middleware/auth'
 import { audit } from '../services/audit'
 import { launchCampaign, previewAudience, setCampaignStatus, type Audience } from '../services/campaigns'
 import { sendMessage } from '../services/messaging'
+import { CarouselSchema, carouselStats, getCarousel, refreshCarouselTemplateStatus, submitCarouselTemplate } from '../services/carousel'
 import { trialStatus } from '../services/plans'
 import { TRIAL_RULES } from '../config'
 
@@ -30,7 +32,12 @@ const CampaignSchema = z.object({
   audience: AudienceSchema,
   scheduledAt: z.string().datetime().nullable().optional(),
   appendOptOutHint: z.boolean().optional(),
+  carousel: CarouselSchema.nullable().optional(),
 })
+
+function assertCarouselChannel(channel: string | undefined, carousel: unknown) {
+  if (carousel && channel && !['WHATSAPP', 'TELEGRAM'].includes(channel)) throw badRequest('O carrossel funciona no WhatsApp e no Telegram.')
+}
 
 r.get(
   '/campaigns',
@@ -46,6 +53,7 @@ r.post(
     assertCleanText({ Mensagem: b.template, Assunto: b.subject })
     if (['INSTAGRAM', 'MESSENGER'].includes(b.channel)) throw badRequest('Instagram e Messenger só permitem responder conversas iniciadas pelo cliente. Use automações/inbox.')
     if (b.channel === 'EMAIL' && !b.subject) throw badRequest('Informe o assunto do e-mail.')
+    assertCarouselChannel(b.channel, b.carousel)
     const c = await prisma.campaign.create({
       data: {
         tenantId: req.tenant.id,
@@ -59,6 +67,7 @@ r.post(
         audience: b.audience as any,
         scheduledAt: b.scheduledAt ? new Date(b.scheduledAt) : null,
         appendOptOutHint: b.appendOptOutHint ?? true,
+        carousel: (b.carousel as any) || undefined,
         createdById: req.user.id,
       },
     })
@@ -85,6 +94,11 @@ r.patch(
     if (c.status !== 'DRAFT') throw conflict('Só é possível editar campanhas em rascunho.')
     const b = CampaignSchema.partial().parse(req.body)
     assertCleanText({ Mensagem: b.template, Assunto: b.subject })
+    assertCarouselChannel(b.channel || c.channel, b.carousel)
+    // Mudou o carrossel ou o texto de abertura de um carrossel do WhatsApp: o modelo precisa de nova aprovação da Meta.
+    const carouselChanged = b.carousel !== undefined && JSON.stringify(b.carousel ?? null) !== JSON.stringify(c.carousel ?? null)
+    const openingChanged = Boolean(c.carousel) && b.template !== undefined && b.template !== c.template
+    const needsNewApproval = Boolean(c.waTemplateStatus) && (carouselChanged || openingChanged)
     const updated = await prisma.campaign.update({
       where: { id: c.id },
       data: {
@@ -98,6 +112,8 @@ r.patch(
         ...(b.audience ? { audience: b.audience as any } : {}),
         ...(b.scheduledAt !== undefined ? { scheduledAt: b.scheduledAt ? new Date(b.scheduledAt) : null } : {}),
         ...(b.appendOptOutHint !== undefined ? { appendOptOutHint: b.appendOptOutHint } : {}),
+        ...(b.carousel !== undefined ? { carousel: b.carousel ? (b.carousel as any) : Prisma.DbNull } : {}),
+        ...(needsNewApproval ? { waTemplate: Prisma.DbNull, waTemplateStatus: null, waTemplateRejection: null } : {}),
       },
     })
     res.json(updated)
@@ -157,6 +173,8 @@ r.post(
     const destination = String(req.body?.destination || '')
     const vars = contactVars({ name: req.body?.name || req.user.name }, { minha_empresa: req.tenant.name })
     const tpl = c.waTemplate as any
+    const carousel = getCarousel(c)
+    if (carousel && c.channel === 'WHATSAPP' && c.waTemplateStatus !== 'APPROVED') throw conflict('O teste do carrossel no WhatsApp só funciona depois que a Meta aprovar o modelo.')
     const out = await sendMessage({
       tenant: req.tenant,
       channel: c.channel as Channel,
@@ -168,9 +186,30 @@ r.post(
       appendOptOutHint: c.appendOptOutHint,
       userId: req.user.id,
       metadata: { test: true, campaignId: c.id },
+      carousel: carousel ? { campaignId: c.id, carousel } : null,
     })
     res.json({ ok: out.ok, status: out.message.status, error: out.ok ? null : out.error })
   }),
+)
+
+// Carrossel: envio do modelo para aprovação da Meta, consulta do status e Torre de Controle.
+r.post(
+  '/campaigns/:id/carousel/submit',
+  ah(async (req: AuthedRequest, res) => {
+    const c = await submitCarouselTemplate(req.tenant, req.params.id)
+    await audit(req.tenant.id, req.user.id, 'CAMPAIGN_CAROUSEL_SUBMIT', 'Campaign', c.id)
+    res.json(c)
+  }),
+)
+
+r.post(
+  '/campaigns/:id/carousel/refresh',
+  ah(async (req: AuthedRequest, res) => res.json(await refreshCarouselTemplateStatus(req.tenant, req.params.id))),
+)
+
+r.get(
+  '/campaigns/:id/carousel/stats',
+  ah(async (req: AuthedRequest, res) => res.json(await carouselStats(req.tenant.id, req.params.id))),
 )
 
 export default r

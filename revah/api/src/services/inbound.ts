@@ -19,6 +19,8 @@ export interface InboundInput {
   providerMessageId?: string | null
   mediaUrl?: string | null
   metadata?: Record<string, unknown>
+  // Clique em botão do carrossel: registra a mensagem, mas quem responde é o fluxo do carrossel (não o bot de IA).
+  skipBot?: boolean
 }
 
 const OPT_IN = /^\s*(voltar|reativar|quero\s+receber|aceito\s+receber)\s*[.!]*\s*$/i
@@ -75,6 +77,8 @@ export async function handleInbound(input: InboundInput) {
     await sendMessage({ tenant, channel, contact, text: 'Pronto! Você voltará a receber nossas mensagens por aqui.', skipUsageCheck: true }).catch(() => null)
     return { message, optIn: true }
   }
+
+  if (input.skipBot) return { message }
 
   await emitEvent(tenant.id, 'message.received', { contactId: contact.id, data: { channel, text } })
 
