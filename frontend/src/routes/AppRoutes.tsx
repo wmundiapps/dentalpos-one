@@ -61,6 +61,7 @@ const RevahChatbot = lazy(() => import("../pages/RevahChatbot"));
 const Patients = lazy(() => import("../pages/Patients"));
 const ProfitIntelligence = lazy(() => import("../pages/ProfitIntelligence"));
 const Recall = lazy(() => import("../pages/Recall"));
+const YearEndCampaign = lazy(() => import("../pages/YearEndCampaign"));
 const Reports = lazy(() => import("../pages/Reports"));
 const ServiceEvaluations = lazy(() => import("../pages/ServiceEvaluations"));
 const Sales = lazy(() => import("../pages/Sales"));
@@ -298,6 +299,7 @@ export default function AppRoutes() {
         <Route path="/assistente-ia" element={<AiAssistant />} />
         <Route path="/creditos" element={<Credits />} />
       <Route path="/recall" element={<Recall />} />
+      <Route path="/campanha-final-de-ano" element={<YearEndCampaign />} />
 
       <Route path="/relatorios" element={<Reports />} />
 

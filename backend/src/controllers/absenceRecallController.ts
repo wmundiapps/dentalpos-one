@@ -1,7 +1,8 @@
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
-import { PERIODS_DAYS, findCandidates, loadSettings, runForClinic, saveSettings, sentToday } from '../services/absenceRecallService'
+import { prisma } from '../lib/prisma'
+import { PERIODS_DAYS, bookingLink, findCandidates, loadSettings, runForClinic, saveSettings, sentToday } from '../services/absenceRecallService'
 import type { RevahChannel } from '../services/revahProviderService'
 
 function ctx(req: AuthRequest) {
@@ -68,5 +69,19 @@ export async function run(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error('Erro ao enviar retorno de ausentes:', error)
     return res.status(500).json({ error: 'Erro ao enviar os contatos de retorno.' })
+  }
+}
+
+// Lista completa de quem não vem há X dias (campanha de WhatsApp): só consulta realizada, sem consulta futura marcada.
+export async function list(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const days = Math.min(1095, Math.max(30, Math.round(Number(req.query.days) || 90)))
+    const clinic = await prisma.clinic.findFirst({ where: { id: clinicId }, select: { name: true, displayName: true } })
+    const rows = (await findCandidates(clinicId, tenantId, days)).filter((c) => c.daysAway >= days)
+    return res.json({ days, clinicName: clinic?.displayName || clinic?.name || 'nossa clínica', link: bookingLink(clinicId), patients: rows })
+  } catch (error) {
+    console.error('Erro ao listar pacientes ausentes:', error)
+    return res.status(500).json({ error: 'Erro ao listar os pacientes ausentes.' })
   }
 }

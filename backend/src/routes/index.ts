@@ -254,6 +254,7 @@ router.get('/followup/settings', requirePermission('settings.view'), followUp.sh
 router.put('/followup/settings', requirePermission('settings.edit'), followUp.update)
 router.post('/followup/send-now', requirePermission('settings.edit'), followUp.sendNow)
 router.get('/absence-recall', requirePermission('agenda.view'), absenceRecallController.show)
+router.get('/absence-recall/list', requirePermission('agenda.view'), absenceRecallController.list)
 router.get('/absence-recall/today', requirePermission('agenda.view'), absenceRecallController.today)
 router.put('/absence-recall/settings', requirePermission('agenda.edit'), absenceRecallController.updateSettings)
 router.post('/absence-recall/run', requirePermission('agenda.edit'), absenceRecallController.run)

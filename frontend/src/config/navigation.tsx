@@ -123,6 +123,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Prospecção","/prospeccao",<PeopleAltIcon/>),
       item("Parceiros de estoque","/parceiros-estoque",<PeopleAltIcon/>),
       item("Recall e Reativação","/recall",<SendIcon/>),
+      item("Campanha de final de ano","/campanha-final-de-ano",<SendIcon/>),
       item("Central de Marketing","/marketing/central",<SendIcon/>),
       item("Disparos locais","/revah",<SendIcon/>),
       item("Canais de Envio","/canais-envio",<SettingsInputAntennaIcon/>),
