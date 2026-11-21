@@ -46,6 +46,6 @@ export const runAbsenceRecall = async (dryRun: boolean) => {
   return r;
 };
 
-export interface AbsentPatient { patientId: string; name: string; email: string | null; phone: string; lastVisit: string; daysAway: number }
+export interface AbsentPatient { patientId: string; name: string; email: string | null; phone: string; lastVisit: string | null; daysAway: number | null }
 export interface AbsentList { days: number; clinicName: string; link: string; patients: AbsentPatient[] }
 export const loadAbsentList = async (days: number) => parse<AbsentList>(await fetch(`${API}/absence-recall/list?days=${days}`, { headers: headers() }));
