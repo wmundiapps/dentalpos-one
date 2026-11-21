@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma'
 import { writeAudit } from './auditService'
+import { onEntryPaid } from './membershipService'
 
 const METHOD: Record<string, string> = { PIX: 'PIX', BOLETO: 'Boleto', CREDIT_CARD: 'Cartão', DEBIT_CARD: 'Cartão', UNDEFINED: 'PIX' }
 const PAID_EVENTS = ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED']
@@ -39,6 +40,7 @@ export async function applyChargeEvent(clinicScope: string | null, eventType: st
           data: { status: 'PAID', paidAt: new Date(), settledByName: 'Asaas (automático)', cashDestination: 'CONTA', destinationAccount: 'Conta Asaas', destinationAt: new Date(), paymentMethod: METHOD[String(payment?.billingType || charge.billingType)] || entry.paymentMethod, paymentReceipt: paymentId }
         })
       }
+      await onEntryPaid(charge.financialEntryId).catch((e: unknown) => console.error('Assinatura: crédito da mensalidade', e))
       for (const line of charge.splits) {
         if (line.status === 'CONFIRMADO') continue
         // Percentual do Asaas incide sobre o valor líquido recebido; valor fixo já era o final.

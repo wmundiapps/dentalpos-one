@@ -1,3 +1,4 @@
+import { processMembershipBilling } from '../services/membershipService'
 import { processAbsenceRecalls } from '../services/absenceRecallService'
 import type { Request, Response } from 'express'
 import crypto from 'crypto'
@@ -29,6 +30,7 @@ export async function reminders(req: Request, res: Response) {
     await processAbsenceRecalls().catch((e) => console.error('Retorno de pacientes ausentes:', e))
     await processDueReminders().catch((e) => console.error('Lembretes de vencimento:', e))
     await processSubscriptionJobs().catch((e) => console.error('Assinaturas:', e))
+    await processMembershipBilling().catch((e) => console.error('Assinatura de pacientes:', e))
     await processFollowUps().catch((e) => console.error('Acompanhamento de pacientes:', e))
     return res.json({ ok: true, ms: Date.now() - started })
   } catch (error) {

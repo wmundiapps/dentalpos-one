@@ -10,6 +10,7 @@ import * as doctorController from '../controllers/doctorController'
 import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
 import * as chargeController from '../controllers/chargeController'
+import * as membershipController from '../controllers/membershipController'
 import * as asaasSetupController from '../controllers/asaasSetupController'
 import * as absenceRecallController from '../controllers/absenceRecallController'
 import * as financialHoldController from '../controllers/financialHoldController'
@@ -253,6 +254,7 @@ router.get('/followup/settings', requirePermission('settings.view'), followUp.sh
 router.put('/followup/settings', requirePermission('settings.edit'), followUp.update)
 router.post('/followup/send-now', requirePermission('settings.edit'), followUp.sendNow)
 router.get('/absence-recall', requirePermission('agenda.view'), absenceRecallController.show)
+router.get('/absence-recall/list', requirePermission('agenda.view'), absenceRecallController.list)
 router.get('/absence-recall/today', requirePermission('agenda.view'), absenceRecallController.today)
 router.put('/absence-recall/settings', requirePermission('agenda.edit'), absenceRecallController.updateSettings)
 router.post('/absence-recall/run', requirePermission('agenda.edit'), absenceRecallController.run)
@@ -467,6 +469,20 @@ router.post('/receivable-charges/:id/cancel', requirePermission('finance.approve
 router.post('/financial-entries/:id/charge', requirePermission('finance.create'), chargeController.createForEntry)
 router.get('/dunning', requirePermission('finance.approve'), dunningController.show)
 router.put('/dunning/settings', requirePermission('finance.approve'), dunningController.updateSettings)
+// Assinatura do paciente: mensalidade em Pix vira crédito; usar o crédito dá desconto.
+router.get('/membership/plans', requirePermission('finance.view'), membershipController.plans)
+router.post('/membership/plans', requirePermission('finance.approve'), membershipController.savePlan)
+router.put('/membership/plans/:id', requirePermission('finance.approve'), membershipController.savePlan)
+router.get('/membership/members', requirePermission('finance.view'), membershipController.members)
+router.post('/membership/members', requirePermission('finance.create'), membershipController.subscribe)
+router.post('/membership/members/:id/charge', requirePermission('finance.create'), membershipController.charge)
+router.post('/membership/members/:id/send-pix', requirePermission('finance.create'), membershipController.sendPix)
+router.get('/membership/members/:id/preview', requirePermission('finance.view'), membershipController.preview)
+router.post('/membership/members/:id/use', requirePermission('finance.create'), membershipController.use)
+router.post('/membership/members/:id/adjust', requirePermission('finance.approve'), membershipController.adjust)
+router.put('/membership/members/:id/status', requirePermission('finance.approve'), membershipController.setStatus)
+router.get('/membership/members/:id/ledger', requirePermission('finance.view'), membershipController.ledger)
+router.post('/membership/invoices/:invoiceId/paid', requirePermission('finance.approve'), membershipController.markPaid)
 router.get('/asaas/status', requirePermission('finance.approve'), asaasSetupController.status)
 router.post('/asaas/connect', requirePermission('finance.approve'), asaasSetupController.connect)
 router.get('/payout-accounts', requirePermission('finance.view'), payoutController.accounts)

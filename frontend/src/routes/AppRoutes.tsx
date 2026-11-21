@@ -61,6 +61,7 @@ const RevahChatbot = lazy(() => import("../pages/RevahChatbot"));
 const Patients = lazy(() => import("../pages/Patients"));
 const ProfitIntelligence = lazy(() => import("../pages/ProfitIntelligence"));
 const Recall = lazy(() => import("../pages/Recall"));
+const YearEndCampaign = lazy(() => import("../pages/YearEndCampaign"));
 const Reports = lazy(() => import("../pages/Reports"));
 const ServiceEvaluations = lazy(() => import("../pages/ServiceEvaluations"));
 const Sales = lazy(() => import("../pages/Sales"));
@@ -77,6 +78,7 @@ const LabServiceOrders = lazy(() => import("../pages/LabServiceOrders"));
 const Team = lazy(() => import("../pages/Team"));
 const Permissions = lazy(() => import("../pages/Permissions"));
 const OnlineReceipts = lazy(() => import("../pages/OnlineReceipts"));
+const Membership = lazy(() => import("../pages/Membership"));
 const Homologation = lazy(() => import("../pages/Homologation"));
 
 // Design oculto (sigilo): import preservado para retomar depois.
@@ -297,6 +299,7 @@ export default function AppRoutes() {
         <Route path="/assistente-ia" element={<AiAssistant />} />
         <Route path="/creditos" element={<Credits />} />
       <Route path="/recall" element={<Recall />} />
+      <Route path="/campanha-final-de-ano" element={<YearEndCampaign />} />
 
       <Route path="/relatorios" element={<Reports />} />
 
@@ -320,6 +323,7 @@ export default function AppRoutes() {
       <Route path="/equipe" element={<Team />} />
       <Route path="/permissoes" element={<Permissions />} />
       <Route path="/recebimentos-online" element={<OnlineReceipts />} />
+      <Route path="/assinaturas" element={<Membership />} />
       <Route path="/homologacao" element={<WmundiStaffOnly><Homologation /></WmundiStaffOnly>} />
 
       <Route
