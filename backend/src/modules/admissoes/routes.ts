@@ -10,6 +10,7 @@ import rematricula from './rematricula'
 import './jobs'
 import { publicRouter as publicRouterImpl } from './publico'
 import { prismaErrorMapper } from './services'
+import { sincronizarCatalogoRevah } from './revahCatalogo'
 
 // Módulo "admissoes" — captação, vestibular, matrícula e rematrícula (/api/edu/admissoes).
 const router = Router()
@@ -18,6 +19,14 @@ router.post('/bootstrap', requireRole('ADMISSIONS', 'COORDINATOR'), asyncHandler
   const tenantId = getTenantId(req)
   const r = await bootstrapAdmissoes(tenantId)
   await audit({ tenantId, userId: getUserId(req), modulo: 'admissoes', acao: 'BOOTSTRAP', detalhes: r })
+  res.json(r)
+}))
+
+// Envia agora as ofertas abertas para o catálogo do Marketing (cards do carrossel). Também roda 1x por dia no cron.
+router.post('/revah/catalogo', requireRole('ADMISSIONS', 'MARKETING', 'COORDINATOR'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = getTenantId(req)
+  const r = await sincronizarCatalogoRevah(tenantId, req.user?.clinicId)
+  await audit({ tenantId, userId: getUserId(req), modulo: 'admissoes', acao: 'REVAH_CATALOGO', detalhes: r })
   res.json(r)
 }))
 

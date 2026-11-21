@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import * as L from './logic'
+import { ofertaParaCatalogo } from './revahCatalogo'
 
 // CPF
 assert.ok(L.validarCpf('529.982.247-25'))
@@ -104,4 +105,13 @@ assert.deepEqual(lem.map((x) => x.offset), [7, 1])
 
 // meses
 assert.equal(L.somarMeses(new Date(2026, 0, 31), 1, 31).getDate(), 28)
+// catálogo do Marketing (carrossel de ofertas)
+{
+  const ead = ofertaParaCatalogo({ id: 'o1', nomeCurso: 'Pedagogia', modalidade: 'EAD', turno: 'NOTURNO', poloNome: 'Maringá' })
+  assert.deepEqual(ead, { externalRef: 'edumaster:oferta:o1', kind: 'CURSO', title: 'Pedagogia', subtitle: 'EAD · Maringá', url: null })
+  const pres = ofertaParaCatalogo({ id: 'o2', nomeCurso: 'Enfermagem', modalidade: 'PRESENCIAL', turno: 'NOTURNO' }, 'https://x/inscricao')
+  assert.equal(pres.subtitle, 'Presencial · Noite')
+  assert.equal(pres.url, 'https://x/inscricao')
+}
+
 console.log('admissoes selftest OK')

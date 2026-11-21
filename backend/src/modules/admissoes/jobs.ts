@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { registerEduJob } from '../core/jobs'
+import { sincronizarCatalogosRevah } from './revahCatalogo'
 import { scheduleReminder } from '../core/reminders'
 import { agendarLembretesRematricula, avaliarAluno, encerrarCampanha } from './rematricula'
 import { expirarConvocacoes, sincronizarTaxasPagas } from './services'
@@ -71,3 +72,6 @@ export async function manutencaoAdmissoes(agora = new Date()) {
 }
 
 registerEduJob('admissoes.manutencao', () => manutencaoAdmissoes())
+
+// Catálogo do Marketing (carrossel de ofertas): no máximo 1 vez por dia por execução do cron diário.
+registerEduJob('admissoes.revah-catalogo', () => sincronizarCatalogosRevah())
