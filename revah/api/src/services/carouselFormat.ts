@@ -1,5 +1,6 @@
 // Formato do carrossel de ofertas (funções puras, sem banco): validação dos cards, payload dos botões,
 // template e mensagem do WhatsApp (API oficial da Meta) e card do Telegram.
+import type { Campaign } from '@prisma/client'
 import { z } from 'zod'
 import { badRequest } from '../lib/errors'
 
