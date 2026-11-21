@@ -2,7 +2,7 @@ import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
 import { prisma } from '../lib/prisma'
-import { PERIODS_DAYS, bookingLink, findCandidates, loadSettings, runForClinic, saveSettings, sentToday } from '../services/absenceRecallService'
+import { PERIODS_DAYS, bookingLink, findAllPatients, findCandidates, loadSettings, runForClinic, saveSettings, sentToday } from '../services/absenceRecallService'
 import type { RevahChannel } from '../services/revahProviderService'
 
 function ctx(req: AuthRequest) {
@@ -76,9 +76,10 @@ export async function run(req: AuthRequest, res: Response) {
 export async function list(req: AuthRequest, res: Response) {
   try {
     const { clinicId, tenantId } = ctx(req)
-    const days = Math.min(1095, Math.max(30, Math.round(Number(req.query.days) || 90)))
+    const all = String(req.query.days) === '0'
+    const days = all ? 0 : Math.min(1095, Math.max(30, Math.round(Number(req.query.days) || 90)))
     const clinic = await prisma.clinic.findFirst({ where: { id: clinicId }, select: { name: true, displayName: true } })
-    const rows = (await findCandidates(clinicId, tenantId, days)).filter((c) => c.daysAway >= days)
+    const rows = all ? await findAllPatients(clinicId, tenantId) : (await findCandidates(clinicId, tenantId, days)).filter((c) => c.daysAway >= days)
     return res.json({ days, clinicName: clinic?.displayName || clinic?.name || 'nossa clínica', link: bookingLink(clinicId), patients: rows })
   } catch (error) {
     console.error('Erro ao listar pacientes ausentes:', error)

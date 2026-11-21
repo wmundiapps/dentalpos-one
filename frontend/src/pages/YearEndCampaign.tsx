@@ -13,7 +13,7 @@ const waNumber = (phone: string) => { const d = phone.replace(/\D/g, ""); return
 
 // Campanha de final de ano: quem não vem há mais de X dias, com a mensagem pronta e o link da agenda online.
 export default function YearEndCampaign() {
-  const [days, setDays] = useState(90);
+  const [days, setDays] = useState(0);
   const [data, setData] = useState<AbsentList | null>(null);
   const [error, setError] = useState("");
   const [text, setText] = useState(DEFAULT_TEXT);
@@ -27,7 +27,7 @@ export default function YearEndCampaign() {
   const shown = useMemo(() => (data?.patients || []).filter((p) => !(hideSent && sent.includes(p.patientId))), [data, hideSent, sent]);
   const withPhone = shown.filter((p) => waNumber(p.phone)).length;
 
-  const exportCsv = () => downloadCsv({ title: "Campanha de final de ano", fileBase: "campanha-final-de-ano", headers: ["Paciente", "WhatsApp", "Última consulta", "Dias sem vir", "Mensagem"], rows: shown.map((p) => [p.name, p.phone, DATE(p.lastVisit), p.daysAway, message(p.name)]) });
+  const exportCsv = () => downloadCsv({ title: "Campanha de final de ano", fileBase: "campanha-final-de-ano", headers: ["Paciente", "WhatsApp", "Última consulta", "Dias sem vir", "Mensagem"], rows: shown.map((p) => [p.name, p.phone, p.lastVisit ? DATE(p.lastVisit) : "", p.daysAway ?? "", message(p.name)]) });
 
   return (
     <Box sx={{ textAlign: "left" }}>
@@ -35,8 +35,9 @@ export default function YearEndCampaign() {
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2, display: "grid", gap: 1.5 }}>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
-          <TextField select size="small" label="Sem vir há mais de" value={days} onChange={(e) => setDays(Number(e.target.value))} sx={{ minWidth: 180 }}>
-            {[60, 90, 120, 180, 365].map((d) => <MenuItem key={d} value={d}>{`${d} dias`}</MenuItem>)}
+          <TextField select size="small" label="Quem listar" value={days} onChange={(e) => setDays(Number(e.target.value))} sx={{ minWidth: 300 }}>
+            <MenuItem value={0}>Todos os pacientes (sem consulta marcada)</MenuItem>
+            {[60, 90, 120, 180, 365].map((d) => <MenuItem key={d} value={d}>{`Mais de ${d} dias`}</MenuItem>)}
           </TextField>
           <Chip color="primary" label={data ? `${shown.length} paciente(s) • ${withPhone} com WhatsApp` : "Carregando..."} />
           <Button size="small" onClick={() => setHideSent(!hideSent)}>{hideSent ? "Mostrar quem já recebeu" : "Esconder quem já recebeu"}</Button>
@@ -55,7 +56,7 @@ export default function YearEndCampaign() {
             <Paper key={p.patientId} variant="outlined" sx={{ p: 1.5, borderRadius: 3, display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", opacity: done ? 0.65 : 1 }}>
               <Box sx={{ minWidth: 200 }}>
                 <Typography sx={{ fontWeight: 800 }}>{p.name}</Typography>
-                <Typography variant="body2" color="text.secondary">{`${p.phone || "sem telefone"} • última consulta ${DATE(p.lastVisit)} • ${p.daysAway} dias`}</Typography>
+                <Typography variant="body2" color="text.secondary">{`${p.phone || "sem telefone"} • ${p.lastVisit ? `última consulta ${DATE(p.lastVisit)} • ${p.daysAway} dias` : "sem consulta registrada"}`}</Typography>
               </Box>
               <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                 {done && <Chip size="small" color="success" label="Enviado" />}

@@ -66,6 +66,21 @@ export async function findCandidates(clinicId: string, tenantId: string, periodD
   return rows.map((r) => ({ patientId: r.id, name: r.fullName, email: r.email, phone: r.phone, lastVisit: r.last.toISOString(), daysAway: Math.floor((now.getTime() - r.last.getTime()) / DAY) }))
 }
 
+export type AnyPatient = { patientId: string; name: string; email: string | null; phone: string; lastVisit: string | null; daysAway: number | null }
+
+// Todos os pacientes ativos sem consulta futura marcada (inclusive quem nunca teve consulta registrada), com telefone primeiro.
+export async function findAllPatients(clinicId: string, tenantId: string, now = new Date()): Promise<AnyPatient[]> {
+  const rows = await prisma.$queryRaw<Array<{ id: string; fullName: string; email: string | null; phone: string; last: Date | null }>>`
+    SELECT p."id", p."fullName", p."email", p."phone",
+      (SELECT MAX(a."scheduledAt") FROM "Appointment" a WHERE a."patientId" = p."id" AND a."scheduledAt" <= ${now} AND a."status" = 'COMPLETED') AS "last"
+    FROM "Patient" p
+    WHERE p."clinicId" = ${clinicId} AND p."tenantId" = ${tenantId} AND p."isActive" = true AND COALESCE(p."status", 'Ativo') <> 'Inativo'
+      AND NOT EXISTS (SELECT 1 FROM "Appointment" f WHERE f."patientId" = p."id" AND f."scheduledAt" > ${now} AND f."status" NOT IN ('CANCELLED', 'NO_SHOW'))
+    ORDER BY "last" ASC NULLS FIRST, p."fullName" ASC
+    LIMIT 5000`
+  return rows.map((r) => ({ patientId: r.id, name: r.fullName, email: r.email, phone: r.phone, lastVisit: r.last ? r.last.toISOString() : null, daysAway: r.last ? Math.floor((now.getTime() - r.last.getTime()) / DAY) : null }))
+}
+
 export function bookingLink(clinicId: string) {
   const base = String(process.env.PUBLIC_APP_URL || '').trim() || 'https://app.completodonto.com.br'
   return `${base.replace(/\/$/, '')}/agendamento-online?clinicId=${encodeURIComponent(clinicId)}`
