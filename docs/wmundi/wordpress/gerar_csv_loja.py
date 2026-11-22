@@ -17,7 +17,11 @@ def ul(itens):
 P = [
     ("WM-REVAH", "REVAH", "Marketing e vendas", "247", "Mensageria multicanal com CRM e inteligência artificial.",
      ul(["WhatsApp, SMS, e-mail e voz em um só lugar", "CRM com o histórico completo de cada contato", "Campanhas e automações de relacionamento", "Robô de atendimento com IA e transferência para a equipe"])
-     + "<p><b>Planos mensais:</b> START R$ 247 (5 mil mensagens, IA básica, 1 integração de CRM, 5 templates) · PRO R$ 597 (25 mil mensagens, IA avançada, integrações e templates ilimitados) · ENTERPRISE sob consulta.</p><p>14 dias grátis em qualquer plano.</p>"),
+     + "<p><b>Planos (cobrança mensal):</b></p>"
+       "<p><b>START: R$ 247/mês</b><br>5.000 mensagens/mês · Bot com IA básico · 1 integração de CRM · 5 templates · Dashboard básico · Suporte por e-mail</p>"
+       "<p><b>PRO: R$ 597/mês</b><br>25.000 mensagens/mês · Bot com IA avançado · Integrações ilimitadas · Templates ilimitados · Dashboard completo · Listas externas (CSV) · Suporte prioritário</p>"
+       "<p><b>ENTERPRISE: sob consulta</b><br>White-label completo · Infraestrutura dedicada · SLA garantido · Integração customizada · Gerente de conta · Suporte 24/7</p>"
+       "<p><b>14 dias grátis em qualquer plano.</b> Cancele a qualquer momento.</p>"),
     ("WM-COMPLETODONTO", "Completodonto", "Saúde", "197", "Gestão odontológica completa: agenda, prontuário, financeiro e marketing em um só lugar.",
      ul(["Agenda inteligente, com agendamento on-line e confirmação automática", "Prontuário digital, odontograma e plano de tratamento", "Financeiro, cobrança e recebimentos (Pix, boleto e cartão)", "Recall, marketing e relacionamento com o paciente"])
      + "<p><b>Planos mensais:</b> Basic R$ 197 · Intermedium R$ 397 · Plenum R$ 597.</p><p>Profissionais: 30 dias grátis, sem cartão.</p>"),
