@@ -2,6 +2,7 @@
 Preços: os mesmos oferecidos ao parceiro (Silvio Breda) e as regras de CLAUDE.md. O que não tem preço aprovado fica "sob consulta".
 Todos os produtos são do tipo 'externo': o botão leva ao pedido de proposta, sem carrinho (cobrança recorrente e implantação são fechadas na proposta)."""
 import csv, pathlib
+from gerar_icones_loja import gerar as icone
 
 aqui = pathlib.Path(__file__).parent
 URL = "https://wmundi.com/portfolio/#pedido"
@@ -50,7 +51,31 @@ P = [
      + "<p><b>Versão pronta:</b> R$ 197 por mês + implantação de R$ 990.</p><p><b>Personalizado para o seu negócio (qualquer segmento):</b> R$ 297 por mês + implantação a partir de R$ 4.900.</p>"),
 ]
 
-cols = ["Type", "SKU", "Name", "Published", "Is featured?", "Visibility in catalog", "Short description", "Description", "Tax status", "In stock?", "Regular price", "Categories", "Product URL", "Button text"]
+
+P += [
+    ("WM-ERP", "ERP sob medida por segmento", "Gestão empresarial", "", "Sistema integrado de gestão, modular e com inteligência artificial, criado para o seu segmento.",
+     ul(["Financeiro, vendas, estoque, compras e RH em uma base só", "Modular: você começa pelo que precisa e amplia depois", "Agentes de IA dentro do sistema", "Implantação rápida, com notas fiscais por serviço especializado"]) + CONSULTA),
+    ("WM-URBANFLOW", "UrbanFlow", "Mobilidade e automotivo", "", "Estacionamento rotativo inteligente para prefeituras: vaga visível no aplicativo, pagamento pelo celular e arrecadação transparente.",
+     ul(["Aplicativo mostra as vagas livres por rua e quadra", "Ticket por tempo, com Pix e cartão e tolerância de 15 minutos", "Câmeras de placa para quem não ativou o ticket", "Painel do administrador com sugestão de ronda da fiscalização"]) + CONSULTA),
+    ("WM-AGENTES", "Agentes de IA", "Marketing e vendas", "", "Robôs com inteligência artificial para soluções específicas e personalizadas.",
+     ul(["Atendente de WhatsApp, 24 horas por dia", "Agenda inteligente, cobrança de atraso e pós-atendimento", "Resumo diário do dono", "Agentes sob medida, com supervisão humana"]) + CONSULTA),
+    ("WM-MUNDIBUSINESS", "Mundi Business", "Marketing e vendas", "", "Mensageria e network entre clientes e usuários que aderirem ou autorizarem receber informações da rede.",
+     ul(["Comunicação apenas com quem aderiu ou autorizou", "Mensagens segmentadas por interesse", "Consentimento registrado e opção de sair a qualquer momento"]) + CONSULTA),
+    ("WM-VENDAEMPRESAS", "Venda de Empresas", "Marketing e vendas", "", "Aplicativo para anunciar e vender empresas.",
+     ul(["Anúncio de empresas à venda", "Encontro entre vendedores e compradores interessados", "Contato reservado e seguro"]) + CONSULTA),
+    ("WM-CASHBACK", "Cashbacksmart", "Comércio e serviços", "", "Cashback para qualquer segmento.",
+     ul(["Programa de cashback multiempresa", "Clientes acumulam e usam os benefícios", "Fidelização e recompra"]) + CONSULTA),
+    ("WM-CLUBEFAZ", "ClubeFaz", "Comércio e serviços", "", "Clube de profissionais prestadores de serviço.",
+     ul(["Rede de profissionais prestadores de serviço", "Perfil profissional para ser encontrado", "Contratação de serviços de forma simples"]) + CONSULTA),
+    ("WM-SPACEHOUR", "SpaceHour", "Comércio e serviços", "", "Locação de espaços compartilhados com outros profissionais: escritórios, salas, clínicas e mais.",
+     ul(["Reserva de espaços por hora", "Anfitriões anunciam e profissionais reservam", "Verificação de identidade e regras claras de uso"]) + CONSULTA),
+    ("WM-EDUMASTER", "EduMaster Pro", "Educação", "", "Gerenciador educacional completo: conteúdo acadêmico, AVA, administrativo e muito mais.",
+     ul(["Conteúdo acadêmico e ambiente virtual de aprendizagem", "Matrículas, turmas, calendário e financeiro", "Comunicação com alunos e responsáveis"]) + CONSULTA),
+    ("WM-ALIGNSYSTEM", "AlignSystem®", "Saúde", "", "Consultas odontológicas on-line e presencial, com agendamento automático e on-line.",
+     ul(["Consulta on-line para o seu próximo paciente de alinhadores", "Atendimento presencial na mesma agenda", "Confirmação e lembretes automáticos ao paciente"]) + CONSULTA),
+]
+
+cols = ["Type", "SKU", "Name", "Published", "Is featured?", "Visibility in catalog", "Short description", "Description", "Tax status", "In stock?", "Regular price", "Categories", "Product URL", "Button text", "Images"]
 saida = aqui / "loja" / "produtos-loja-wmundi.csv"
 saida.parent.mkdir(exist_ok=True)
 with open(saida, "w", newline="", encoding="utf-8-sig") as f:
@@ -60,5 +85,6 @@ with open(saida, "w", newline="", encoding="utf-8-sig") as f:
         w.writerow({"Type": "external", "SKU": sku, "Name": nome, "Published": 1, "Is featured?": 0, "Visibility in catalog": "visible",
                     "Short description": curta + (" A partir de R$ " + preco + " por mês." if preco else " Valor sob consulta."),
                     "Description": desc, "Tax status": "taxable", "In stock?": 1, "Regular price": preco, "Categories": cat,
-                    "Product URL": URL, "Button text": "Solicitar proposta"})
+                    "Product URL": URL, "Button text": "Solicitar proposta",
+                    "Images": "https://wmundi-novo.netlify.app/assets/produtos/" + icone(sku, nome, cat)})
 print(len(P), "produtos em", saida)
