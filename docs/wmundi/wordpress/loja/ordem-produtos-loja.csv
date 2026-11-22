@@ -1,0 +1,24 @@
+﻿Type,SKU,Name,Position
+external,WM-PRECIFICADOR,Precificador de Hotelaria,1
+external,WM-PONTO,Ponto por Reconhecimento Facial,2
+external,WM-COMPLETODONTO,Completodonto,3
+external,WM-HOTELARIA,Gerenciador de Hotelaria,4
+external,WM-ESTOQUE,Controle de estoque,5
+external,WM-ERP,ERP sob medida por segmento,6
+external,WM-RH,Gerenciador de RH,7
+external,WM-ALIGNSYSTEM,AlignSystem®,8
+external,WM-MEDICINAONLINE,MedicinaOnline,9
+external,WM-AGENTES,Agentes de IA,10
+external,WM-MUNDIBUSINESS,Mundi Business,11
+external,WM-REVAH,REVAH,12
+external,WM-VENDAEMPRESAS,Venda de Empresas,13
+external,WM-ALLCOLLEGE,AllCollege,14
+external,WM-EDUMASTER,EduMaster Pro,15
+external,WM-WHATSPEAK,WhatSpeak,16
+external,WM-CASHBACK,Cashbacksmart,17
+external,WM-CLUBEFAZ,ClubeFaz,18
+external,WM-LAVACAR,Lavacar Smartwash,19
+external,WM-SPACEHOUR,SpaceHour,20
+external,WM-STUDIOBB,Studio BeautyBarber,21
+external,WM-URBANFLOW,UrbanFlow,22
+external,WM-MEUEMPREGO,"MeuEmprego, assinatura para empresas",23
