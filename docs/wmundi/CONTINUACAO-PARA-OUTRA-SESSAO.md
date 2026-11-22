@@ -183,3 +183,9 @@ Sem acesso a e-mail, ao site wmundi.com nem a páginas de Harvard/Stanford/Cours
 - Preços do ponto, do precificador e custos do UrbanFlow são SUGESTÕES a aprovar. Payback incluído em todas as propostas.
 - Split do parceiro (30/70 dos 50% restantes) só no `guia-vendedor-INTERNO`. Sem a palavra "Claude" em arquivos/links entregues ao cliente.
 - Pendente: confirmar "R$ 1,00 por funcionário acima de 200", valores, revisão jurídica (LGPD biometria, contrato com prefeitura).
+
+## 26. Decisão do Robson (22/11/2026): a WMundi não gerencia sites nem redes de terceiros
+- A WMundi **só vende o que produz** (aplicativos, sistemas, ERP sob medida, sites criados por nós) **e automações**. Não oferece gestão/gerenciamento de sites, redes sociais, hospedagem, domínio nem Google Meu Negócio de clientes.
+- Site novo já ajustado (FAQ, chips e destaques). A **loja antiga do WordPress** ainda vende planos de gestão (Essencial, Pro e Max, site institucional): decisão do Robson sobre retirar/trocar fica pendente.
+- Site novo publicado em wmundi.com via snippet "WMundi site novo" (Code Snippets, id 22). Loja e Stripe continuam no WordPress.
+- Pendente: logos de clientes (OralBios, Uningá Polo EAD Maringá, Dental Pós) aguardam os arquivos de imagem.
