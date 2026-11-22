@@ -3,18 +3,18 @@ external,WM-PRECIFICADOR,Precificador de Hotelaria,1
 external,WM-PONTO,Ponto por Reconhecimento Facial,2
 external,WM-COMPLETODONTO,Completodonto,3
 external,WM-REVAH,REVAH,4
-external,WM-HOTELARIA,Gerenciador de Hotelaria,5
-external,WM-ESTOQUE,Controle de estoque,6
-external,WM-ERP,ERP sob medida por segmento,7
-external,WM-RH,Gerenciador de RH,8
-external,WM-ALIGNSYSTEM,AlignSystem®,9
-external,WM-MEDICINAONLINE,MedicinaOnline,10
-external,WM-AGENTES,Agentes de IA,11
-external,WM-MUNDIBUSINESS,Mundi Business,12
-external,WM-VENDAEMPRESAS,Venda de Empresas,13
-external,WM-ALLCOLLEGE,AllCollege,14
-external,WM-EDUMASTER,EduMaster Pro,15
-external,WM-WHATSPEAK,WhatSpeak,16
+external,WM-ALLCOLLEGE,AllCollege,5
+external,WM-WHATSPEAK,WhatSpeak,6
+external,WM-HOTELARIA,Gerenciador de Hotelaria,7
+external,WM-ESTOQUE,Controle de estoque,8
+external,WM-ERP,ERP sob medida por segmento,9
+external,WM-RH,Gerenciador de RH,10
+external,WM-ALIGNSYSTEM,AlignSystem®,11
+external,WM-MEDICINAONLINE,MedicinaOnline,12
+external,WM-AGENTES,Agentes de IA,13
+external,WM-MUNDIBUSINESS,Mundi Business,14
+external,WM-VENDAEMPRESAS,Venda de Empresas,15
+external,WM-EDUMASTER,EduMaster Pro,16
 external,WM-CASHBACK,Cashbacksmart,17
 external,WM-CLUBEFAZ,ClubeFaz,18
 external,WM-LAVACAR,Lavacar Smartwash,19

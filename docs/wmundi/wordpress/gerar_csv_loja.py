@@ -29,10 +29,12 @@ P = [
      ul(["Agendamento on-line por profissional", "Marketing integrado e relacionamento com clientes", "Programas de assinatura", "Gestão do negócio em um só lugar"]) + CONSULTA),
     ("WM-MEDICINAONLINE", "MedicinaOnline", "Saúde", "", "Consultas on-line e tratamentos híbridos.",
      ul(["Teleconsultas com agendamento on-line", "Tratamentos híbridos: remoto e presencial combinados", "Cadastro de pacientes e agenda integrados", "Lembretes e confirmação automáticos"]) + CONSULTA),
-    ("WM-WHATSPEAK", "WhatSpeak", "Educação", "", "Cursos de idiomas, começando pelo inglês.",
-     ul(["Curso de inglês como ponto de partida", "Trilhas por nível e acompanhamento do aluno", "Aprendizado pelo celular"]) + CONSULTA),
-    ("WM-ALLCOLLEGE", "AllCollege", "Educação", "", "Reforço do ensino fundamental ao vestibular e preparatório para as principais provas.",
-     ul(["Reforço escolar do ensino fundamental ao médio", "Preparação para vestibulares e ENEM", "ENAMED, ENADE e OAB", "Concursos públicos"]) + CONSULTA),
+    ("WM-WHATSPEAK", "WhatSpeak", "Educação", "", "Cursos de idiomas, começando pelo inglês. Premium a US$ 10 por mês.",
+     ul(["Curso de inglês como ponto de partida", "Trilhas por nível e acompanhamento do aluno", "Aprendizado pelo celular", "Lições ilimitadas no plano Premium"])
+     + "<p><b>Premium: US$ 10 por mês</b> (cobrança em dólar, nas lojas de aplicativos).</p>"),
+    ("WM-ALLCOLLEGE", "AllCollege", "Educação", "29.90", "Reforço do ensino fundamental ao vestibular e preparatório para as principais provas. Premium a R$ 29,90 por mês.",
+     ul(["Reforço escolar do ensino fundamental ao médio", "Preparação para vestibulares e ENEM", "ENAMED, ENADE e OAB", "Concursos públicos", "Tutor de IA de plantão"])
+     + "<p><b>AllCollege Premium: R$ 29,90 por mês</b> (simulados ilimitados, banco de questões completo e trilha 80/20 personalizada). Cancele quando quiser.</p><p>Há plano gratuito para conhecer. Pacotes extras do Tutor de IA: R$ 9,90 e R$ 24,90.</p>"),
     ("WM-LAVACAR", "Lavacar Smartwash", "Comércio e serviços", "", "Gestão de lava-car, com marketing e programa de assinatura integrados.",
      ul(["Agendamento de serviços", "Marketing integrado", "Programa de assinatura para clientes frequentes"]) + CONSULTA),
     ("WM-MEUEMPREGO", "MeuEmprego, assinatura para empresas", "Carreira", "", "Sistema de oferta de vagas, em assinatura para empresas.",
