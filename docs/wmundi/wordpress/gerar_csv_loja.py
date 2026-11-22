@@ -15,8 +15,9 @@ def ul(itens):
 
 
 P = [
-    ("WM-REVAH", "REVAH", "Marketing e vendas", "", "Mensageria multicanal com CRM e inteligência artificial.",
-     ul(["WhatsApp, SMS, e-mail e voz em um só lugar", "CRM com o histórico completo de cada contato", "Campanhas e automações de relacionamento", "Robô de atendimento com IA e transferência para a equipe"]) + CONSULTA),
+    ("WM-REVAH", "REVAH", "Marketing e vendas", "247", "Mensageria multicanal com CRM e inteligência artificial.",
+     ul(["WhatsApp, SMS, e-mail e voz em um só lugar", "CRM com o histórico completo de cada contato", "Campanhas e automações de relacionamento", "Robô de atendimento com IA e transferência para a equipe"])
+     + "<p><b>Planos mensais:</b> START R$ 247 (5 mil mensagens, IA básica, 1 integração de CRM, 5 templates) · PRO R$ 597 (25 mil mensagens, IA avançada, integrações e templates ilimitados) · ENTERPRISE sob consulta.</p><p>14 dias grátis em qualquer plano.</p>"),
     ("WM-COMPLETODONTO", "Completodonto", "Saúde", "197", "Gestão odontológica completa: agenda, prontuário, financeiro e marketing em um só lugar.",
      ul(["Agenda inteligente, com agendamento on-line e confirmação automática", "Prontuário digital, odontograma e plano de tratamento", "Financeiro, cobrança e recebimentos (Pix, boleto e cartão)", "Recall, marketing e relacionamento com o paciente"])
      + "<p><b>Planos mensais:</b> Basic R$ 197 · Intermedium R$ 397 · Plenum R$ 597.</p><p>Profissionais: 30 dias grátis, sem cartão.</p>"),
@@ -68,7 +69,7 @@ P += [
     ("WM-CLUBEFAZ", "ClubeFaz", "Comércio e serviços", "", "Clube de profissionais prestadores de serviço.",
      ul(["Rede de profissionais prestadores de serviço", "Perfil profissional para ser encontrado", "Contratação de serviços de forma simples"]) + CONSULTA),
     ("WM-SPACEHOUR", "SpaceHour", "Comércio e serviços", "", "Locação de espaços compartilhados com outros profissionais: escritórios, salas, clínicas e mais.",
-     ul(["Reserva de espaços por hora", "Anfitriões anunciam e profissionais reservam", "Verificação de identidade e regras claras de uso"]) + CONSULTA),
+     ul(["Reserva de espaços por hora", "Anfitriões anunciam e profissionais reservam", "Verificação de identidade e regras claras de uso"]) + "<p><b>Sem mensalidade para o anfitrião:</b> o SpaceHour cobra 5% por reserva paga, mais a tarifa do meio de pagamento.</p>"),
     ("WM-EDUMASTER", "EduMaster Pro", "Educação", "", "Gerenciador educacional completo: conteúdo acadêmico, AVA, administrativo e muito mais.",
      ul(["Conteúdo acadêmico e ambiente virtual de aprendizagem", "Matrículas, turmas, calendário e financeiro", "Comunicação com alunos e responsáveis"]) + CONSULTA),
     ("WM-ALIGNSYSTEM", "AlignSystem®", "Saúde", "", "Consultas odontológicas on-line e presencial, com agendamento automático e on-line.",

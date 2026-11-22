@@ -2,15 +2,15 @@
 external,WM-PRECIFICADOR,Precificador de Hotelaria,1
 external,WM-PONTO,Ponto por Reconhecimento Facial,2
 external,WM-COMPLETODONTO,Completodonto,3
-external,WM-HOTELARIA,Gerenciador de Hotelaria,4
-external,WM-ESTOQUE,Controle de estoque,5
-external,WM-ERP,ERP sob medida por segmento,6
-external,WM-RH,Gerenciador de RH,7
-external,WM-ALIGNSYSTEM,AlignSystem®,8
-external,WM-MEDICINAONLINE,MedicinaOnline,9
-external,WM-AGENTES,Agentes de IA,10
-external,WM-MUNDIBUSINESS,Mundi Business,11
-external,WM-REVAH,REVAH,12
+external,WM-REVAH,REVAH,4
+external,WM-HOTELARIA,Gerenciador de Hotelaria,5
+external,WM-ESTOQUE,Controle de estoque,6
+external,WM-ERP,ERP sob medida por segmento,7
+external,WM-RH,Gerenciador de RH,8
+external,WM-ALIGNSYSTEM,AlignSystem®,9
+external,WM-MEDICINAONLINE,MedicinaOnline,10
+external,WM-AGENTES,Agentes de IA,11
+external,WM-MUNDIBUSINESS,Mundi Business,12
 external,WM-VENDAEMPRESAS,Venda de Empresas,13
 external,WM-ALLCOLLEGE,AllCollege,14
 external,WM-EDUMASTER,EduMaster Pro,15

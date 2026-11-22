@@ -15,3 +15,10 @@ with open(aqui / "loja/ordem-produtos-loja.csv", "w", newline="", encoding="utf-
         w.writerow(["external", x["SKU"], x["Name"], i])
 for i, x in enumerate(ordem, 1):
     print(i, x["Name"], "|", x["Categories"], "| R$", x["Regular price"] or "Consulte")
+
+# arquivo único de atualização: textos, preços e ordem (usar com "Atualizar produtos existentes" marcada)
+with open(aqui / "loja/atualizacao-loja.csv", "w", newline="", encoding="utf-8-sig") as f:
+    w = csv.writer(f)
+    w.writerow(["Type", "SKU", "Name", "Short description", "Description", "Regular price", "Position"])
+    for i, x in enumerate(ordem, 1):
+        w.writerow(["external", x["SKU"], x["Name"], x["Short description"], x["Description"], x["Regular price"], i])
