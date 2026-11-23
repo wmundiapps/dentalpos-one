@@ -7,6 +7,8 @@ interface PageHeaderProps {
   actionLabel?: string;
   actionIcon?: ReactNode;
   onAction?: () => void;
+  secondaryLabel?: string;
+  onSecondary?: () => void;
   compact?: boolean;
 }
 
@@ -16,6 +18,8 @@ export default function PageHeader({
   actionLabel,
   actionIcon,
   onAction,
+  secondaryLabel,
+  onSecondary,
   compact = false,
 }: PageHeaderProps) {
   return (
@@ -57,6 +61,11 @@ export default function PageHeader({
         )}
       </Box>
 
+      {secondaryLabel && (
+        <Button variant="outlined" size="large" onClick={onSecondary}>
+          {secondaryLabel}
+        </Button>
+      )}
       {actionLabel && (
         <Button
           variant="contained"

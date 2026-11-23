@@ -35,6 +35,8 @@ interface Props {
   onResize?: (appointment: IntegratedAppointment, durationMinutes: number) => Promise<void> | void;
   // Arrastar o agendamento para outro dia/horário (pede o motivo e confirma na tela de quem usa).
   onMove?: (appointment: IntegratedAppointment, dateISO: string, time: string) => void;
+  // Clicar num compromisso (bloco com horário) da grade.
+  onBlockClick?: (block: AgendaBlock) => void;
   // Altura máxima da área rolável (o cabeçalho dos dias fica fixo no topo enquanto a grade rola).
   maxHeight?: string | number;
   materialAlerts?: Map<string, string>;
@@ -356,6 +358,7 @@ function TimeGridView({
   onNew,
   onResize,
   onMove,
+  onBlockClick,
   maxHeight,
   materialAlerts,
   financialAlerts,
@@ -707,6 +710,25 @@ function TimeGridView({
                   );
                 })}
 
+                {agendaBlocks.filter((b) => {
+                  if (b.doctorId && professionalId && b.doctorId !== professionalId) return false;
+                  const bs = new Date(b.startAt).getTime(); const be = new Date(b.endAt).getTime();
+                  const ds = new Date(`${dayISO}T00:00:00`).getTime(); const de = ds + 86400000;
+                  return bs < de && be > ds && be - bs < 20 * 3600000;
+                }).map((b) => {
+                  const ds = new Date(`${dayISO}T00:00:00`).getTime();
+                  const sMin = Math.max(START_MINUTES, Math.round((new Date(b.startAt).getTime() - ds) / 60000));
+                  const eMin = Math.min(END_MINUTES, Math.round((new Date(b.endAt).getTime() - ds) / 60000));
+                  if (eMin <= sMin) return null;
+                  return (
+                    <Tooltip key={`blk-${dayISO}-${b.id}`} title={`${b.reason} • ${timeFromMinutes(sMin)}–${timeFromMinutes(eMin)}`} arrow>
+                      <Box onClick={(event) => { event.stopPropagation(); onBlockClick?.(b); }} sx={{ position: "absolute", left: gutter, right: 4, top: Y(sMin), height: Math.max(22, Y(eMin) - Y(sMin)), zIndex: 3, p: 0.6, overflow: "hidden", cursor: onBlockClick ? "pointer" : "default", bgcolor: "#fff4e5", border: "1px solid #f3c98b", borderLeft: "3px solid #ed6c02", borderRadius: 1.25 }}>
+                        <Typography variant="caption" noWrap sx={{ display: "block", fontWeight: 700, color: "#8a4b00", lineHeight: 1.2 }}>{b.reason}</Typography>
+                        <Typography variant="caption" sx={{ display: "block", fontSize: 10.5, color: "#8a4b00", lineHeight: 1.2 }}>{timeFromMinutes(sMin)} - {timeFromMinutes(eMin)}</Typography>
+                      </Box>
+                    </Tooltip>
+                  );
+                })}
                 {dragOver && dragOver.dayISO === dayISO ? (
                   <Box sx={{ position: "absolute", left: 0, right: 0, top: dragOver.top, height: 0, borderTop: "2px solid #1565c0", zIndex: 6, pointerEvents: "none" }}>
                     <Typography variant="caption" sx={{ position: "absolute", right: 4, top: -18, bgcolor: "#1565c0", color: "#fff", borderRadius: 1, px: 0.6, fontWeight: 700 }}>{dragOver.label}</Typography>
@@ -937,6 +959,7 @@ export default function AgendaCalendarBoard(props: Props) {
       onNew={props.onNew}
       onResize={props.onResize}
       onMove={props.onMove}
+      onBlockClick={props.onBlockClick}
       maxHeight={props.maxHeight}
       materialAlerts={props.materialAlerts}
       financialAlerts={props.financialAlerts}

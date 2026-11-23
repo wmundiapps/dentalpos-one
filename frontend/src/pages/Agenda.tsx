@@ -337,6 +337,13 @@ export default function Agenda() {
   const [edit, setEdit] = useState<IntegratedAppointment | null>(null);
   const [moveReq, setMoveReq] = useState<{ appointment: IntegratedAppointment; dateISO: string; time: string } | null>(null);
   const [moveReason, setMoveReason] = useState("");
+  const [compOpen, setCompOpen] = useState(false);
+  const [compTitle, setCompTitle] = useState("");
+  const [compDoctor, setCompDoctor] = useState("");
+  const [compDate, setCompDate] = useState("");
+  const [compStart, setCompStart] = useState("12:00");
+  const [compEnd, setCompEnd] = useState("13:00");
+  const [compBusy, setCompBusy] = useState(false);
   const [moveBusy, setMoveBusy] = useState(false);
   const refreshAfterQuickAction = async () => {
     const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
@@ -1081,6 +1088,8 @@ export default function Agenda() {
         actionLabel="Novo agendamento"
         actionIcon={<AddIcon />}
         onAction={() => openNew({ dateISO: date })}
+        secondaryLabel="Novo compromisso"
+        onSecondary={() => { setCompDoctor(selectedBackendDoctorId || ""); setCompDate(date); setCompTitle(""); setCompStart("12:00"); setCompEnd("13:00"); setCompOpen(true); }}
       />
       <AbsenceRecallDialog open={absenceOpen} onClose={() => setAbsenceOpen(false)} />
       <AgendaPrintDialog open={printOpen} onClose={() => setPrintOpen(false)} items={items} professionals={professionals} defaultView={view} dateISO={date} defaultProfessional={professional} />
@@ -1310,6 +1319,7 @@ export default function Agenda() {
             }}
             maxHeight="calc(100vh - 190px)"
             onNew={(prefill) => openNew(prefill)}
+            onBlockClick={(block) => { if (!block.reason.startsWith("Compromisso")) return; if (window.confirm(`Excluir o compromisso "${block.reason.replace(/^Compromisso:\s*/, "")}"?`)) void (async () => { try { await deleteAgendaBlock(block.id); await refreshAgendaConfiguration(); toast.success("Compromisso excluído."); } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível excluir."); } })(); }}
             onMove={(appointment, dateISO, time) => { if (appointment.dateISO === dateISO && appointment.time === time) return; setMoveReq({ appointment, dateISO, time }); setMoveReason(""); }}
             onResize={async (appointment, durationMinutes) => {
               if (!appointment.backendId) return;
@@ -1323,6 +1333,41 @@ export default function Agenda() {
           </AgendaMarkersContext.Provider>
         </Paper>
       </Box>
+
+      <Dialog open={compOpen} onClose={() => !compBusy && setCompOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Novo compromisso</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "grid", gap: 1.5, mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary">Reserva o horário na agenda, sem paciente (reunião, curso, almoço, pessoal...). Ninguém consegue agendar nesse horário.</Typography>
+            <TextField size="small" label="Compromisso" placeholder="Ex.: Reunião com fornecedor" value={compTitle} onChange={(e) => setCompTitle(e.target.value)} autoFocus />
+            <TextField select size="small" label="Profissional" value={compDoctor} onChange={(e) => setCompDoctor(e.target.value)}>
+              <MenuItem value="">Toda a clínica</MenuItem>
+              {backendDoctors.map((d) => <MenuItem key={d.id} value={d.id}>{`${d.user.firstName} ${d.user.lastName}`.trim()}</MenuItem>)}
+            </TextField>
+            <TextField size="small" type="date" label="Data" value={compDate} onChange={(e) => setCompDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+              <TextField size="small" type="time" label="Início" value={compStart} onChange={(e) => setCompStart(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+              <TextField size="small" type="time" label="Fim" value={compEnd} onChange={(e) => setCompEnd(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} error={Boolean(compStart && compEnd && compEnd <= compStart)} />
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={compBusy} onClick={() => setCompOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={compBusy || compTitle.trim().length < 2 || !compDate || !compStart || !compEnd || compEnd <= compStart} onClick={async () => {
+            const start = new Date(`${compDate}T${compStart}:00`); const end = new Date(`${compDate}T${compEnd}:00`);
+            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) { toast.error("Data ou horário inválido."); return; }
+            const doc = backendDoctors.find((d) => d.id === compDoctor);
+            setCompBusy(true);
+            try {
+              await createAgendaBlock({ doctorId: compDoctor || null, startAt: start.toISOString(), endAt: end.toISOString(), reason: `Compromisso: ${compTitle.trim()}${doc ? ` (${`${doc.user.firstName} ${doc.user.lastName}`.trim()})` : ""}` });
+              await refreshAgendaConfiguration();
+              toast.success("Compromisso agendado.");
+              setCompOpen(false);
+            } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível salvar o compromisso."); }
+            finally { setCompBusy(false); }
+          }}>Salvar compromisso</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={Boolean(moveReq)} onClose={() => !moveBusy && setMoveReq(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Mover agendamento</DialogTitle>
