@@ -19,7 +19,7 @@ lang: pt-BR
 |---|---|---|
 | 1 | **Uma página própria para cada produto e segmento** (hoje há uma só, `/portfolio/`, com cartões) | O Google ranqueia páginas, não cartões. Sem página, não existe resultado |
 | 2 | **Páginas escritas para serem citadas**: resposta direta nas duas primeiras linhas, tabela, perguntas e respostas | É o formato que a IA do Google copia e cita |
-| 3 | **Autoria e credenciais do CEO** em tudo (dentista, CEO, desenvolvedor Apple e Android, cursos em Harvard Online) | O Google e as IAs priorizam quem demonstra experiência real (E-E-A-T) |
+| 3 | **Autoria e credenciais do CEO** em tudo (dentista, CEO, desenvolvedor Apple e Android, curso Marketing Entrepreneur (HBS Online)) | O Google e as IAs priorizam quem demonstra experiência real (E-E-A-T) |
 | 4 | **Presença fora do site**: Google Meu Negócio, diretórios de software, lojas de aplicativos, LinkedIn, YouTube | As IAs citam o que outros sites dizem sobre você |
 | 5 | **Medir toda semana** (Search Console, GA4, teste de citação em IA) | Sem medir, não se sabe o que funciona |
 
