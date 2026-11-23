@@ -33,4 +33,10 @@ npx tsx scripts/edu-demo-user.ts || true
 npx tsx scripts/edu-guest-user.ts || true
 # Os 10 acessos de teste da Uningá, um por setor, com prazo de 1 semana
 npx tsx scripts/edu-uninga-test-users.ts || true
+# CLEAR_TENANT_DATA=dryrun|commit: limpa os dados fictícios do tenant (mantém Clinic e User). Rode uma vez e desligue a variável.
+if [ "$CLEAR_TENANT_DATA" = "dryrun" ]; then
+  npx tsx scripts/edu-clear-tenant-data.ts --tenant="${DEMO_TENANT:-sua-instituicao}" || true
+elif [ "$CLEAR_TENANT_DATA" = "commit" ]; then
+  npx tsx scripts/edu-clear-tenant-data.ts --tenant="${DEMO_TENANT:-sua-instituicao}" --commit || true
+fi
 wait $SERVER
