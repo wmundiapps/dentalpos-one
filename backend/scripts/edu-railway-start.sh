@@ -31,4 +31,6 @@ fi
 npx tsx scripts/edu-demo-user.ts || true
 # Usuário convidado com prazo de acesso (GUEST_USER_EMAIL/GUEST_USER_PASSWORD/GUEST_EXPIRES_AT)
 npx tsx scripts/edu-guest-user.ts || true
+# Os 10 acessos de teste da Uningá, um por setor, com prazo de 1 semana
+npx tsx scripts/edu-uninga-test-users.ts || true
 wait $SERVER
