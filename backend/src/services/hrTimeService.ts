@@ -33,6 +33,12 @@ export function pickKind(
   const ub1 = Math.max(ls, le - 30)
   const ub = [ls, ub1, Math.max(ub1 + 1, Math.min(le + 120, we - 90)), Infinity]
   const lastIdx = doneKinds.reduce((mx, k) => Math.max(mx, KINDS.indexOf(k as (typeof KINDS)[number])), -1)
+  // Tolerância de 10 minutos: bateu até 10 min antes/depois do horário previsto de uma batida que ainda falta, é essa batida
+  // (as anteriores que não foram feitas ficam puladas). Fora da tolerância, vale a faixa de horário acima.
+  const marks = [ws, ls, le, we]
+  for (let i = lastIdx + 1; i < KINDS.length; i++) {
+    if (Math.abs(nowMin - marks[i]) <= 10) return KINDS[i]
+  }
   for (let i = lastIdx + 1; i < KINDS.length; i++) {
     if (nowMin < ub[i]) return KINDS[i]
   }
