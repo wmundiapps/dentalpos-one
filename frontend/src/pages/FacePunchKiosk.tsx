@@ -32,9 +32,15 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
     const link = document.createElement("link");
     link.rel = "manifest"; link.href = "/manifest-ponto.webmanifest";
     document.head.appendChild(link);
+    // Ícone de atalho e nome neutros (sem a marca do sistema) só nesta tela.
+    const touch = document.createElement("link");
+    touch.rel = "apple-touch-icon"; touch.href = "/brand/ponto-192.png";
+    document.head.appendChild(touch);
+    const prevDesc = document.querySelector('meta[name="description"]')?.getAttribute("content") || "";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", "Registro de ponto.");
     const prev = document.title;
     document.title = "Ponto";
-    return () => { link.remove(); document.title = prev; };
+    return () => { link.remove(); touch.remove(); document.querySelector('meta[name="description"]')?.setAttribute("content", prevDesc); document.title = prev; };
   }, []);
 
 
