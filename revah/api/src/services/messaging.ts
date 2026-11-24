@@ -5,7 +5,7 @@ import { decryptJson, signPayload } from '../lib/crypto'
 import { badRequest, conflict } from '../lib/errors'
 import { normalizeDestination, type Channel } from '../lib/normalize'
 import { adapterFor } from './channels/providers'
-import type { WaTemplate } from './channels/types'
+import type { SendInput, WaTemplate } from './channels/types'
 import { findOrCreateByChannel, contactAddress } from './contacts'
 import { assertCanSend } from './plans'
 import { isSuppressed } from './suppression'
@@ -28,6 +28,7 @@ export interface SendMessageInput {
   appendOptOutHint?: boolean
   skipUsageCheck?: boolean
   metadata?: Record<string, unknown>
+  carousel?: SendInput['carousel']
 }
 
 export async function pickChannelAccount(tenantId: string, channel: Channel, id?: string | null) {
@@ -84,7 +85,9 @@ export async function sendMessage(input: SendMessageInput) {
     channel,
     provider: account.provider,
     direction: 'OUT',
-    content: finalText || `[modelo ${input.template?.name}]`,
+    content: input.carousel
+      ? `${finalText || ''}\n[carrossel: ${input.carousel.carousel.cards.map((c) => c.title).join(' | ')}]`.trim()
+      : finalText || `[modelo ${input.template?.name}]`,
     subject: input.subject || null,
     aiGenerated: Boolean(input.aiGenerated),
     sentByUserId: input.userId || null,
@@ -135,6 +138,7 @@ export async function sendMessage(input: SendMessageInput) {
         text: finalText,
         subject: input.subject,
         template,
+        carousel: input.carousel || null,
         unsubscribeUrl: channel === 'EMAIL' ? unsubscribeUrl(tenant.id, channel, destination) : null,
       })
     }

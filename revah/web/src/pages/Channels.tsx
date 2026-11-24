@@ -6,6 +6,7 @@ import { useAuthed } from '../lib/session'
 import type { Channel, ChannelAccount, ProviderInfo } from '../lib/types'
 import { useFeedback } from '../components/feedback'
 import { Alert, Badge, Button, Card, CopyButton, EmptyState, ErrorBox, Field, Loading, Modal, PageHeader, Toggle, useLoad } from '../components/ui'
+import { WhatsAppConnectButton } from './WhatsAppConnect'
 
 interface ProvidersResponse {
   providers: ProviderInfo[]
@@ -48,9 +49,12 @@ export default function Channels() {
         subtitle="Números e contas usados para enviar e receber mensagens e ligações."
         actions={
           canManage && (
-            <Button variant="primary" icon={<Plus size={16} />} onClick={() => setConnectOpen(true)}>
-              Conectar canal
-            </Button>
+            <div className="row wrap gap-xs">
+              <WhatsAppConnectButton onConnected={() => list.reload(true)} />
+              <Button icon={<Plus size={16} />} onClick={() => setConnectOpen(true)}>
+                Conectar outro canal
+              </Button>
+            </div>
           )
         }
       />
@@ -85,6 +89,11 @@ export default function Channels() {
                 <div className="row wrap gap-xs">
                   {a.isDefault && <Badge tone="indigo">Padrão</Badge>}
                   {a.simulated && <Badge tone="blue">Simulado</Badge>}
+                  {a.channel === 'WHATSAPP' && a.settings?.qualityRating && (
+                    <Badge tone={a.settings.qualityRating === 'GREEN' || a.settings.qualityRating === 'HIGH' ? 'green' : a.settings.qualityRating === 'YELLOW' || a.settings.qualityRating === 'MEDIUM' ? 'amber' : a.settings.qualityRating === 'UNKNOWN' ? 'gray' : 'red'} title="Qualidade do número na Meta">
+                      Qualidade: {a.settings.qualityRating === 'GREEN' || a.settings.qualityRating === 'HIGH' ? 'alta' : a.settings.qualityRating === 'YELLOW' || a.settings.qualityRating === 'MEDIUM' ? 'média' : a.settings.qualityRating === 'UNKNOWN' ? 'em análise' : 'baixa'}
+                    </Badge>
+                  )}
                   <Badge tone={a.isActive ? 'green' : 'gray'}>{a.isActive ? 'Ativo' : 'Inativo'}</Badge>
                 </div>
               </div>

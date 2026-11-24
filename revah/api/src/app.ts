@@ -15,6 +15,7 @@ import authRoutes from './routes/auth'
 import automationRoutes from './routes/automations'
 import billingRoutes from './routes/billing'
 import campaignRoutes from './routes/campaigns'
+import catalogRoutes from './routes/catalog'
 import channelRoutes from './routes/channels'
 import cronRoutes from './routes/cron'
 import crmRoutes from './routes/crm'
@@ -70,7 +71,7 @@ export function createApp() {
 
   const authed = express.Router()
   authed.use(requireAuth)
-  authed.use(crmRoutes, channelRoutes, templateRoutes, campaignRoutes, inboxRoutes, automationRoutes, voiceRoutes, leadRoutes, settingsRoutes)
+  authed.use(crmRoutes, channelRoutes, templateRoutes, campaignRoutes, catalogRoutes, inboxRoutes, automationRoutes, voiceRoutes, leadRoutes, settingsRoutes)
   authed.use('/admin', requireSuperadmin)
   authed.use(adminRoutes)
   app.use(authed)

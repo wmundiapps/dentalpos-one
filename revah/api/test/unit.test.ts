@@ -122,3 +122,65 @@ test('filtro de texto das campanhas: recusa conteúdo adulto e link de executáv
   assert.equal(checkText('Disputa de preços, reputação e computador novo'), null)
   assert.equal(checkText('Baixe o PDF: https://site.com.br/catalogo.pdf'), null)
 })
+
+// --- Carrossel de ofertas -----------------------------------------------------
+import {
+  CarouselSchema,
+  decodePayload,
+  encodePayload,
+  openingForMeta,
+  telegramCard,
+  waCarouselMessage,
+  waCarouselTemplateDefinition,
+} from '../src/services/carouselFormat'
+
+const sampleCarousel = CarouselSchema.parse({
+  cards: [
+    { title: 'Pedagogia', subtitle: 'Licenciatura · EAD', imageUrl: 'https://exemplo.com/a.jpg' },
+    { title: 'Enfermagem', subtitle: 'Bacharelado · Presencial', imageUrl: 'https://exemplo.com/b.jpg' },
+  ],
+})
+
+test('carrossel: payload dos botões ida e volta, cabendo nos 64 bytes do Telegram', () => {
+  const id = 'cm3x9k2l10000abcdefghijkl'
+  const p = encodePayload(id, 9, 'i')
+  assert.ok(Buffer.byteLength(p) <= 64)
+  assert.deepEqual(decodePayload(p), { campaignId: id, index: 9, action: 'i' })
+  assert.equal(decodePayload('qualquer coisa'), null)
+  assert.equal(decodePayload('rv:abc:1:z'), null)
+})
+
+test('carrossel: valida quantidade de cards e botões iguais em todos', () => {
+  assert.equal(CarouselSchema.safeParse({ cards: [sampleCarousel.cards[0]] }).success, false)
+  const mixed = { cards: [{ ...sampleCarousel.cards[0], buttonUrl: 'https://x.com' }, sampleCarousel.cards[1]] }
+  assert.equal(CarouselSchema.safeParse(mixed).success, false)
+  assert.equal(sampleCarousel.cards[0].buttonText, 'Quero saber mais')
+})
+
+test('carrossel: texto de abertura aceita só o nome como variável', () => {
+  assert.deepEqual(openingForMeta('Oi, {{primeiro_nome}}! Inscrições abertas.'), { text: 'Oi, {{1}}! Inscrições abertas.', params: ['{{primeiro_nome}}'] })
+  assert.deepEqual(openingForMeta('Inscrições abertas.'), { text: 'Inscrições abertas.', params: [] })
+  assert.throws(() => openingForMeta('Oi {{nome}}, curso {{curso}}'))
+})
+
+test('carrossel: template e mensagem do WhatsApp', () => {
+  const def = waCarouselTemplateDefinition({ name: 'revah_carrossel_x', opening: 'Oi, {{primeiro_nome}}!', carousel: sampleCarousel, headerHandles: ['h1', 'h2'] })
+  assert.equal(def.category, 'MARKETING')
+  const cards = (def.components[1] as any).cards
+  assert.equal(cards.length, 2)
+  assert.deepEqual(cards[0].components[2].buttons.map((b: any) => b.text), ['Quero saber mais', 'Não quero receber'])
+  const msg = waCarouselMessage({ to: '5544999991111', templateName: 'revah_carrossel_x', bodyParams: ['Ana'], campaignId: 'cm3x9k2l10000abcdefghijkl', carousel: sampleCarousel })
+  const carousel = (msg.template.components as any[]).find((c) => c.type === 'carousel')
+  assert.equal(carousel.cards[1].card_index, 1)
+  assert.equal(decodePayload(carousel.cards[1].components[1].parameters[0].payload)?.index, 1)
+  assert.equal(decodePayload(carousel.cards[1].components[2].parameters[0].payload)?.action, 'x')
+})
+
+test('carrossel: card do Telegram com setas que dão a volta', () => {
+  const view = telegramCard({ campaignId: 'cm3x9k2l10000abcdefghijkl', carousel: sampleCarousel, index: 0, opening: 'Oi, Ana!' })
+  assert.ok(view.caption.startsWith('Oi, Ana!'))
+  assert.ok(view.caption.includes('1 de 2'))
+  const [prev, next] = view.reply_markup.inline_keyboard[0]
+  assert.equal(decodePayload(prev.callback_data)?.index, 1)
+  assert.equal(decodePayload(next.callback_data)?.index, 1)
+})

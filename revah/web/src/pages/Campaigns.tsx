@@ -20,6 +20,7 @@ import type { AudiencePreview, Campaign, CampaignRecipient, Channel, ChannelAcco
 import { useFeedback } from '../components/feedback'
 import { Alert, Badge, Button, Card, EmptyState, ErrorBox, Field, Loading, Modal, PageHeader, Progress, Stat, Toggle, readFileText, useDebounced, useLoad, usePolling } from '../components/ui'
 import { TrialBanner } from './Dashboard'
+import { CarouselEditor, CarouselPanel, CarouselPreview, EMPTY_CAROUSEL, carouselPayload, validateCarousel } from './CarouselEditor'
 
 export default function Campaigns() {
   const { id } = useParams()
@@ -180,7 +181,14 @@ function CampaignDetail({ id }: { id: string }) {
                     Envio de teste
                   </Button>
                 )}
-                <Button variant="primary" icon={<Rocket size={16} />} loading={busy === 'launch'} onClick={() => action('launch')}>
+                <Button
+                  variant="primary"
+                  icon={<Rocket size={16} />}
+                  loading={busy === 'launch'}
+                  disabled={Boolean(c.carousel) && c.channel === 'WHATSAPP' && c.waTemplateStatus !== 'APPROVED'}
+                  title={c.carousel && c.channel === 'WHATSAPP' && c.waTemplateStatus !== 'APPROVED' ? 'Aguarde a aprovação da Meta' : undefined}
+                  onClick={() => action('launch')}
+                >
                   Disparar
                 </Button>
               </>
@@ -216,6 +224,8 @@ function CampaignDetail({ id }: { id: string }) {
         </>
       )}
 
+      {c.carousel && <CarouselPanel campaign={c} onChanged={() => camp.reload(true)} />}
+
       <div className="grid-2">
         <Card title="Mensagem">
           {c.subject && (
@@ -223,7 +233,11 @@ function CampaignDetail({ id }: { id: string }) {
               <strong>Assunto:</strong> {c.subject}
             </p>
           )}
-          <div className="message-preview">{c.channel === 'VOICE' ? c.voiceScript || c.template : c.template}</div>
+          {c.carousel ? (
+            <CarouselPreview spec={c.carousel} opening={c.template} />
+          ) : (
+            <div className="message-preview">{c.channel === 'VOICE' ? c.voiceScript || c.template : c.template}</div>
+          )}
           {c.waTemplate?.name && (
             <p className="small muted">
               Modelo WhatsApp: {c.waTemplate.name} ({c.waTemplate.language || 'pt_BR'}){c.waTemplate.params?.length ? ` · parâmetros: ${c.waTemplate.params.join(', ')}` : ''}
@@ -409,6 +423,9 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
   const [useWaTpl, setUseWaTpl] = useState(Boolean(initial?.waTemplate?.name))
   const [waTpl, setWaTpl] = useState({ name: initial?.waTemplate?.name || '', language: initial?.waTemplate?.language || 'pt_BR', params: (initial?.waTemplate?.params || []).join('\n') })
   const [optOut, setOptOut] = useState(initial?.appendOptOutHint ?? true)
+  const [useCarousel, setUseCarousel] = useState(Boolean(initial?.carousel))
+  const [carousel, setCarousel] = useState(initial?.carousel || EMPTY_CAROUSEL)
+  const carouselOn = useCarousel && (channel === 'WHATSAPP' || channel === 'TELEGRAM')
   const [scheduledAt, setScheduledAt] = useState(initial?.scheduledAt ? toLocalInput(new Date(initial.scheduledAt)) : '')
   const [preview, setPreview] = useState<AudiencePreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
@@ -433,8 +450,9 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
       template: isVoice ? voiceScript.trim() || template.trim() : template.trim(),
       subject: channel === 'EMAIL' ? subject.trim() || null : null,
       voiceScript: isVoice ? voiceScript.trim() : null,
+      carousel: carouselOn ? carouselPayload(carousel) : null,
       waTemplate:
-        channel === 'WHATSAPP' && useWaTpl && waTpl.name.trim()
+        channel === 'WHATSAPP' && useWaTpl && !carouselOn && waTpl.name.trim()
           ? { name: waTpl.name.trim(), language: waTpl.language.trim() || 'pt_BR', params: waTpl.params.split('\n').map((p) => p.trim()).filter(Boolean) }
           : null,
       audience: {
@@ -458,7 +476,11 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
       if (channel === 'VOICE' && !voiceScript.trim()) return 'Escreva o roteiro da ligação.'
       if (channel !== 'VOICE' && !template.trim()) return 'Escreva a mensagem.'
       if (channel === 'EMAIL' && !subject.trim()) return 'Informe o assunto do e-mail.'
-      if (useWaTpl && channel === 'WHATSAPP' && !waTpl.name.trim()) return 'Informe o nome do modelo aprovado ou desmarque a opção.'
+      if (useWaTpl && channel === 'WHATSAPP' && !carouselOn && !waTpl.name.trim()) return 'Informe o nome do modelo aprovado ou desmarque a opção.'
+      if (carouselOn) {
+        const err = validateCarousel(carousel, channel)
+        if (err) return err
+      }
     }
     return ''
   }
@@ -525,6 +547,21 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
   }
 
   async function launch() {
+    if (carouselOn && channel === 'WHATSAPP') {
+      setSaving('launch')
+      const id = await save()
+      if (!id) return setSaving('')
+      try {
+        await post(`/campaigns/${id}/carousel/submit`)
+        fb.success('Carrossel salvo e enviado para aprovação da Meta. Você dispara assim que for aprovado.')
+      } catch (e) {
+        fb.fail(e)
+      } finally {
+        setSaving('')
+        navigate(`/campanhas/${id}`)
+      }
+      return
+    }
     if (!confirm(scheduledAt ? 'Agendar esta campanha?' : 'Disparar agora? Esta ação não pode ser desfeita.')) return
     setSaving('launch')
     const id = await save()
@@ -710,7 +747,17 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
                   </button>
                 ))}
               </div>
-              {channel === 'WHATSAPP' && (
+              {(channel === 'WHATSAPP' || channel === 'TELEGRAM') && (
+                <div className="details-box stack">
+                  <Toggle checked={useCarousel} onChange={setUseCarousel} label="Enviar como carrossel de ofertas (cards deslizáveis com botão)" />
+                  <p className="small muted">
+                    A mensagem acima vira o texto de abertura.{' '}
+                    {channel === 'WHATSAPP' ? 'No WhatsApp, use só {{primeiro_nome}} ou {{nome}} como variável.' : 'No Telegram, o contato passa os cards com as setas ◀ ▶.'}
+                  </p>
+                  {carouselOn && <CarouselEditor value={carousel} onChange={setCarousel} channel={channel} />}
+                </div>
+              )}
+              {channel === 'WHATSAPP' && !carouselOn && (
                 <div className="details-box">
                   <Toggle checked={useWaTpl} onChange={setUseWaTpl} label="Usar modelo aprovado do WhatsApp (API oficial)" />
                   <p className="small muted">Na API oficial da Meta, mensagens para quem não falou com você nas últimas 24h exigem um modelo aprovado. Parâmetros aceitam variáveis.</p>
@@ -741,7 +788,11 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
           </Card>
           <Card title="Prévia">
             {channel === 'EMAIL' && subject && <div className="strong">{renderPreview(subject, { nome: 'Maria Souza', empresa: 'Souza Odontologia', minha_empresa: session.tenant.name })}</div>}
-            <div className="message-preview">{sample || <span className="muted">A mensagem aparece aqui.</span>}</div>
+            {carouselOn ? (
+              <CarouselPreview spec={carousel} opening={sample} />
+            ) : (
+              <div className="message-preview">{sample || <span className="muted">A mensagem aparece aqui.</span>}</div>
+            )}
             <p className="small muted">Exemplo com o contato “Maria Souza”, da empresa “Souza Odontologia” ({'{{empresa}}'} é a empresa do contato).</p>
           </Card>
         </div>
@@ -806,13 +857,13 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
           </Button>
         ) : (
           <>
-            {channel !== 'VOICE' && (
+            {channel !== 'VOICE' && !(carouselOn && channel === 'WHATSAPP') && (
               <Button icon={<Copy size={16} />} onClick={openTest} loading={saving === 'test'}>
                 Envio de teste
               </Button>
             )}
             <Button variant="primary" icon={<Rocket size={16} />} onClick={launch} loading={saving === 'launch'} disabled={!preview || preview.eligible === 0}>
-              {scheduledAt ? 'Agendar' : 'Disparar'}
+              {carouselOn && channel === 'WHATSAPP' ? 'Salvar e enviar para aprovação' : scheduledAt ? 'Agendar' : 'Disparar'}
             </Button>
           </>
         )}

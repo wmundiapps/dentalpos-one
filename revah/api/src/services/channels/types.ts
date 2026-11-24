@@ -1,4 +1,5 @@
 import type { ChannelAccount } from '@prisma/client'
+import type { Carousel } from '../carouselFormat'
 
 export interface WaTemplate {
   name: string
@@ -14,6 +15,8 @@ export interface SendInput {
   subject?: string | null
   template?: WaTemplate | null
   unsubscribeUrl?: string | null
+  // Carrossel de ofertas (WhatsApp: template CAROUSEL aprovado; Telegram: card com setas).
+  carousel?: { campaignId: string; carousel: Carousel; opening?: string | null } | null
 }
 
 export interface SendResult {

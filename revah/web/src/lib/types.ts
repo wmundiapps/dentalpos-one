@@ -224,6 +224,45 @@ export interface Campaign {
   startedAt: string | null
   completedAt: string | null
   createdAt: string
+  carousel: CarouselSpec | null
+  waTemplateStatus: string | null
+  waTemplateRejection: string | null
+}
+
+// Carrossel de ofertas (WhatsApp: template aprovado pela Meta; Telegram: card com setas).
+export interface CarouselCard {
+  title: string
+  subtitle?: string | null
+  imageUrl: string
+  buttonText: string
+  buttonUrl?: string | null
+  buttonUrlText?: string | null
+  catalogItemId?: string | null
+  tag?: string | null
+}
+
+export interface CarouselSpec {
+  cards: CarouselCard[]
+  optOutButton: boolean
+}
+
+export interface CatalogItem {
+  id: string
+  source: 'MANUAL' | 'DENTALPOS' | 'EDUMASTER' | 'API'
+  externalRef: string | null
+  kind: 'CURSO' | 'TRATAMENTO' | 'PRODUTO' | 'SERVICO' | 'OFERTA'
+  title: string
+  subtitle: string | null
+  imageUrl: string | null
+  url: string | null
+  isActive: boolean
+}
+
+export interface CarouselStats {
+  campaign: { id: string; name: string; channel: Channel; status: string; waTemplateStatus: string | null }
+  funnel: { recipients: number; sent: number; delivered: number; read: number; failed: number; interested: number; optOuts: number }
+  cards: { index: number; title: string; interest: number; optOut: number }[]
+  agents: { userId: string | null; name: string; open: number; total: number }[]
 }
 
 export interface CampaignRecipient {

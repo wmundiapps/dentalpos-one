@@ -1,4 +1,5 @@
 import { config } from '../../config'
+import { telegramCard, waCarouselMessage } from '../carouselFormat'
 import { httpJson, ProviderError, type ProviderAdapter, type SendInput } from './types'
 
 function need(creds: Record<string, any>, ...keys: string[]) {
@@ -12,9 +13,12 @@ function graph(creds: Record<string, any>) {
 
 // WhatsApp — Meta Cloud API (oficial).
 const metaCloud: ProviderAdapter = {
-  async send({ creds, to, text, template }: SendInput) {
+  async send({ creds, to, text, template, carousel }: SendInput) {
     need(creds, 'phoneNumberId', 'accessToken')
-    const body: any = template?.name
+    if (carousel && !template?.name) throw new ProviderError('O carrossel precisa de um modelo aprovado pela Meta.')
+    const body: any = carousel
+      ? waCarouselMessage({ to, templateName: template!.name, language: template!.language, bodyParams: template!.params || [], campaignId: carousel.campaignId, carousel: carousel.carousel })
+      : template?.name
       ? {
           messaging_product: 'whatsapp',
           to,
@@ -75,8 +79,17 @@ const twilioSms: ProviderAdapter = {
 
 // Telegram Bot API.
 const telegram: ProviderAdapter = {
-  async send({ creds, to, text }) {
+  async send({ creds, to, text, carousel }) {
     need(creds, 'botToken')
+    if (carousel) {
+      const view = telegramCard({ campaignId: carousel.campaignId, carousel: carousel.carousel, index: 0, opening: carousel.opening ?? text })
+      const d = await httpJson(`https://api.telegram.org/bot${creds.botToken}/sendPhoto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: to, ...view }),
+      })
+      return { simulated: false, providerMessageId: String(d?.result?.message_id ?? ''), raw: d }
+    }
     const d = await httpJson(`https://api.telegram.org/bot${creds.botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,7 +106,7 @@ const telegram: ProviderAdapter = {
       body: JSON.stringify({
         url: `${config.publicApiUrl}/webhooks/telegram/${account.id}`,
         secret_token: account.webhookSecret,
-        allowed_updates: ['message'],
+        allowed_updates: ['message', 'callback_query'],
       }),
     })
     return { ok: true, info: `Bot @${me?.result?.username} conectado.` }

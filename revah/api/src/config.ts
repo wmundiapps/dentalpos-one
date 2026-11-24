@@ -49,6 +49,10 @@ export const config = {
     verifyToken: process.env.META_VERIFY_TOKEN || '',
     appSecret: process.env.META_APP_SECRET || '',
     graphVersion: process.env.META_GRAPH_VERSION || 'v21.0',
+    // App da WMundi na Meta (Tech Provider): usado no Cadastro Incorporado (cada cliente conecta o próprio número)
+    // e no upload das imagens dos cards do carrossel.
+    appId: process.env.META_APP_ID || '',
+    embeddedSignupConfigId: process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '',
   },
 
   leads: {
