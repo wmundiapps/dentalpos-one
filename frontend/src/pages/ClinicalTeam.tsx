@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import BadgeIcon from "@mui/icons-material/Badge";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import PageHeader from "../components/PageHeader";
+import DoctorWeekScheduleDialog from "../components/DoctorWeekScheduleDialog";
 import { addDoctorDocument, createDoctor, loadClinicUsers, loadDoctorDocuments, loadDoctors, removeDoctorDocument, updateDoctor, type Doctor, type DoctorDocument, type DoctorUser } from "../services/DoctorApi";
 
 const VINCULOS: Array<[string, string]> = [["CLINICA","Sócio / da clínica"],["CLT","CLT"],["PJ","PJ contratado"],["AUTONOMO","Autônomo"],["LOCACAO","Locação de espaço"]];
@@ -38,6 +39,7 @@ export default function ClinicalTeam() {
   const [form, setForm] = useState(VAZIO);
   const [aba, setAba] = useState(0);
   const [docsDe, setDocsDe] = useState<Doctor | null>(null);
+  const [weekDe, setWeekDe] = useState<Doctor | null>(null);
   const [docs, setDocs] = useState<DoctorDocument[]>([]);
   const DOC_VAZIO = { documentType:"RG_CPF", title:"", fileName:"", issueDate:"", expiresAt:"", notes:"" };
   const [docForm, setDocForm] = useState(DOC_VAZIO);
@@ -152,6 +154,7 @@ export default function ClinicalTeam() {
               </Box>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <Button size="small" onClick={() => abrirEdicao(d)}>Editar</Button>
+                <Button size="small" onClick={() => setWeekDe(d)}>Dias e horários</Button>
                 <Button size="small" startIcon={<BadgeIcon />} onClick={() => void abrirDocs(d)}>Documentos</Button>
               </Box>
             </Box>
@@ -288,6 +291,7 @@ export default function ClinicalTeam() {
         </DialogContent>
         <DialogActions><Button onClick={() => setDocsDe(null)}>Fechar</Button></DialogActions>
       </Dialog>
+      <DoctorWeekScheduleDialog doctor={weekDe ? { id: weekDe.id, name: nomeDe(weekDe) } : null} onClose={() => setWeekDe(null)} />
     </Box>
   );
 }
