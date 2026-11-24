@@ -25,6 +25,12 @@ export function pickKind(
 ): (typeof KINDS)[number] | null {
   const tm = (t?: string | null) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null }
   const ws = tm(emp.workStart) ?? tm(fallback.startTime) ?? 480
+  // Turno curto sem almoço cadastrado (até 6 h): só duas batidas, entrada e saída.
+  const wsRaw = tm(emp.workStart), weRaw = tm(emp.workEnd)
+  if ((tm(emp.lunchStart) === null || tm(emp.lunchEnd) === null) && wsRaw !== null && weRaw !== null && weRaw > wsRaw && weRaw - wsRaw <= 360) {
+    if (doneKinds.includes('SAIDA')) return null
+    return doneKinds.includes('ENTRADA') ? 'SAIDA' : 'ENTRADA'
+  }
   const ls = tm(emp.lunchStart) ?? 720
   const le = tm(emp.lunchEnd) ?? Math.max(ls + 60, 780)
   const we = tm(emp.workEnd) ?? ws + Math.round(fallback.dailyHours * 60) + (le - ls)
@@ -382,8 +388,9 @@ async function buildMonth(emp: { id: string; admissionDate: Date; terminationDat
       else if (ps.length >= 4) worked = (m[1] - m[0]) + (m[3] - m[2])
       else if (ps.length >= 2) worked = m[1] - m[0]
       row.workedMin = Math.max(0, worked)
-      const missingKind = ps.length < 4 || new Set(ps.map((p) => p.kind)).size < 4
-      if ((ps.length % 2 === 1 || missingKind) && !(key === today)) { row.status = 'INCOMPLETO'; t.incompletos++ }
+      const noLunchShift = (ls === null || le === null) && ws !== null && we !== null && we > ws && we - ws <= 360
+      const missingKind = noLunchShift ? !(e !== null && sd !== null) : ps.length < 4 || new Set(ps.map((p) => p.kind)).size < 4
+      if ((noLunchShift ? missingKind : ps.length % 2 === 1 || missingKind) && !(key === today)) { row.status = 'INCOMPLETO'; t.incompletos++ }
       const firstEntry = ps.find((p) => p.kind === 'ENTRADA')
       if (firstEntry && expected > 0 && !justified) {
         const late = minutesOfDay(firstEntry.punchedAt, off) - startMin
