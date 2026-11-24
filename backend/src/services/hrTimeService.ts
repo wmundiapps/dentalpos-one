@@ -245,7 +245,9 @@ async function recordPunch(emp: { id: string; name: string; workStart?: string |
   if (todays.length >= KINDS.length || todays.some((p) => p.kind === 'SAIDA')) throw new HrError(409, 'A saída de hoje já foi registrada. Para corrigir, peça ajuste ao RH.')
   const last = todays[todays.length - 1]
   if (last && now.getTime() - last.punchedAt.getTime() < 60000) throw new HrError(409, 'Ponto registrado há instantes. Aguarde 1 minuto.')
-  const kind = pickKind(emp, minutesOfDay(now, off), todays.map((p) => p.kind), { startTime: base.startTime, dailyHours: base.dailyHours })
+  // A jornada (entrada, almoço, saída) vem do cadastro do colaborador; o objeto recebido pode trazer só id e nome.
+  const sched = await prisma.hREmployee.findUnique({ where: { id: emp.id }, select: { workStart: true, lunchStart: true, lunchEnd: true, workEnd: true } })
+  const kind = pickKind(sched || emp, minutesOfDay(now, off), todays.map((p) => p.kind), { startTime: base.startTime, dailyHours: base.dailyHours })
   if (!kind) throw new HrError(409, 'Não há mais batidas para registrar hoje. Para corrigir, peça ajuste ao RH.')
   const row = await prisma.hRTimePunch.create({
     data: { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, employeeId: emp.id, userId: c.userId, kind, punchedAt: now, ip: meta.ip || null, latitude: hasGeo ? lat : null, longitude: hasGeo ? lng : null, accuracyMeters: body?.accuracy !== undefined && Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null, insideWorkplace: inside, workplaceNote: note, method, userAgent: meta.userAgent.slice(0, 200) },
