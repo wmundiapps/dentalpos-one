@@ -5,6 +5,7 @@ import {
   ActionsMenu, DataList, FormDialog, LoadBox, Pick, Section, Status, call, fmtDate, fmtMoney, itemsOf, label, opts, prefill, useApi, useRunner, useToast,
   type Col, type FormField, type Opt, type RowAction,
 } from "../juridico/kit";
+import ExportBar from "../../components/ExportBar";
 
 export { ActionsMenu, DataList, FormDialog, LoadBox, Pick, Section, Status, call, fmtDate, fmtMoney, itemsOf, label, opts, prefill, useApi, useRunner, useToast };
 export type { Col, FormField, Opt, RowAction };
@@ -59,9 +60,11 @@ export function Lista(p: ListaProps) {
     <>
       {node}
       {p.intro}
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
+      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2, alignItems: "center" }}>
         {p.search !== false && <TextField size="small" label="Buscar" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} sx={{ flex: "1 1 180px", minWidth: 0 }} />}
         {(p.filters ?? []).map((f) => <Pick key={f.key} label={f.label} value={fv[f.key] ?? ""} onChange={(v) => { setFv((o) => ({ ...o, [f.key]: v })); setPage(1); }} options={f.options} all="Todos" minWidth={150} />)}
+        <Box sx={{ flex: "1 1 auto" }} />
+        <ExportBar titulo={p.title} linhas={rows} colunas={p.columns} />
       </Box>
       <LoadBox loading={l.loading} error={l.error} empty={!rows.length} emptyText={p.emptyText} onRetry={l.reload}>
         <DataList rows={rows} columns={p.columns} onRowClick={p.onRowClick} actions={(r) => <ActionsMenu items={acoes(r)} />} />
