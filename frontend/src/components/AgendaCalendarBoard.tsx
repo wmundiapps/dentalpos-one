@@ -399,7 +399,7 @@ function TimeGridView({
           end: minuteOfDay(item.endTime),
           step: Math.max(10, item.slotDuration || 30),
         }))
-      : [{ start: 8 * 60, end: 18 * 60, step: 30 }];
+      : doctorOffDay(dayISO) ? [] : [{ start: 8 * 60, end: 18 * 60, step: 30 }];
 
     const rows: Array<{ start: number; end: number; step: number }> = [];
 
@@ -446,11 +446,20 @@ function TimeGridView({
   };
 
   // Dia fechado para todos os profissionais (feriado ou bloqueio de agenda inteira): mostra faixa com o motivo.
-  const closedDay = (dayISO: string) => {
+  const closedByBlock = (dayISO: string) => {
     const start = new Date(`${dayISO}T00:00:00`).getTime();
     const end = start + 86400000 - 60000;
     return agendaBlocks.find((item) => !item.doctorId && new Date(item.startAt).getTime() <= start + 60000 && new Date(item.endAt).getTime() >= end) || null;
   };
+  // Profissional com escala semanal: nos dias fora da escala a agenda fica fechada.
+  const doctorOffDay = (dayISO: string) => {
+    if (!professionalId) return false;
+    const mine = scheduleBlocks.filter((item) => item.doctorId === professionalId);
+    if (!mine.length) return false;
+    const dow = new Date(`${dayISO}T12:00:00`).getDay();
+    return !mine.some((item) => item.dayOfWeek === dow);
+  };
+  const closedDay = (dayISO: string): { reason: string } | null => closedByBlock(dayISO) || (doctorOffDay(dayISO) ? { reason: "Não atende neste dia" } : null);
 
   const breakRows = (dayISO: string) => {
     const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();

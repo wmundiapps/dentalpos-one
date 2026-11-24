@@ -164,6 +164,7 @@ export async function createBackendAppointment(input: {
 }
 export const isFinancialHold = (e: unknown) => (e as { code?: string } | null)?.code === "FINANCIAL_HOLD";
 export async function updateBackendAppointment(id: string, input: {
+  doctorId?: string;
   scheduledAt?: string;
   durationMinutes?: number;
   status?: string;

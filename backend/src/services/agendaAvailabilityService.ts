@@ -94,7 +94,11 @@ export async function getWorkBlocks(
     orderBy: { startTime: 'asc' },
   })
 
-  if (!rows.length) return DEFAULT_WORK_BLOCKS
+  if (!rows.length) {
+    // Se o profissional tem escala semanal cadastrada (ex.: só terça), os outros dias ficam fechados.
+    const hasWeekly = await prisma.schedule.count({ where: { clinicId, tenantId, doctorId } })
+    return hasWeekly > 0 ? [] : DEFAULT_WORK_BLOCKS
+  }
 
   return rows.map(row => ({
     startTime: row.startTime,
