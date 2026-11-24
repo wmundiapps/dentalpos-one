@@ -28,15 +28,21 @@ export function pickKind(
   const ls = tm(emp.lunchStart) ?? 720
   const le = tm(emp.lunchEnd) ?? Math.max(ls + 60, 780)
   const we = tm(emp.workEnd) ?? ws + Math.round(fallback.dailyHours * 60) + (le - ls)
-  const marks = [ws, ls, le, we]
+  // Faixas de horário de cada batida (limite superior). A saída para o almoço vale até 30 min antes da volta prevista;
+  // a volta do almoço vai até 2 h depois do retorno previsto (ou 1h30 antes da saída); depois disso é a saída.
+  const ub1 = Math.max(ls, le - 30)
+  const ub = [ls, ub1, Math.max(ub1 + 1, Math.min(le + 120, we - 90)), Infinity]
   const lastIdx = doneKinds.reduce((mx, k) => Math.max(mx, KINDS.indexOf(k as (typeof KINDS)[number])), -1)
-  let best = -1
-  let bestDiff = Infinity
+  // Tolerância de 10 minutos: bateu até 10 min antes/depois do horário previsto de uma batida que ainda falta, é essa batida
+  // (as anteriores que não foram feitas ficam puladas). Fora da tolerância, vale a faixa de horário acima.
+  const marks = [ws, ls, le, we]
   for (let i = lastIdx + 1; i < KINDS.length; i++) {
-    const d = Math.abs(nowMin - marks[i])
-    if (d < bestDiff) { best = i; bestDiff = d }
+    if (Math.abs(nowMin - marks[i]) <= 10) return KINDS[i]
   }
-  return best < 0 ? null : KINDS[best]
+  for (let i = lastIdx + 1; i < KINDS.length; i++) {
+    if (nowMin < ub[i]) return KINDS[i]
+  }
+  return lastIdx + 1 < KINDS.length ? KINDS[KINDS.length - 1] : null
 }
 const KIND_LABEL: Record<string, string> = { ENTRADA: 'Entrada', SAIDA_ALMOCO: 'Saída para o almoço', VOLTA_ALMOCO: 'Volta do almoço', SAIDA: 'Saída' }
 const JUSTIFIED_STATUS = ['atestado', 'férias', 'ferias', 'folga', 'falta abonada', 'abonada', 'home office']

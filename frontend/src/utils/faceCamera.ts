@@ -40,10 +40,28 @@ export function useCamera(active: boolean) {
   return { videoRef, ready, error };
 }
 
+// Aquece o reconhecimento (compila o WebGL e carrega os modelos) para a primeira leitura não demorar.
+let warmed = false;
+export async function warmUpFace() {
+  if (warmed) return;
+  try {
+    const faceapi = await loadFaceApi();
+    const c = document.createElement("canvas"); c.width = 160; c.height = 120;
+    await faceapi.detectAllFaces(c, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })).withFaceLandmarks(true).withFaceDescriptors();
+    warmed = true;
+  } catch { /* o aquecimento é opcional */ }
+}
+
+// Duas etapas: primeiro só acha o rosto (rápido); o código do rosto, que é a parte pesada, só é calculado quando há um rosto único e grande o bastante.
 export async function describeFace(faceapi: FaceApiModule, video: HTMLVideoElement) {
-  const found = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.6 })).withFaceLandmarks(true).withFaceDescriptors();
-  if (found.length !== 1) return { count: found.length, descriptor: null as number[] | null };
-  return { count: 1, descriptor: Array.from(found[0].descriptor) };
+  const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 256, scoreThreshold: 0.5 });
+  const dets = await faceapi.detectAllFaces(video, opts);
+  if (dets.length !== 1) return { count: dets.length, descriptor: null as number[] | null, far: false };
+  const vw = video.videoWidth || 640;
+  if (dets[0].box.width < vw * 0.16) return { count: 1, descriptor: null as number[] | null, far: true };
+  const found = await faceapi.detectAllFaces(video, opts).withFaceLandmarks(true).withFaceDescriptors();
+  if (found.length !== 1) return { count: found.length, descriptor: null as number[] | null, far: false };
+  return { count: 1, descriptor: Array.from(found[0].descriptor), far: false };
 }
 
 // Foto reduzida (largura 320, JPEG) do quadro atual da câmera, já espelhada como o colaborador se vê.
