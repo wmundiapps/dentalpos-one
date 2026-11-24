@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, TextField, Typography } from "@mui/material";
 import PageHeader from "../components/PageHeader";
-import { describeFace, loadFaceApi, snapshot, useCamera } from "../utils/faceCamera";
+import { describeFace, loadFaceApi, snapshot, useCamera, warmUpFace } from "../utils/faceCamera";
 import { COARSE_HELP, COARSE_LIMIT, GEO_HELP, useBestLocation } from "../hooks/useBestLocation";
 import { clinicPunchApi, type FacePunchResult, type PunchApi } from "../services/HrFaceApi";
 import { Button as MuiButton, Checkbox, FormControlLabel } from "@mui/material";
@@ -16,6 +16,8 @@ const maskCpf = (v: string) => {
 // Ponto no celular/tablet fixo da clínica: o colaborador digita o CPF, a câmera confere o rosto com o cadastro e a foto fica como comprovante.
 export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto por rosto", description = "Digite o CPF, olhe para a câmera e o ponto é registrado com a hora, o local e a foto.", embedded = false, approx = false }: { api?: PunchApi; title?: string; description?: string; embedded?: boolean; approx?: boolean } = {}) {
   const [cpf, setCpf] = useState("");
+  // Enquanto a pessoa digita o CPF, o reconhecimento já é carregado e aquecido para a câmera abrir pronta.
+  useEffect(() => { void warmUpFace(); }, []);
   const [step, setStep] = useState<"cpf" | "camera" | "enroll">("cpf");
   const [firstName, setFirstName] = useState("");
   const [checking, setChecking] = useState(false);
@@ -117,6 +119,7 @@ function CameraStep({ api, cpf, geo, onDone, onFail, onCancel }: { api: PunchApi
           const d = await describeFace(faceapi, videoRef.current);
           if (stop) return;
           if (d.count > 1) setHint("Uma pessoa por vez, por favor.");
+          else if (d.far) setHint("Chegue um pouco mais perto da câmera.");
           else if (d.descriptor) {
             setHint("Conferindo…");
             try { onDone(await api.facePunch(cpf, d.descriptor, snapshot(videoRef.current), geo.current)); }
@@ -124,7 +127,7 @@ function CameraStep({ api, cpf, geo, onDone, onFail, onCancel }: { api: PunchApi
             return;
           } else setHint("Olhe de frente para a câmera.");
         }
-        timer = setTimeout(() => void tick(), 700);
+        timer = setTimeout(() => void tick(), 150);
       };
       void tick();
     })();
