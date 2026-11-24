@@ -16,6 +16,7 @@ import { dispatchRevah } from '../services/revahProviderService'
 import { validarSenhaForte } from '../modules/seguranca/senha'
 import { registrarEvento, ipDaRequisicao } from '../modules/seguranca/eventos'
 import { bloqueioLogin, falhaLogin, sucessoLogin, desafioSegundoFator } from '../modules/seguranca/login'
+import { desafioDispositivo } from '../modules/seguranca/dispositivos'
 
 function jwtSecret() {
   const secret = process.env.JWT_SECRET
@@ -193,6 +194,10 @@ export async function login(req: Request, res: Response) {
     // 2FA ativo (ou exigido pelo papel): o token normal só sai depois do segundo fator.
     const desafio = await desafioSegundoFator(req, user)
     if (desafio) return res.json(desafio)
+
+    // Dispositivo novo (fingerprint do navegador nunca visto para este usuário): aguarda aprovação do dono da conta.
+    const desafioDisp = await desafioDispositivo(req, user, req.body?.fingerprint)
+    if (desafioDisp) return res.json(desafioDisp)
 
     await sucessoLogin(req, normalizedEmail)
     return res.json(await concluirLogin(req, user, demo))

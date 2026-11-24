@@ -70,6 +70,7 @@ import { runEduJobs } from '../modules/core/jobs'
 import { processDueReminders } from '../modules/core/reminders'
 import segurancaRoutes from '../modules/seguranca/routes'
 import { verificar2fa } from '../modules/seguranca/verificar2fa'
+import { statusDispositivo } from '../modules/seguranca/verificarDispositivo'
 import { uploadGuard } from '../modules/seguranca/uploadGuard'
 import { timingSafeEqual } from 'crypto'
 
@@ -82,6 +83,7 @@ const router = Router()
 router.post('/auth/register', authController.register)
 router.post('/auth/login', authController.login)
 router.post('/auth/2fa/verify', verificar2fa)
+router.post('/auth/device/status', statusDispositivo)
 router.post('/auth/password-reset/request', authController.requestPasswordReset)
 router.post('/auth/password-reset/confirm', authController.resetPassword)
 router.get('/demo/config', demoController.config)

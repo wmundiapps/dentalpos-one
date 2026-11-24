@@ -130,6 +130,7 @@ app.use('/api/auth/password-reset/request', authLimiter)
 app.use('/api/auth/password-reset/confirm', authLimiter)
 app.use('/api/auth/register', authLimiter)
 app.use('/api/auth/2fa/verify', authLimiter)
+app.use('/api/auth/device/status', authLimiter)
 // Acesso direto à demonstração por link (sem digitar login e senha). Só existe com DEMO_ACCESS_KEY definida.
 app.post('/api/demo-acesso', authLimiter, async (req, res) => {
   try {

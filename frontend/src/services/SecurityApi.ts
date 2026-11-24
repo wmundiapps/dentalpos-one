@@ -70,8 +70,14 @@ export const securityApi = {
     request<{ recoveryCodes: string[]; token?: string; accessToken?: string; user?: unknown }>("POST", "/security/2fa/confirm", { code }, token),
   disable: (password: string, code: string) => request<{ ok?: boolean }>("POST", "/security/2fa/disable", { password, code }),
   recoveryCodes: (code: string) => request<{ recoveryCodes: string[] }>("POST", "/security/2fa/recovery-codes", { code }),
-  verifyLogin: (challengeToken: string, entrada: { code?: string; recoveryCode?: string }) =>
+  verifyLogin: (challengeToken: string, entrada: { code?: string; recoveryCode?: string; fingerprint?: string }) =>
     request<any>("POST", "/auth/2fa/verify", { challengeToken, ...entrada }, null),
+  devices: (status?: "pendentes" | "todos") =>
+    request<{ items: Array<{ id: string; userId: string; rotulo?: string | null; ip?: string | null; aprovado: boolean; recusado: boolean; primeiraVezEm: string; ultimoAcessoEm: string; usuario: { id: string; firstName?: string; lastName?: string; email: string } | null }> }>(
+      "GET", `/security/devices${status === "todos" ? "?status=todos" : ""}`,
+    ),
+  aprovarDispositivo: (id: string) => request<{ ok?: boolean }>("POST", `/security/devices/${id}/aprovar`, {}),
+  recusarDispositivo: (id: string) => request<{ ok?: boolean }>("POST", `/security/devices/${id}/recusar`, {}),
   events: (params: Record<string, string | number | undefined>) => {
     const q = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {

@@ -6,6 +6,7 @@ import { ipDaRequisicao, registrarEvento } from './eventos'
 import { estaBloqueado, limparTentativas, POLITICA_2FA, registrarFalha } from './tentativas'
 import { validarSegundoFator } from './doisFatores'
 import { lerTokenEscopo } from './tokens'
+import { desafioDispositivo } from './dispositivos'
 
 // POST /api/auth/2fa/verify  { challengeToken, code } | { challengeToken, recoveryCode }
 // Troca o desafio (senha já validada) + segundo fator pelo token de sessão normal.
@@ -42,6 +43,9 @@ export async function verificar2fa(req: Request, res: Response) {
     if (demo.isDemo && demo.phase === 'ENDED') {
       return res.status(403).json({ code: 'DEMO_ENDED', error: 'A demonstração gratuita foi encerrada. Seus dados permanecem preservados. Solicite uma proposta para reativar o acesso.', demo })
     }
+    const desafioDisp = await desafioDispositivo(req, user, req.body?.fingerprint)
+    if (desafioDisp) return res.json(desafioDisp)
+
     const corpo: any = await concluirLogin(req, user, demo, r.via === 'recuperacao' ? 'Login com 2FA (código de recuperação).' : 'Login com 2FA.')
     if (r.via === 'recuperacao') corpo.recoveryCodesRemaining = r.restantes
     return res.json(corpo)

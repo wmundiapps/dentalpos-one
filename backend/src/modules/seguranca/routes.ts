@@ -203,6 +203,41 @@ async function limparTentativasUsuario(userId: string) {
   try { await prisma.segTentativaLogin.deleteMany({ where: { escopo: '2fa', chave: userId } }) } catch { /* ignora */ }
 }
 
+// ---------- dispositivos (cadastro/aprovação de login em equipamento novo) ----------
+
+// Lista dispositivos do tenant (pendentes por padrão, ?status=todos para ver aprovados/recusados também).
+router.get('/devices', segAuth(), soAdmin, asyncHandler(async (req: SegReq, res: Response) => {
+  const tenantId = req.seg!.tenantId
+  const status = qs(req.query.status)
+  const where: any = { tenantId }
+  if (status !== 'todos') where.aprovado = false
+  const itens = await prisma.segDispositivo.findMany({ where, orderBy: { primeiraVezEm: 'desc' }, take: 200 }).catch(() => [])
+  const userIds = Array.from(new Set(itens.map((d: any) => d.userId)))
+  const usuarios = userIds.length ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, firstName: true, lastName: true, email: true } }) : []
+  const porId = new Map(usuarios.map((u) => [u.id, u]))
+  res.json({ items: itens.map((d: any) => ({ ...d, usuario: porId.get(d.userId) || null })) })
+}))
+
+// Aprova um dispositivo pendente (libera o login que estava esperando).
+router.post('/devices/:id/aprovar', segAuth(), soAdmin, asyncHandler(async (req: SegReq, res: Response) => {
+  const d = await prisma.segDispositivo.findFirst({ where: { id: String(req.params.id), tenantId: req.seg!.tenantId } })
+  if (!d) return res.status(404).json({ error: 'Dispositivo não encontrado.' })
+  await prisma.segDispositivo.update({ where: { id: d.id }, data: { aprovado: true, recusado: false, aprovadoPorId: req.seg!.id, aprovadoEm: new Date() } })
+  await eventoDeRequisicao(req, { tenantId: req.seg!.tenantId, userId: d.userId, tipo: 'dispositivo_aprovado', severidade: 'ATENCAO', detalhe: { dispositivoId: d.id, porUserId: req.seg!.id } })
+  await auditar(req, 'DISPOSITIVO_APROVADO', 'Login em dispositivo novo aprovado.', d.userId)
+  res.json({ ok: true })
+}))
+
+// Recusa um dispositivo pendente (o usuário continua sem conseguir entrar por ele).
+router.post('/devices/:id/recusar', segAuth(), soAdmin, asyncHandler(async (req: SegReq, res: Response) => {
+  const d = await prisma.segDispositivo.findFirst({ where: { id: String(req.params.id), tenantId: req.seg!.tenantId } })
+  if (!d) return res.status(404).json({ error: 'Dispositivo não encontrado.' })
+  await prisma.segDispositivo.update({ where: { id: d.id }, data: { aprovado: false, recusado: true } })
+  await eventoDeRequisicao(req, { tenantId: req.seg!.tenantId, userId: d.userId, tipo: 'dispositivo_recusado', severidade: 'ATENCAO', detalhe: { dispositivoId: d.id, porUserId: req.seg!.id } })
+  await auditar(req, 'DISPOSITIVO_RECUSADO', 'Login em dispositivo novo recusado.', d.userId)
+  res.json({ ok: true })
+}))
+
 // Job periódico (cron /api/cron/edu): apaga contagens de tentativas antigas.
 registerEduJob('seguranca.limpar-tentativas', async () => ({ apagadas: await limparTentativasAntigas(7) }))
 

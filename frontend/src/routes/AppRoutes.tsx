@@ -117,6 +117,7 @@ import ServiceEvaluations from "../pages/ServiceEvaluations";
 import Sales from "../pages/Sales";
 import Settings from "../pages/Settings";
 import EduSegurancaCertificacoes from "../pages/edu/EduSegurancaCertificacoes";
+const EduDispositivos = lazy(() => import("../pages/edu/EduDispositivos"));
 import Stock from "../pages/Stock";
 import TreatmentPlanning from "../pages/TreatmentPlanning";
 import PlatformAdministration from "../pages/PlatformAdministration";
@@ -296,6 +297,11 @@ export default function AppRoutes() {
       <Route
         path="/edu/seguranca-certificacoes"
         element={<EduSegurancaCertificacoes />}
+      />
+
+      <Route
+        path="/edu/dispositivos"
+        element={<EduDispositivos />}
       />
 
       <Route

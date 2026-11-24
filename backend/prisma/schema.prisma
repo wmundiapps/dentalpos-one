@@ -21798,6 +21798,27 @@ model SegTentativaLogin {
   @@index([tenantId])
 }
 
+// Dispositivo reconhecido (fingerprint persistido no navegador) por usuário. Login em dispositivo novo fica
+// pendente de aprovação do dono da conta até alguém com papel super aprovar ou recusar.
+model SegDispositivo {
+  id             String    @id @default(uuid())
+  tenantId       String
+  userId         String
+  fingerprint    String
+  rotulo         String?             // navegador/SO detectado, só para exibição
+  ip             String?
+  aprovado       Boolean   @default(false)
+  aprovadoPorId  String?
+  aprovadoEm     DateTime?
+  recusado       Boolean   @default(false)
+  primeiraVezEm  DateTime  @default(now())
+  ultimoAcessoEm DateTime  @default(now())
+
+  @@unique([userId, fingerprint])
+  @@index([tenantId, aprovado])
+  @@index([userId])
+}
+
 // Veredito da varredura de cada arquivo enviado (hash sha256 do conteúdo; o arquivo em si não é guardado aqui).
 model SegArquivoVerificado {
   id            String       @id @default(uuid())

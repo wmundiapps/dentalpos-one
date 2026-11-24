@@ -15,6 +15,8 @@ import FeedbackButton from "../edu/feedback/FeedbackButton";
 import DemoExpiryBanner from "./DemoExpiryBanner";
 import Sidebar from "./Sidebar";
 import AssistenteTreinamento from "./AssistenteTreinamento";
+import ScreenWatermark from "./ScreenWatermark";
+import CopyDeterrent from "./CopyDeterrent";
 
 interface LayoutProps {
   children: ReactNode;
@@ -73,6 +75,8 @@ export default function Layout({
       </Box>
 
       <Box className="no-print"><EvaluationWidget /></Box>
+      <ScreenWatermark />
+      <CopyDeterrent />
     </Box>
   );
 }

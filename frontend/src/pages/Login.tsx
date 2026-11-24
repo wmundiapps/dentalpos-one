@@ -7,6 +7,7 @@ import TwoFactorSetupPanel from "../components/security/TwoFactorSetupPanel";
 import FaceCamera, { type CapturaFacial } from "../edu/presenca/FaceCamera";
 import { CHAVE_MOTIVO } from "../security/sessionGuard";
 import { securityApi, SecurityApiError } from "../services/SecurityApi";
+import { deviceFingerprint } from "../security/deviceFingerprint";
 import {
   appRootUrl,
   clearClientSession,
@@ -18,11 +19,13 @@ import {
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-type Etapa = "credenciais" | "codigo" | "configurar2fa";
+type Etapa = "credenciais" | "codigo" | "configurar2fa" | "aguardandoDispositivo";
 
 export default function Login() {
   const [etapa, setEtapa] = useState<Etapa>("credenciais");
   const [challengeToken, setChallengeToken] = useState("");
+  const [deviceChallengeToken, setDeviceChallengeToken] = useState("");
+  const [deviceRecusado, setDeviceRecusado] = useState(false);
   const [setupToken, setSetupToken] = useState("");
   const [codigo, setCodigo] = useState("");
   const [usarRecuperacao, setUsarRecuperacao] = useState(false);
@@ -69,6 +72,38 @@ export default function Login() {
 
   const segundosBloqueio = Math.max(0, Math.ceil((bloqueioAte - agora) / 1000));
 
+  // Dispositivo novo pendente de aprovação: consulta a cada 5s se o administrador já liberou (ou recusou) o acesso.
+  useEffect(() => {
+    if (etapa !== "aguardandoDispositivo" || !deviceChallengeToken) return;
+    let ativo = true;
+    const consultar = async () => {
+      try {
+        const r = await fetch(`${API}/auth/device/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceChallengeToken }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!ativo) return;
+        if (r.status === 403 && data?.status === "recusado") {
+          setDeviceRecusado(true);
+          return;
+        }
+        if (!r.ok) {
+          if (r.status === 401) { setEtapa("credenciais"); setError("A solicitação de acesso expirou. Faça o login novamente."); }
+          return;
+        }
+        if (data?.status === "aprovado") { concluirLogin(data); return; }
+      } catch {
+        // Falha temporária de rede: tenta de novo no próximo ciclo.
+      }
+      if (ativo) timer = window.setTimeout(consultar, 5000);
+    };
+    let timer = window.setTimeout(consultar, 2000);
+    return () => { ativo = false; window.clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etapa, deviceChallengeToken]);
+
   // Link de acesso direto à demonstração (?acesso=...): entra sem digitar usuário e senha.
   useEffect(() => {
     const chave = new URLSearchParams(window.location.search).get("acesso");
@@ -106,8 +141,14 @@ export default function Login() {
       const limpo = codigo.replace(/\s/g, "");
       const data = await securityApi.verifyLogin(
         challengeToken,
-        usarRecuperacao ? { recoveryCode: limpo } : { code: limpo },
+        usarRecuperacao ? { recoveryCode: limpo } : { code: limpo, fingerprint: deviceFingerprint() },
       );
+      if (data?.deviceApprovalRequired && data.deviceChallengeToken) {
+        setDeviceChallengeToken(data.deviceChallengeToken);
+        setDeviceRecusado(false);
+        setEtapa("aguardandoDispositivo");
+        return;
+      }
       concluirLogin(data);
     } catch (err) {
       if (err instanceof SecurityApiError) {
@@ -161,6 +202,7 @@ export default function Login() {
           ...(clinicId.trim() ? { clinicId: clinicId.trim() } : {}),
           email,
           password,
+          fingerprint: deviceFingerprint(),
         }),
       });
 
@@ -180,6 +222,12 @@ export default function Login() {
       if (data?.requires2faSetup) {
         setSetupToken(data.token || data.accessToken || data.setupToken || "");
         setEtapa("configurar2fa");
+        return;
+      }
+      if (data?.deviceApprovalRequired && data.deviceChallengeToken) {
+        setDeviceChallengeToken(data.deviceChallengeToken);
+        setDeviceRecusado(false);
+        setEtapa("aguardandoDispositivo");
         return;
       }
       concluirLogin(data);
@@ -343,6 +391,32 @@ export default function Login() {
                 setAviso("Verificação em duas etapas ativada. Entre novamente com seu código.");
               }}
             />
+          </>
+        ) : null}
+
+        {etapa === "aguardandoDispositivo" ? (
+          <>
+            {deviceRecusado ? (
+              <>
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  Este dispositivo foi recusado pelo administrador da conta. Se for engano, peça para liberar novamente.
+                </Alert>
+                <Button fullWidth variant="outlined" onClick={() => { setEtapa("credenciais"); setDeviceChallengeToken(""); setDeviceRecusado(false); }}>
+                  Voltar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Typography sx={{ fontWeight: 800, mb: 0.5 }}>Dispositivo novo</Typography>
+                <Typography color="text.secondary" sx={{ mb: 2 }}>
+                  Este é um dispositivo novo para a sua conta. O administrador foi avisado e precisa aprovar o acesso antes de continuar.
+                  Esta tela atualiza sozinha assim que a aprovação acontecer.
+                </Typography>
+                <Button fullWidth color="inherit" onClick={() => { setEtapa("credenciais"); setDeviceChallengeToken(""); }}>
+                  Cancelar
+                </Button>
+              </>
+            )}
           </>
         ) : null}
 

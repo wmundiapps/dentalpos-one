@@ -472,6 +472,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Segurança da conta","/seguranca",<AdminPanelSettingsIcon/>),
       item("Eventos de segurança","/seguranca/eventos",<AdminPanelSettingsIcon/>),
       item("Segurança e Certificações","/edu/seguranca-certificacoes",<VerifiedUserOutlinedIcon/>),
+      item("Dispositivos","/edu/dispositivos",<AdminPanelSettingsIcon/>,["ADMIN","OWNER","RECTOR","BOARD"]),
       item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),
       item("Central de feedback (EduMaster)","/edu/feedback",<BugReportIcon/>),
     ])
