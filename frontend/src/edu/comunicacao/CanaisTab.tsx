@@ -6,6 +6,9 @@ import AddIcon from "@mui/icons-material/Add";
 import { useEffect, useState } from "react";
 import { eduApi, qsOf } from "../../services/EduApi";
 import { BASE, ROTULO_CANAL, Section, StateBox, StatusPill, asList, fmtDateTime, useLoad, type Toast } from "./common";
+import FuncionalidadeIndisponivel from "../../components/FuncionalidadeIndisponivel";
+
+const CANAIS_EXTERNOS = ["WHATSAPP", "TELEGRAM", "INSTAGRAM", "FACEBOOK"];
 
 const SECRETOS = /(token|secret|senha|password|key|sid)/i;
 
@@ -81,12 +84,14 @@ function Canais({ toast }: { toast: (t: Toast) => void }) {
   const [novo, setNovo] = useState(false);
   const [hook, setHook] = useState<string | null>(null);
   const rows = asList(canais.data);
+  const semCanalExterno = !rows.some((c) => CANAIS_EXTERNOS.includes(c.tipo) && c.ativo && c.configurado);
 
   async function act(fn: () => Promise<any>, ok: (r: any) => { type: "success" | "error"; text: string }) {
     try { const r = await fn(); toast(ok(r)); canais.reload(); } catch (e: any) { toast({ type: "error", text: e.message }); }
   }
   return (
     <>
+      {semCanalExterno ? <FuncionalidadeIndisponivel nome="WhatsApp, Telegram, Instagram e Facebook" dependeDeIntegracaoExterna /> : null}
       <Section title="Canais de comunicação" description="WhatsApp, Telegram, e-mail, SMS, voz, redes e chat do site. Canal sem credencial não envia nada."
         actions={<Button variant="contained" startIcon={<AddIcon />} onClick={() => setNovo(true)}>Novo canal</Button>}>
         <StateBox loading={canais.loading} error={canais.error} onRetry={canais.reload} empty={!rows.length} emptyText="Nenhum canal cadastrado. Cadastre o primeiro para começar a enviar e receber mensagens.">
