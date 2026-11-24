@@ -1585,6 +1585,18 @@ export default function Agenda() {
                   onChange={(minutes) => setEdit((current) => (current ? { ...current, durationMinutes: minutes } : current))}
                 />
                 <TextField
+                  select
+                  label="Profissional (trocar dentista)"
+                  value={edit.professionalName}
+                  onChange={(event) => setEdit({ ...edit, professionalName: event.target.value })}
+                >
+                  {backendDoctors.map((doctor) => {
+                    const fullName = `${doctor.user.firstName} ${doctor.user.lastName}`.trim();
+                    return <MenuItem key={doctor.id} value={fullName}>{fullName}</MenuItem>;
+                  })}
+                  {!backendDoctors.some((d) => `${d.user.firstName} ${d.user.lastName}`.trim() === edit.professionalName) ? <MenuItem value={edit.professionalName}>{edit.professionalName}</MenuItem> : null}
+                </TextField>
+                <TextField
                   type="date"
                   label="Remarcar data"
                   value={edit.dateISO}
@@ -1787,7 +1799,10 @@ export default function Agenda() {
                     return;
                   }
                   try {
+                    const nm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+                    const pickedDoctor = original && edit.professionalName !== original.professionalName ? backendDoctors.find((d) => nm(`${d.user.firstName} ${d.user.lastName}`) === nm(edit.professionalName)) : undefined;
                     await updateBackendAppointment(edit.backendId, {
+                      ...(pickedDoctor ? { doctorId: pickedDoctor.id } : {}),
                       scheduledAt: scheduledAt.toISOString(),
                       durationMinutes: Number(edit.durationMinutes || 30),
                       procedure: edit.procedure,

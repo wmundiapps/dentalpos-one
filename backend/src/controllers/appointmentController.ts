@@ -429,6 +429,14 @@ export async function update(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Duração do agendamento inválida.' })
     }
     const newDurationMinutes = Math.round(parsedDuration)
+    // Troca de profissional (o paciente passa a ser atendido por outro dentista).
+    let newDoctorId = existing.doctorId
+    if (req.body.doctorId !== undefined && String(req.body.doctorId || '') && String(req.body.doctorId) !== existing.doctorId) {
+      const doc = await prisma.doctor.findFirst({ where: { id: String(req.body.doctorId), clinicId: req.user.clinicId, tenantId: req.user.tenantId, isActive: true }, select: { id: true } })
+      if (!doc) return res.status(404).json({ error: 'Profissional não encontrado na clínica atual.' })
+      newDoctorId = doc.id
+    }
+    const changedDoctor = newDoctorId !== existing.doctorId
     const changedSchedule = newScheduledAt.getTime() !== existing.scheduledAt.getTime()
     const changedDuration = newDurationMinutes !== existing.durationMinutes
     const changedStatus = newStatus !== existing.status || (newStatus === 'CANCELLED' && wantUnscheduled !== wasUnscheduled)
@@ -439,7 +447,7 @@ export async function update(req: AuthRequest, res: Response) {
         return res.status(404).json({ error: 'Auxiliar não pertence à clínica atual.' })
       }
     }
-    if ((changedSchedule || changedDuration || changedStatus) && !String(req.body.reason || '').trim()) {
+    if ((changedSchedule || changedDuration || changedStatus || changedDoctor) && !String(req.body.reason || '').trim()) {
       return res.status(400).json({ error: 'Informe o motivo da remarcação, cancelamento, falta ou alteração.' })
     }
 
@@ -447,11 +455,11 @@ export async function update(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Não é permitido remarcar para data ou horário retroativo.' })
     }
 
-    if ((changedSchedule || changedDuration) && newStatus !== 'CANCELLED') {
+    if ((changedSchedule || changedDuration || changedDoctor) && newStatus !== 'CANCELLED') {
       const withinJourney = await fitsWorkSchedule(
         req.user.clinicId,
         req.user.tenantId,
-        existing.doctorId,
+        newDoctorId,
         newScheduledAt,
         newDurationMinutes
       )
@@ -464,7 +472,7 @@ export async function update(req: AuthRequest, res: Response) {
       const agendaBlocks = await listAgendaBlocks(req.user.clinicId)
       if (isAgendaBlocked(
         agendaBlocks,
-        existing.doctorId,
+        newDoctorId,
         newScheduledAt,
         new Date(newScheduledAt.getTime() + newDurationMinutes * 60000)
       )) {
@@ -474,7 +482,7 @@ export async function update(req: AuthRequest, res: Response) {
       const recurringBreaks = await listRecurringBreaks(req.user.clinicId)
       if (isRecurringBreakBlocked(
         recurringBreaks,
-        existing.doctorId,
+        newDoctorId,
         newScheduledAt,
         newDurationMinutes
       )) {
@@ -490,7 +498,7 @@ export async function update(req: AuthRequest, res: Response) {
           id: { not: id },
           clinicId: req.user.clinicId,
           tenantId: req.user.tenantId,
-          doctorId: existing.doctorId,
+          doctorId: newDoctorId,
           status: { not: 'CANCELLED' },
           scheduledAt: {
             gte: new Date(incomingStart - 480 * 60000),
@@ -508,6 +516,7 @@ export async function update(req: AuthRequest, res: Response) {
       const updated = await tx.appointment.update({
         where: { id },
         data: {
+          doctorId: newDoctorId,
           scheduledAt: newScheduledAt,
           durationMinutes: newDurationMinutes,
           status: newStatus,
