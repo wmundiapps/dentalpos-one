@@ -20,6 +20,28 @@ const ICONE: Record<string, ReactNode> = {
 };
 const ROTULO: Record<string, string> = { ARQUIVO: "Arquivo", VIDEO: "Vídeo", LINK: "Link", TEXTO: "Texto", ATIVIDADE: "Atividade", AULA_GRAVADA: "Aula gravada", AULA_AO_VIVO: "Aula ao vivo" };
 
+/** Reconhece link do YouTube/Vimeo e devolve a URL de embed; outros links tocam a lógica normal (abrir em nova aba). */
+function urlDeEmbed(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      if (u.pathname === "/watch") { const id = u.searchParams.get("v"); return id ? `https://www.youtube.com/embed/${id}` : null; }
+      if (u.pathname.startsWith("/embed/")) return url;
+      if (u.pathname.startsWith("/live/")) return `https://www.youtube.com/embed/${u.pathname.split("/")[2]}`;
+      if (u.pathname.startsWith("/shorts/")) return `https://www.youtube.com/embed/${u.pathname.split("/")[2]}`;
+    }
+    if (host === "youtu.be") { const id = u.pathname.slice(1); return id ? `https://www.youtube.com/embed/${id}` : null; }
+    if (host === "vimeo.com") {
+      const partes = u.pathname.split("/").filter(Boolean);
+      const id = partes[partes.length - 1];
+      return id && /^\d+$/.test(id) ? `https://player.vimeo.com/video/${id}` : null;
+    }
+    if (host === "player.vimeo.com") return url;
+  } catch { /* URL inválida: cai no comportamento normal */ }
+  return null;
+}
+
 /** Lista de salas virtuais (uma por disciplina) do aluno; ao abrir mostra a sala da turma. */
 export function SalasDoAluno({ studentId, podeAgir }: { studentId?: string | null; podeAgir: boolean }) {
   const { data, loading, error, reload } = useLoad<any>(`/portal2/aluno/turmas${sid(studentId)}`);
@@ -54,6 +76,7 @@ export function SalaTurma({ classSectionId, papel, onVoltar }: { classSectionId:
   const [novo, setNovo] = useState<any>(null);
   const [entrega, setEntrega] = useState<any>(null);
   const [corrigir, setCorrigir] = useState<any>(null);
+  const [player, setPlayer] = useState<{ titulo: string; embed: string } | null>(null);
   const t = useToast();
   const prof = papel === "PROFESSOR";
   const itens: any[] = mats.data?.itens || [];
@@ -61,7 +84,9 @@ export function SalaTurma({ classSectionId, papel, onVoltar }: { classSectionId:
   const abas = ["Trilhas e materiais", "Aulas", "Atividades", "Fórum", "Recados", ...(prof ? ["Progresso e acessos"] : [])];
 
   async function abrir(m: any) {
-    if (m.url) window.open(m.url, "_blank", "noopener,noreferrer");
+    const embed = m.url && ["VIDEO", "AULA_GRAVADA", "AULA_AO_VIVO"].includes(m.tipo) ? urlDeEmbed(m.url) : null;
+    if (embed) setPlayer({ titulo: m.titulo, embed });
+    else if (m.url) window.open(m.url, "_blank", "noopener,noreferrer");
     if (papel === "ALUNO") { try { await eduApi.post(`/portal2/materiais/${m.id}/acesso`, m.tipo === "VIDEO" || m.tipo === "AULA_GRAVADA" ? { percentual: Math.max(50, m.meuProgresso?.percentual ?? 0) } : { concluido: true }); mats.reload(); sala.reload(); } catch (e: any) { t.err(e.message); } }
   }
   async function concluir(m: any) { try { await eduApi.post(`/portal2/materiais/${m.id}/acesso`, { concluido: true }); t.ok("Marcado como concluído."); reload(); } catch (e: any) { t.err(e.message); } }
@@ -160,7 +185,8 @@ export function SalaTurma({ classSectionId, papel, onVoltar }: { classSectionId:
           <TextField size="small" label="Título" value={novo?.titulo || ""} onChange={(e) => setNovo({ ...novo, titulo: e.target.value })} />
           <TextField size="small" label="Trilha / módulo (ex.: Unidade 1)" value={novo?.trilha || ""} onChange={(e) => setNovo({ ...novo, trilha: e.target.value })} />
           <TextField size="small" label="Descrição" multiline minRows={2} value={novo?.descricao || ""} onChange={(e) => setNovo({ ...novo, descricao: e.target.value })} />
-          {novo?.tipo !== "TEXTO" && <TextField size="small" label="URL (arquivo, vídeo, link ou sala ao vivo)" placeholder="https://" value={novo?.url || ""} onChange={(e) => setNovo({ ...novo, url: e.target.value })} />}
+          {novo?.tipo !== "TEXTO" && <TextField size="small" label="URL (arquivo, vídeo, link ou sala ao vivo)" placeholder="https://" value={novo?.url || ""} onChange={(e) => setNovo({ ...novo, url: e.target.value })}
+            helperText={["VIDEO", "AULA_GRAVADA", "AULA_AO_VIVO"].includes(novo?.tipo) ? "Link do YouTube ou Vimeo toca direto aqui na sala; outros links abrem em nova aba." : undefined} />}
           {novo?.tipo === "TEXTO" && <TextField label="Conteúdo" multiline minRows={4} value={novo?.conteudo || ""} onChange={(e) => setNovo({ ...novo, conteudo: e.target.value })} />}
           {novo?.tipo === "AULA_AO_VIVO" && <TextField size="small" type="datetime-local" label="Início" slotProps={{ inputLabel: { shrink: true } }} value={novo?.inicioEm || ""} onChange={(e) => setNovo({ ...novo, inicioEm: e.target.value })} />}
           {novo?.tipo === "ATIVIDADE" && (
@@ -198,6 +224,25 @@ export function SalaTurma({ classSectionId, papel, onVoltar }: { classSectionId:
           <Button variant="contained" disabled={!(entrega?.texto || "").trim() && !(entrega?.url || "").trim()} onClick={async () => { try { await eduApi.post(`/portal2/materiais/${entrega.m.id}/entrega`, { texto: entrega.texto || undefined, url: entrega.url || undefined }); setEntrega(null); t.ok("Trabalho entregue."); reload(); } catch (e: any) { t.err(e.message); } }}>Enviar</Button></DialogActions>
       </Dialog>
       <Correcao material={corrigir} onClose={() => { setCorrigir(null); reload(); }} toast={t} />
+      <Dialog open={!!player} onClose={() => setPlayer(null)} fullWidth maxWidth="md">
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{player?.titulo}</Box>
+          <IconButton size="small" onClick={() => setPlayer(null)} aria-label="Fechar"><ArrowBackIcon fontSize="small" /></IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {player && (
+            <Box sx={{ position: "relative", width: "100%", pt: "56.25%" }}>
+              <iframe
+                src={player.embed}
+                title={player.titulo}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
+              />
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
       {t.node}
     </Box>
   );
