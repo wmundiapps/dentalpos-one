@@ -1,7 +1,7 @@
 import type { IntegratedAppointment } from "../types/operationsHub";
 
 // Impressão da agenda: período (dia, semana ou mês) e profissional escolhidos. Sai paciente, dia, horário e procedimento.
-export type AgendaPrintView = "day" | "week" | "month";
+export type AgendaPrintView = "day" | "week" | "month" | "range";
 
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -11,9 +11,14 @@ const minutes = (t: string) => { const [h, m] = t.split(":").map(Number); return
 const clock = (n: number) => `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
 
 // Dias do período a partir da data de referência (semana de segunda a domingo, como na agenda).
-export function agendaRange(view: AgendaPrintView, dateISO: string): string[] {
+export function agendaRange(view: AgendaPrintView, dateISO: string, endISO?: string): string[] {
   const base = new Date(`${dateISO}T12:00:00`);
   if (view === "day") return [dateISO];
+  if (view === "range") {
+    const end = new Date(`${endISO && endISO >= dateISO ? endISO : dateISO}T12:00:00`);
+    const n = Math.min(366, Math.round((end.getTime() - base.getTime()) / 86400000) + 1);
+    return Array.from({ length: n }, (_, i) => { const d = new Date(base); d.setDate(base.getDate() + i); return iso(d); });
+  }
   if (view === "week") {
     const day = base.getDay() || 7;
     base.setDate(base.getDate() - day + 1);
@@ -30,14 +35,14 @@ export function agendaPrintItems(items: IntegratedAppointment[], days: string[],
     .sort((a, b) => (a.dateISO + a.time).localeCompare(b.dateISO + b.time) || a.patientName.localeCompare(b.patientName));
 }
 
-export function printAgenda(opts: { items: IntegratedAppointment[]; view: AgendaPrintView; dateISO: string; professional: string }) {
-  const days = agendaRange(opts.view, opts.dateISO);
+export function printAgenda(opts: { items: IntegratedAppointment[]; view: AgendaPrintView; dateISO: string; endISO?: string; professional: string }) {
+  const days = agendaRange(opts.view, opts.dateISO, opts.endISO);
   const list = agendaPrintItems(opts.items, days, opts.professional);
   const all = opts.professional === "Todos";
   let clinic = "";
   try { clinic = (JSON.parse(localStorage.getItem("dentalpos.clinic.identity.v1") || "{}") as { name?: string }).name || ""; } catch { /* sem identidade salva */ }
   const period = opts.view === "day" ? `${weekday(days[0])}, ${dmy(days[0])}` : `${dmy(days[0])} a ${dmy(days[days.length - 1])}`;
-  const label = opts.view === "day" ? "Dia" : opts.view === "week" ? "Semana" : "Mês";
+  const label = opts.view === "day" ? "Dia" : opts.view === "week" ? "Semana" : opts.view === "range" ? "Período" : "Mês";
 
   const sections = days
     .map((day) => {

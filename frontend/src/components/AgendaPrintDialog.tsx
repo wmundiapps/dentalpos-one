@@ -8,9 +8,13 @@ import { agendaPrintItems, agendaRange, printAgenda, type AgendaPrintView } from
 export default function AgendaPrintDialog({ open, onClose, items, professionals, defaultView, dateISO, defaultProfessional }: { open: boolean; onClose: () => void; items: IntegratedAppointment[]; professionals: string[]; defaultView: AgendaPrintView; dateISO: string; defaultProfessional: string }) {
   const [view, setView] = useState<AgendaPrintView>(defaultView);
   const [professional, setProfessional] = useState(defaultProfessional);
-  useEffect(() => { if (open) { setView(defaultView); setProfessional(defaultProfessional); } }, [open, defaultView, defaultProfessional]);
+  const addDays = (d: string, n: number) => { const x = new Date(`${d}T12:00:00`); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+  const [from, setFrom] = useState(dateISO);
+  const [to, setTo] = useState(addDays(dateISO, 6));
+  useEffect(() => { if (open) { setView(defaultView); setProfessional(defaultProfessional); setFrom(dateISO); setTo(addDays(dateISO, 6)); } }, [open, defaultView, defaultProfessional, dateISO]);
 
-  const days = agendaRange(view, dateISO);
+  const baseISO = view === "range" ? from : dateISO;
+  const days = agendaRange(view, baseISO, to);
   const count = agendaPrintItems(items, days, professional).length;
   const dmy = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR");
 
@@ -22,7 +26,14 @@ export default function AgendaPrintDialog({ open, onClose, items, professionals,
           <ToggleButton value="day">Dia</ToggleButton>
           <ToggleButton value="week">Semana</ToggleButton>
           <ToggleButton value="month">Mês</ToggleButton>
+          <ToggleButton value="range">Período</ToggleButton>
         </ToggleButtonGroup>
+        {view === "range" ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <TextField size="small" type="date" label="De" value={from} onChange={(e) => { setFrom(e.target.value); if (to < e.target.value) setTo(e.target.value); }} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField size="small" type="date" label="Até" value={to} onChange={(e) => setTo(e.target.value)} slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: from } }} error={to < from} />
+          </div>
+        ) : null}
         <TextField select size="small" label="Profissional" value={professional} onChange={(e) => setProfessional(e.target.value)}>
           {professionals.map((name) => <MenuItem key={name} value={name}>{name === "Todos" ? "Todos os profissionais" : name}</MenuItem>)}
         </TextField>
@@ -32,7 +43,7 @@ export default function AgendaPrintDialog({ open, onClose, items, professionals,
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
-        <Button variant="contained" startIcon={<PrintOutlinedIcon />} onClick={() => { printAgenda({ items, view, dateISO, professional }); onClose(); }}>Imprimir</Button>
+        <Button variant="contained" disabled={view === "range" && (!from || !to || to < from)} startIcon={<PrintOutlinedIcon />} onClick={() => { printAgenda({ items, view, dateISO: baseISO, endISO: view === "range" ? to : undefined, professional }); onClose(); }}>Imprimir</Button>
       </DialogActions>
     </Dialog>
   );
