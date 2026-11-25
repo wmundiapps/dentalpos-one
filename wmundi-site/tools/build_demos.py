@@ -59,8 +59,8 @@ def page(p, c):
 <div class="dgrid"><div class="box"><h3>{E(t["title"])}</h3><div class="tw"><table class="dt"><thead><tr>{th}</tr></thead><tbody>{tr}</tbody></table></div></div>
 <div class="box"><h3>{E(ch["title"])}</h3><div class="bars" role="img" aria-label="{E(ch["title"])} (dados fictícios)">{bars}</div></div></div></div></div></div></section>
 
-<section class="dsec" id="simulador"><div class="w"><div class="sim" id="sim"><h2>{E(s["title"])}</h2><p class="lead">{E(s["intro"])}</p>
-<div class="sim-g"><div>{sl}</div><div class="res">{rs}</div></div>
+<section class="dsec" id="simulador"><div class="w"><div class="dsim" id="sim"><h2>{E(s["title"])}</h2><p class="lead">{E(s["intro"])}</p>
+<div class="dsim-g"><div>{sl}</div><div class="res">{rs}</div></div>
 <p class="simnote">Simulação ilustrativa com números fictícios. Não representa promessa de resultado nem proposta comercial.</p></div>
 <script type="application/json" id="sim-data">{simdata}</script></div></section>
 
