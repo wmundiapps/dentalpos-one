@@ -9,7 +9,14 @@ import LinkIcon from "@mui/icons-material/Link";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import SensorsIcon from "@mui/icons-material/Sensors";
 import TextSnippetOutlinedIcon from "@mui/icons-material/TextSnippetOutlined";
-import { useState, type ReactNode } from "react";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import DownloadIcon from "@mui/icons-material/Download";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
+import { useRef, useState, type ReactNode } from "react";
 import { eduApi } from "../../services/EduApi";
 import { Empty, Feedback, Progress, Status, fmtDate, fmtDateTime, fmtNum, useLoad } from "../secretaria/util";
 import { sid, useToast } from "./comum";
@@ -42,6 +49,26 @@ function urlDeEmbed(url: string): string | null {
   return null;
 }
 
+function tamanhoLegivel(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+function iconeArquivo(mime: string): ReactNode {
+  if (mime === "application/pdf") return <PictureAsPdfOutlinedIcon />;
+  if (mime.startsWith("image/")) return <ImageOutlinedIcon />;
+  return <InsertDriveFileOutlinedIcon />;
+}
+/** Lê um File do navegador como data URL (base64), para enviar no corpo JSON (sem servidor de blob próprio). */
+function lerComoDataUrl(f: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+    r.readAsDataURL(f);
+  });
+}
+
 /** Lista de salas virtuais (uma por disciplina) do aluno; ao abrir mostra a sala da turma. */
 export function SalasDoAluno({ studentId, podeAgir }: { studentId?: string | null; podeAgir: boolean }) {
   const { data, loading, error, reload } = useLoad<any>(`/portal2/aluno/turmas${sid(studentId)}`);
@@ -72,16 +99,73 @@ type Papel = "ALUNO" | "PROFESSOR" | "LEITURA";
 export function SalaTurma({ classSectionId, papel, onVoltar }: { classSectionId: string; papel: Papel; onVoltar?: () => void }) {
   const sala = useLoad<any>(`/portal2/turmas/${classSectionId}/sala`);
   const mats = useLoad<any>(`/portal2/turmas/${classSectionId}/materiais`);
+  const arqs = useLoad<any>(`/portal2/turmas/${classSectionId}/arquivos`);
   const [tab, setTab] = useState(0);
   const [novo, setNovo] = useState<any>(null);
   const [entrega, setEntrega] = useState<any>(null);
   const [corrigir, setCorrigir] = useState<any>(null);
   const [player, setPlayer] = useState<{ titulo: string; embed: string } | null>(null);
+  const [caderno, setCaderno] = useState<any>(null);
+  const [upload, setUpload] = useState<{ cadernoId?: string | null } | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const t = useToast();
   const prof = papel === "PROFESSOR";
   const itens: any[] = mats.data?.itens || [];
-  const reload = () => { sala.reload(); mats.reload(); };
-  const abas = ["Trilhas e materiais", "Aulas", "Atividades", "Fórum", "Recados", ...(prof ? ["Progresso e acessos"] : [])];
+  const cadernos: any[] = mats.data?.cadernos || [];
+  const arquivos: any[] = arqs.data?.itens || [];
+  const reload = () => { sala.reload(); mats.reload(); arqs.reload(); };
+  const abas = ["Cadernos e materiais", "Aulas", "Atividades", "Fórum", "Recados", ...(prof ? ["Progresso e acessos"] : [])];
+
+  async function salvarCaderno() {
+    try {
+      if (caderno.id) await eduApi.patch(`/portal2/cadernos/${caderno.id}`, { nome: caderno.nome, descricao: caderno.descricao || undefined });
+      else await eduApi.post(`/portal2/turmas/${classSectionId}/cadernos`, { nome: caderno.nome, descricao: caderno.descricao || undefined });
+      setCaderno(null); t.ok("Caderno salvo."); reload();
+    } catch (e: any) { t.err(e.message); }
+  }
+  async function excluirCaderno(c: any) {
+    if (!window.confirm(`Excluir o caderno "${c.nome}"? Só é possível se estiver vazio.`)) return;
+    try { await eduApi.del(`/portal2/cadernos/${c.id}`); t.ok("Caderno excluído."); reload(); } catch (e: any) { t.err(e.message); }
+  }
+  async function enviarArquivo(file: File, cadernoId?: string | null) {
+    setEnviando(true);
+    try {
+      const dataUrl = await lerComoDataUrl(file);
+      await eduApi.post(`/portal2/turmas/${classSectionId}/arquivos`, { nome: file.name, dataUrl, cadernoId: cadernoId || undefined });
+      t.ok("Arquivo enviado."); setUpload(null); arqs.reload();
+    } catch (e: any) { t.err(e.message); } finally { setEnviando(false); }
+  }
+  async function excluirArquivo(a: any) {
+    if (!window.confirm(`Remover "${a.nome}"?`)) return;
+    try { await eduApi.del(`/portal2/arquivos/${a.id}`); t.ok("Arquivo removido."); arqs.reload(); } catch (e: any) { t.err(e.message); }
+  }
+  async function abrirArquivo(a: any, baixar: boolean) {
+    try {
+      const API = (import.meta as any).env?.VITE_API_URL || "http://localhost:3000/api";
+      const token = localStorage.getItem("dentalpos.token") || "";
+      const r = await fetch(`${API}/edu/portal2/arquivos/${a.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error("Não foi possível abrir o arquivo.");
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      if (baixar) { const link = document.createElement("a"); link.href = url; link.download = a.nome; document.body.appendChild(link); link.click(); link.remove(); }
+      else window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    } catch (e: any) { t.err(e.message || "Falha ao abrir o arquivo."); }
+  }
+
+  const LinhaArquivo = ({ a }: { a: any }) => (
+    <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 2, display: "flex", gap: 1.25, alignItems: "center", flexWrap: "wrap" }}>
+      <Box sx={{ color: "primary.main", display: "flex" }}>{iconeArquivo(a.mime)}</Box>
+      <Box sx={{ flex: 1, minWidth: 180 }}>
+        <Typography sx={{ fontWeight: 700 }}>{a.nome}</Typography>
+        <Typography variant="caption" color="text.secondary">{tamanhoLegivel(a.tamanho)} · {fmtDate(a.createdAt)}</Typography>
+      </Box>
+      <Button size="small" startIcon={<DownloadIcon />} onClick={() => abrirArquivo(a, true)}>Baixar</Button>
+      {(a.mime === "application/pdf" || a.mime.startsWith("image/")) && <Button size="small" onClick={() => abrirArquivo(a, false)}>Visualizar</Button>}
+      {prof && <Button size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={() => excluirArquivo(a)}>Remover</Button>}
+    </Paper>
+  );
 
   async function abrir(m: any) {
     const embed = m.url && ["VIDEO", "AULA_GRAVADA", "AULA_AO_VIVO"].includes(m.tipo) ? urlDeEmbed(m.url) : null;
@@ -125,6 +209,7 @@ export function SalaTurma({ classSectionId, papel, onVoltar }: { classSectionId:
           <Typography variant="h6" sx={{ fontWeight: 800 }}>{sala.data?.turma?.disciplina || "Sala virtual"}</Typography>
           <Typography variant="caption" color="text.secondary">{sala.data?.turma ? `${sala.data.turma.nome} · ${sala.data.turma.periodo}${sala.data.turma.professor ? ` · ${sala.data.turma.professor}` : ""}` : ""}</Typography>
         </Box>
+        {prof && <Button startIcon={<FolderOutlinedIcon />} variant="outlined" onClick={() => setCaderno({ nome: "" })}>Novo caderno</Button>}
         {prof && <Button variant="contained" onClick={() => setNovo({ tipo: "ARQUIVO", status: "PUBLICADO" })}>Publicar material</Button>}
       </Box>
       <Feedback loading={sala.loading || mats.loading} error={sala.error || mats.error} onRetry={reload} />
@@ -139,16 +224,47 @@ export function SalaTurma({ classSectionId, papel, onVoltar }: { classSectionId:
 
       {tab === 0 && (
         <Box sx={{ display: "grid", gap: 2 }}>
-          {!itens.length && !mats.loading && <Empty>Nenhum material publicado ainda.</Empty>}
-          {(mats.data?.trilhas || []).map((tr: any) => (
-            <Box key={tr.nome} sx={{ display: "grid", gap: 1 }}>
-              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                <Typography sx={{ fontWeight: 800, flex: 1 }}>{tr.nome}</Typography>
-                {papel === "ALUNO" && <Chip size="small" label={`${tr.concluidos}/${tr.total}`} color={tr.concluidos === tr.total ? "success" : "default"} />}
+          {!itens.length && !arquivos.length && !mats.loading && <Empty>Nenhum material publicado ainda.</Empty>}
+          {cadernos.map((c: any) => {
+            const msDoCaderno = itens.filter((m) => m.cadernoId === c.id);
+            const asDoCaderno = arquivos.filter((a) => a.cadernoId === c.id);
+            return (
+              <Paper key={c.id} variant="outlined" sx={{ p: 1.5, borderRadius: 3, display: "grid", gap: 1 }}>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                  <FolderOutlinedIcon fontSize="small" color="action" />
+                  <Typography sx={{ fontWeight: 800, flex: 1 }}>{c.nome}</Typography>
+                  {prof && <Button size="small" onClick={() => setCaderno(c)}>Editar</Button>}
+                  {prof && <Button size="small" startIcon={<UploadFileIcon />} onClick={() => setUpload({ cadernoId: c.id })}>Enviar arquivo</Button>}
+                  {prof && <Button size="small" onClick={() => setNovo({ tipo: "ARQUIVO", status: "PUBLICADO", cadernoId: c.id })}>Adicionar material</Button>}
+                  {prof && !msDoCaderno.length && !asDoCaderno.length && <Button size="small" color="error" onClick={() => excluirCaderno(c)}>Excluir</Button>}
+                </Box>
+                {c.descricao && <Typography variant="body2" color="text.secondary">{c.descricao}</Typography>}
+                {!msDoCaderno.length && !asDoCaderno.length && <Typography variant="caption" color="text.secondary">Nenhum material ou arquivo neste caderno ainda.</Typography>}
+                {msDoCaderno.map((m) => <Linha key={m.id} m={m} />)}
+                {asDoCaderno.map((a) => <LinhaArquivo key={a.id} a={a} />)}
+              </Paper>
+            );
+          })}
+          {(() => {
+            const semCaderno = itens.filter((m) => !m.cadernoId);
+            const arqSemCaderno = arquivos.filter((a) => !a.cadernoId);
+            if (!semCaderno.length && !arqSemCaderno.length) return null;
+            return (
+              <Box sx={{ display: "grid", gap: 2 }}>
+                <Typography sx={{ fontWeight: 800 }}>Geral</Typography>
+                {(mats.data?.trilhas || []).map((tr: any) => (
+                  <Box key={tr.nome} sx={{ display: "grid", gap: 1 }}>
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                      <Typography sx={{ fontWeight: 700, flex: 1 }}>{tr.nome}</Typography>
+                      {papel === "ALUNO" && <Chip size="small" label={`${tr.concluidos}/${tr.total}`} color={tr.concluidos === tr.total ? "success" : "default"} />}
+                    </Box>
+                    {semCaderno.filter((m) => (m.trilha || "Geral") === tr.nome).map((m) => <Linha key={m.id} m={m} />)}
+                  </Box>
+                ))}
+                {arqSemCaderno.map((a) => <LinhaArquivo key={a.id} a={a} />)}
               </Box>
-              {itens.filter((m) => (m.trilha || "Geral") === tr.nome).map((m) => <Linha key={m.id} m={m} />)}
-            </Box>
-          ))}
+            );
+          })()}
         </Box>
       )}
       {tab === 1 && (
@@ -183,7 +299,11 @@ export function SalaTurma({ classSectionId, papel, onVoltar }: { classSectionId:
         <DialogContent dividers sx={{ display: "grid", gap: 2, pt: 2 }}>
           <TextField select size="small" label="Tipo" value={novo?.tipo || "ARQUIVO"} onChange={(e) => setNovo({ ...novo, tipo: e.target.value })}>{Object.entries(ROTULO).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}</TextField>
           <TextField size="small" label="Título" value={novo?.titulo || ""} onChange={(e) => setNovo({ ...novo, titulo: e.target.value })} />
-          <TextField size="small" label="Trilha / módulo (ex.: Unidade 1)" value={novo?.trilha || ""} onChange={(e) => setNovo({ ...novo, trilha: e.target.value })} />
+          <TextField select size="small" label="Caderno" value={novo?.cadernoId || ""} onChange={(e) => setNovo({ ...novo, cadernoId: e.target.value })}>
+            <MenuItem value="">Sem caderno (Geral)</MenuItem>
+            {cadernos.map((c: any) => <MenuItem key={c.id} value={c.id}>{c.nome}</MenuItem>)}
+          </TextField>
+          {!novo?.cadernoId && <TextField size="small" label="Trilha / módulo (ex.: Unidade 1)" value={novo?.trilha || ""} onChange={(e) => setNovo({ ...novo, trilha: e.target.value })} />}
           <TextField size="small" label="Descrição" multiline minRows={2} value={novo?.descricao || ""} onChange={(e) => setNovo({ ...novo, descricao: e.target.value })} />
           {novo?.tipo !== "TEXTO" && <TextField size="small" label="URL (arquivo, vídeo, link ou sala ao vivo)" placeholder="https://" value={novo?.url || ""} onChange={(e) => setNovo({ ...novo, url: e.target.value })}
             helperText={["VIDEO", "AULA_GRAVADA", "AULA_AO_VIVO"].includes(novo?.tipo) ? "Link do YouTube ou Vimeo toca direto aqui na sala; outros links abrem em nova aba." : undefined} />}
@@ -242,6 +362,33 @@ export function SalaTurma({ classSectionId, papel, onVoltar }: { classSectionId:
             </Box>
           )}
         </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!caderno} onClose={() => setCaderno(null)} fullWidth maxWidth="sm">
+        <DialogTitle>{caderno?.id ? "Editar caderno" : "Novo caderno"}</DialogTitle>
+        <DialogContent dividers sx={{ display: "grid", gap: 2, pt: 2 }}>
+          <TextField size="small" label="Nome do caderno" placeholder="Ex.: Unidade 1 — Introdução" value={caderno?.nome || ""} onChange={(e) => setCaderno({ ...caderno, nome: e.target.value })} />
+          <TextField size="small" label="Descrição (opcional)" multiline minRows={2} value={caderno?.descricao || ""} onChange={(e) => setCaderno({ ...caderno, descricao: e.target.value })} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCaderno(null)}>Cancelar</Button>
+          <Button variant="contained" disabled={(caderno?.nome || "").trim().length < 2} onClick={salvarCaderno}>Salvar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!upload} onClose={() => !enviando && setUpload(null)} fullWidth maxWidth="sm">
+        <DialogTitle>Enviar arquivo</DialogTitle>
+        <DialogContent dividers sx={{ display: "grid", gap: 2, pt: 2 }}>
+          <Typography variant="body2" color="text.secondary">Word, Excel, PowerPoint, PDF ou foto (JPG/PNG/WebP), até 15MB.</Typography>
+          <TextField select size="small" label="Caderno" value={upload?.cadernoId || ""} onChange={(e) => setUpload({ ...upload, cadernoId: e.target.value })}>
+            <MenuItem value="">Sem caderno (Geral)</MenuItem>
+            {cadernos.map((c: any) => <MenuItem key={c.id} value={c.id}>{c.nome}</MenuItem>)}
+          </TextField>
+          <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/png,image/jpeg,image/webp,image/gif" disabled={enviando}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) enviarArquivo(f, upload?.cadernoId); }} />
+          {enviando && <LinearProgress />}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setUpload(null)} disabled={enviando}>Cancelar</Button></DialogActions>
       </Dialog>
       {t.node}
     </Box>

@@ -76,12 +76,46 @@ model PorPreRequisito {
   @@index([tenantId, programId])
 }
 
+// Caderno (trilha/módulo gerenciável pelo professor): agrupa materiais e arquivos dentro de uma turma.
+model PorCaderno {
+  id             String   @id @default(uuid())
+  tenantId       String
+  classSectionId String
+  nome           String
+  descricao      String?
+  ordem          Int      @default(0)
+  autorUserId    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, classSectionId])
+}
+
+// Arquivo enviado de verdade (Word/Excel/PDF/foto), conteúdo em base64 — sem servidor de blob próprio neste ambiente.
+model PorArquivo {
+  id             String   @id @default(uuid())
+  tenantId       String
+  classSectionId String
+  cadernoId      String?
+  autorUserId    String
+  nome           String
+  mime           String
+  tamanho        Int                  // bytes do arquivo original (decodificado)
+  hash           String?              // sha256 do conteúdo, para detectar duplicados
+  conteudo       String   @db.Text    // base64 do arquivo
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, cadernoId])
+}
+
 // ---------- Materiais, trilhas, atividades e entregas ----------
 // tipo: ARQUIVO | VIDEO | LINK | TEXTO | ATIVIDADE | AULA_GRAVADA | AULA_AO_VIVO ; status: RASCUNHO | PUBLICADO | ARQUIVADO
 model PorMaterial {
   id             String   @id @default(uuid())
   tenantId       String
   classSectionId String
+  cadernoId      String?              // PorCaderno (agrupamento gerenciável); trilha abaixo é cache do nome p/ exibição
   autorUserId    String
   tipo           String
   trilha         String?              // nome da trilha/módulo de aprendizagem

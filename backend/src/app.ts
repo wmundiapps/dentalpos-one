@@ -20,7 +20,8 @@ dotenv.config()
 
 const app = express()
 const isProduction = process.env.NODE_ENV === 'production'
-const bodyLimit = process.env.API_BODY_LIMIT || '2mb'
+// 20mb: cobre o repositório de arquivos do AVA (Word/Excel/PDF/fotos enviados em base64 sem servidor de blob próprio).
+const bodyLimit = process.env.API_BODY_LIMIT || '20mb'
 
 // Origens confiáveis do DentalPos e allowlist de origem: ver modules/seguranca/origem.ts (mesma regra do CORS e do originGuard).
 

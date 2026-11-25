@@ -4,6 +4,7 @@ import ambientes from './ambientes'
 import aluno, { validarCarteirinha } from './aluno'
 import professor from './professor'
 import ead from './ead'
+import arquivos from './arquivos'
 import processos from './processos'
 
 // Módulo "portal2" — ambientes de ensino, portal do aluno completo, portal do professor e sala virtual EAD.
@@ -14,6 +15,7 @@ router.use(aluno)
 router.use(processos)
 router.use(professor)
 router.use(ead)
+router.use(arquivos)
 router.use(academicErrorHandler)
 export default router
 

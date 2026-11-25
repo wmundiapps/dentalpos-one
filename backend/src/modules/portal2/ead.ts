@@ -16,6 +16,7 @@ const matSchema = z.object({
   tipo: z.enum(TIPOS_MATERIAL),
   titulo: z.string().trim().min(2).max(200),
   descricao: z.string().trim().max(4000).optional().nullable(),
+  cadernoId: z.string().optional().nullable(),
   trilha: z.string().trim().max(120).optional().nullable(),
   ordem: z.number().int().min(0).max(9999).optional(),
   url: z.string().trim().max(2000).optional().nullable(),
@@ -70,8 +71,52 @@ router.get('/turmas/:id/materiais', asyncHandler(async (req: AuthenticatedReques
     const concl = doGrupo.filter((i) => i.meuProgresso?.concluido || i.minhaEntrega).length
     return { nome, total: doGrupo.length, concluidos: concl, percentual: pct(concl, doGrupo.length) }
   })
-  res.json({ turma: { id: sec.id, nome: sec.nome, disciplina: sec.discipline.nome }, itens, trilhas })
+  const cadernos = await prisma.porCaderno.findMany({ where: { tenantId, classSectionId: sec.id }, orderBy: [{ ordem: 'asc' }, { createdAt: 'asc' }] })
+  res.json({ turma: { id: sec.id, nome: sec.nome, disciplina: sec.discipline.nome }, itens, trilhas, cadernos })
 }))
+
+// ---- cadernos (agrupamento gerenciável pelo professor) ----
+const cadernoSchema = z.object({ nome: z.string().trim().min(2).max(120), descricao: z.string().trim().max(1000).optional().nullable(), ordem: z.number().int().min(0).max(9999).optional() })
+
+router.post('/turmas/:id/cadernos', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = getTenantId(req)
+  const { sec } = await turmaAcesso(req, String(req.params.id), { soDocente: true })
+  const d = bodyOf(cadernoSchema, req)
+  const c = await prisma.porCaderno.create({ data: { ...d, tenantId, classSectionId: sec.id, autorUserId: getUserId(req) } })
+  res.status(201).json(c)
+}))
+
+router.patch('/cadernos/:id', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = getTenantId(req)
+  const c = await prisma.porCaderno.findFirst({ where: { id: String(req.params.id), tenantId } })
+  if (!c) throw httpErr(404, 'Caderno não encontrado.')
+  await turmaAcesso(req, c.classSectionId, { soDocente: true })
+  const d = bodyOf(cadernoSchema.partial(), req)
+  const up = await prisma.porCaderno.update({ where: { id: c.id }, data: d })
+  if (d.nome && d.nome !== c.nome) await prisma.porMaterial.updateMany({ where: { tenantId, cadernoId: c.id }, data: { trilha: up.nome } })
+  res.json(up)
+}))
+
+router.delete('/cadernos/:id', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = getTenantId(req)
+  const c = await prisma.porCaderno.findFirst({ where: { id: String(req.params.id), tenantId } })
+  if (!c) throw httpErr(404, 'Caderno não encontrado.')
+  await turmaAcesso(req, c.classSectionId, { soDocente: true })
+  const [nMat, nArq] = await Promise.all([
+    prisma.porMaterial.count({ where: { tenantId, cadernoId: c.id } }),
+    prisma.porArquivo.count({ where: { tenantId, cadernoId: c.id } }),
+  ])
+  if (nMat || nArq) throw httpErr(409, 'Remova ou mova os materiais e arquivos deste caderno antes de excluí-lo.')
+  await prisma.porCaderno.delete({ where: { id: c.id } })
+  res.json({ ok: true })
+}))
+
+async function cadernoDaTurma(tenantId: string, classSectionId: string, cadernoId?: string | null) {
+  if (!cadernoId) return null
+  const c = await prisma.porCaderno.findFirst({ where: { id: cadernoId, tenantId, classSectionId } })
+  if (!c) throw httpErr(404, 'Caderno não encontrado nesta turma.')
+  return c
+}
 
 router.post('/turmas/:id/materiais', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
@@ -82,6 +127,8 @@ router.post('/turmas/:id/materiais', asyncHandler(async (req: AuthenticatedReque
     const c = await prisma.ntComponente.findFirst({ where: { id: d.componenteId, tenantId, classSectionId: sec.id } })
     if (!c) throw httpErr(404, 'Componente de nota não encontrado nesta turma.')
   }
+  const caderno = await cadernoDaTurma(tenantId, sec.id, d.cadernoId)
+  if (caderno) d.trilha = caderno.nome
   const m = await prisma.porMaterial.create({ data: { ...d, tenantId, classSectionId: sec.id, autorUserId: getUserId(req), status: d.status ?? 'PUBLICADO' } as any })
   await audit({ tenantId, userId: getUserId(req), modulo: 'portal2', acao: 'MATERIAL_PUBLICADO', refType: 'PorMaterial', refId: m.id, detalhes: { tipo: m.tipo, papel } })
   if (m.status === 'PUBLICADO') await avisarTurma(tenantId, sec.id, `Novo ${rotuloTipo(m.tipo)} em ${sec.discipline.nome}`, m.titulo)
@@ -108,6 +155,10 @@ router.patch('/materiais/:id', asyncHandler(async (req: AuthenticatedRequest, re
   const { m } = await materialDoDocente(req, String(req.params.id))
   const d = bodyOf(matSchema.partial(), req)
   validarMaterial({ ...m, ...d } as any)
+  if (d.cadernoId !== undefined) {
+    const caderno = await cadernoDaTurma(m.tenantId, m.classSectionId, d.cadernoId)
+    d.trilha = caderno ? caderno.nome : d.trilha ?? null
+  }
   res.json(await prisma.porMaterial.update({ where: { id: m.id }, data: d as any }))
 }))
 
