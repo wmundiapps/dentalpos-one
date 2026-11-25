@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 export interface PendingAlertItem { key: string; label: string; count: number; path: string; info?: boolean; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string; to?: string; noticeSent?: boolean }> }
@@ -101,4 +102,27 @@ export async function authorizeUnplannedNotice(patientId: string) {
   const result = await parse<{ sent: boolean; hasEmail: boolean; text: string; items: number }>(await fetch(`${API}/pending-alerts/unplanned/authorize-notice`, { method: "POST", headers: headers(true), body: JSON.stringify({ patientId }) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
+}
+
+// Quantidade de pendências que o usuário enxerga (para o contador do cabeçalho). Mesma regra de visibilidade da faixa de risco.
+export function usePendingCount(pathname: string): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let live = true;
+    const load = async () => {
+      if (!localStorage.getItem("dentalpos.token")) return;
+      try {
+        const data = await loadPendingAlerts();
+        if (!live) return;
+        if (!data.enabled) { setCount(0); return; }
+        const items = data.canManage ? data.items : data.items.filter((item) => pathname === item.path || pathname.startsWith(`${item.path}/`));
+        setCount(items.filter((item) => !item.info).reduce((sum, item) => sum + item.count, 0));
+      } catch { /* o contador nunca atrapalha o uso */ }
+    };
+    void load();
+    const timer = window.setInterval(() => void load(), 60000);
+    window.addEventListener(PENDING_ALERTS_EVENT, load);
+    return () => { live = false; window.clearInterval(timer); window.removeEventListener(PENDING_ALERTS_EVENT, load); };
+  }, [pathname]);
+  return count;
 }

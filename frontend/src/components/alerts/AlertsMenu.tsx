@@ -7,31 +7,20 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
 import { useCriticalAlerts } from "../../hooks/useCriticalAlerts";
+import PendingAlertsBar from "../PendingAlertsBar";
 import { ALWAYS, COLORS, DEPARTMENTS, departmentOf, type Department } from "../home/AlertsPanel";
 
 export const OPEN_ALERTS_EVENT = "dentalpos:open-alerts";
 export const alertPath = (id: string) => `/alerta/${encodeURIComponent(id)}`;
 
 // Campo "Alertas críticos" logo abaixo do menu. Toque: departamentos (mudam de cor quando há aviso) > lista do departamento > tela do problema.
+export const openAlerts = (dept?: Department | null) => window.dispatchEvent(new CustomEvent(OPEN_ALERTS_EVENT, { detail: dept ?? null }));
+
 export default function AlertsMenu({ collapsed }: { collapsed: boolean }) {
-  const navigate = useNavigate();
   const { alerts } = useCriticalAlerts();
-  const [open, setOpen] = useState(false);
-  const [dept, setDept] = useState<Department | null>(null);
-
-  useEffect(() => {
-    const onOpen = (e: Event) => { setDept(((e as CustomEvent<Department | null>).detail as Department | null) || null); setOpen(true); };
-    window.addEventListener(OPEN_ALERTS_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_ALERTS_EVENT, onOpen);
-  }, []);
-
-  const grouped = new Map<Department, typeof alerts>();
-  alerts.forEach((a) => { const d = departmentOf(a); grouped.set(d, [...(grouped.get(d) || []), a]); });
+  const setOpen = (_v: boolean) => { void _v; openAlerts(); };
   const hasError = alerts.some((a) => a.severity === "error");
   const level = hasError ? "error" : alerts.length ? "warning" : "none";
-  const list = ([...DEPARTMENTS, "Outros"] as Department[]).filter((d) => ALWAYS.includes(d) || grouped.has(d));
-  const close = () => { setOpen(false); setDept(null); };
-  const levelOf = (d: Department) => ((grouped.get(d) || []).some((r) => r.severity === "error") ? "error" : (grouped.get(d) || []).length ? "warning" : "none") as "error" | "warning" | "none";
 
   const field = collapsed ? (
     <Tooltip title={alerts.length ? `${alerts.length} alerta(s) crítico(s)` : "Alertas críticos"} placement="right">
@@ -49,10 +38,31 @@ export default function AlertsMenu({ collapsed }: { collapsed: boolean }) {
     </Box>
   );
 
+  return field;
+}
+
+// Gaveta dos alertas críticos: fica montada uma única vez no Layout e abre por evento (menu lateral, cabeçalho ou tela inicial).
+export function AlertsDrawerHost() {
+  const navigate = useNavigate();
+  const { alerts } = useCriticalAlerts();
+  const [open, setOpen] = useState(false);
+  const [dept, setDept] = useState<Department | null>(null);
+
+  useEffect(() => {
+    const onOpen = (e: Event) => { setDept(((e as CustomEvent<Department | null>).detail as Department | null) || null); setOpen(true); };
+    window.addEventListener(OPEN_ALERTS_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_ALERTS_EVENT, onOpen);
+  }, []);
+
+  const grouped = new Map<Department, typeof alerts>();
+  alerts.forEach((a) => { const d = departmentOf(a); grouped.set(d, [...(grouped.get(d) || []), a]); });
+  const list = ([...DEPARTMENTS, "Outros"] as Department[]).filter((d) => ALWAYS.includes(d) || grouped.has(d));
+  const close = () => { setOpen(false); setDept(null); };
+  const levelOf = (d: Department) => ((grouped.get(d) || []).some((r) => r.severity === "error") ? "error" : (grouped.get(d) || []).length ? "warning" : "none") as "error" | "warning" | "none";
+
   const rows = dept ? grouped.get(dept) || [] : [];
   return (
     <>
-      {field}
       <Drawer anchor="left" open={open} onClose={close} slotProps={{ paper: { sx: { width: { xs: "100%", sm: 400 }, p: 2 } } }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
           {dept && <IconButton onClick={() => setDept(null)} aria-label="Voltar aos departamentos"><ArrowBackIcon /></IconButton>}
@@ -76,6 +86,7 @@ export default function AlertsMenu({ collapsed }: { collapsed: boolean }) {
             })}
           </Box>
         )}
+        {!dept && <Box sx={{ mx: -2, mt: 2 }}><PendingAlertsBar /></Box>}
         {dept && rows.length === 0 && <Typography color="text.secondary" sx={{ p: 2 }}>Nenhum alerta neste departamento.</Typography>}
         {dept && (
           <Box sx={{ display: "grid", gap: 0.8 }}>

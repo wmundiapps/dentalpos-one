@@ -55,7 +55,7 @@ function iso(date: Date) {
 
 const PROFESSIONAL_COLORS = ["#1976d2", "#2e7d32", "#ed6c02", "#9c27b0", "#d32f2f", "#00838f", "#6d4c41", "#c2185b", "#5e35b1", "#827717"];
 // Cada dentista tem sempre a mesma cor: a posição dele na lista em ordem alfabética.
-function professionalColorMap(names: string[]) {
+export function professionalColorMap(names: string[]) {
   const sorted = Array.from(new Set(names.map((n) => n.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"));
   const map = new Map<string, string>();
   sorted.forEach((name, index) => map.set(name, PROFESSIONAL_COLORS[index % PROFESSIONAL_COLORS.length]));
@@ -382,7 +382,7 @@ function TimeGridView({
   const dates = mergeSunday ? weekAll.slice(0, 6) : weekAll;
   const sundayISO = mergeSunday ? weekAll[6] : "";
   const hours = Array.from({ length: 15 }, (_, index) => 7 + index);
-  const gridTemplateColumns = `${HOUR_GUTTER}px repeat(${dates.length}, minmax(${view === "day" ? "620px" : mergeSunday ? "168px" : "155px"}, 1fr))`;
+  const gridTemplateColumns = `${HOUR_GUTTER}px repeat(${dates.length}, minmax(${view === "day" ? "620px" : mergeSunday ? "140px" : "155px"}, 1fr))`;
 
   const slotRows = (dayISO: string, dayItems: IntegratedAppointment[]) => {
     const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
@@ -518,7 +518,7 @@ function TimeGridView({
 
   return (
     <Box sx={{ overflow: "auto", maxHeight: maxHeight ?? "calc(100vh - 230px)" }}>
-      <Box sx={{ minWidth: view === "week" ? (mergeSunday ? HOUR_GUTTER + 6 * 168 : 1160) : 760 }}>
+      <Box sx={{ minWidth: view === "week" ? (mergeSunday ? HOUR_GUTTER + 6 * 140 : 1160) : 760 }}>
         <Box sx={{ display: "grid", gridTemplateColumns, position: "sticky", top: 0, zIndex: 8, bgcolor: "background.paper", boxShadow: "0 1px 3px rgba(0,0,0,.06)" }}>
           <Box sx={{ borderBottom: "1px solid #e8edf2" }} />
           {dates.map((dayISO) => (
@@ -921,7 +921,7 @@ function TimeGridView({
           })}
         </Box>
       </Box>
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.2, px: 1, pt: 1 }}>
+      <Box sx={{ display: isMobile ? "none" : "flex", flexWrap: "wrap", gap: 1.2, px: 1, pt: 1 }}>
         {Array.from(new Set(items.map((item) => item.professionalName.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR")).map((name) => (
           <Box key={`cor-${name}`} sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
             <Box sx={{ width: 12, height: 12, borderRadius: 0.5, bgcolor: colorOf(name) }} />
@@ -929,14 +929,66 @@ function TimeGridView({
           </Box>
         ))}
       </Box>
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", p: 1 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: isMobile ? "none" : "block", p: 1 }}>
         Toda a faixa livre é clicável na Semana e no Dia. Intervalos fixos aparecem bloqueados na grade com o motivo e horário. Em "Todos", selecione um profissional para visualizar os intervalos dele.
       </Typography>
     </Box>
   );
 }
 
+// Dia no celular: uma linha por atendimento, com horário, nome do paciente, pendência e procedimento (a cor da barra é a do dentista).
+function DayListView({ dateISO, items, professionalNames = [], agendaBlocks = [], onAppointmentClick, onNew, materialAlerts, financialAlerts }: Omit<Props, "onDateChange" | "view" | "professional">) {
+  const colors = professionalColorMap([...professionalNames, ...items.map((item) => item.professionalName)]);
+  const colorOf = (name: string) => colors.get(name.trim()) || "#1976d2";
+  const day = items.filter((a) => a.dateISO === dateISO).sort((a, b) => a.time.localeCompare(b.time));
+  const blocks = agendaBlocks.filter((b) => b.startAt.slice(0, 10) === dateISO || new Date(b.startAt).toLocaleDateString("sv-SE") === dateISO);
+  type Row = { key: string; time: string; node: React.ReactNode };
+  const rows: Row[] = [];
+  blocks.forEach((b) => {
+    const start = new Date(b.startAt), end = new Date(b.endAt);
+    const hm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    rows.push({ key: `b-${b.id}`, time: hm(start), node: (
+      <Box sx={{ px: 1.2, py: 0.8, borderRadius: 2, bgcolor: "action.hover", display: "flex", gap: 1, alignItems: "center" }}>
+        <Typography variant="body2" sx={{ fontWeight: 700, color: "text.secondary", minWidth: 44 }}>{hm(start).replace(":00", "h")}</Typography>
+        <Typography variant="body2" color="text.secondary" noWrap>{`${b.reason} • ${hm(start)}–${hm(end)}`}</Typography>
+      </Box>) });
+  });
+  day.forEach((a) => {
+    const off = a.status === "Desmarcado" || a.status === "Cancelado";
+    const badges = operationalBadges(a, materialAlerts, financialAlerts).filter((x) => x.label !== "Financeiro OK");
+    rows.push({ key: `a-${a.id}`, time: a.time, node: (
+      <Box role="button" tabIndex={0} onClick={() => onAppointmentClick(a)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onAppointmentClick(a); } }}
+        sx={{ display: "flex", gap: 1, alignItems: "stretch", cursor: "pointer", borderRadius: 2, border: "1px solid", borderColor: "divider", overflow: "hidden", bgcolor: off ? "action.hover" : "background.paper", opacity: off ? 0.7 : 1, "&:active": { bgcolor: "action.selected" } }}>
+        <Box sx={{ width: 6, bgcolor: off ? "#bdbdbd" : colorOf(a.professionalName), flexShrink: 0 }} />
+        <Box sx={{ py: 0.9, pr: 1, minWidth: 46, textAlign: "center", display: "flex", alignItems: "center" }}>
+          <Typography sx={{ fontWeight: 900, fontSize: 15 }}>{a.time.replace(":00", "h")}</Typography>
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0, py: 0.9, pr: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.7, flexWrap: "wrap" }}>
+            <Typography sx={{ fontWeight: 800, fontSize: 16, lineHeight: 1.2, ...(off ? { textDecoration: "line-through", color: "text.disabled" } : {}) }}>{a.patientName}<MarkerDots backendId={a.backendId} /></Typography>
+            {off ? <Chip size="small" label={a.status === "Desmarcado" ? "Desmarcou" : "Cancelado"} /> : null}
+            {!off && a.status === "Faltou" ? <Chip size="small" color="error" label="Faltou" /> : null}
+            {badges.slice(0, 2).map((b) => <Chip key={b.label} size="small" color={b.color} label={`⚠ ${b.label}`} sx={{ maxWidth: "100%" }} />)}
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.3 }}>{`${a.procedure || "Sem procedimento"} • ${a.time}–${timeFromMinutes(minuteOfDay(a.time) + Math.max(10, a.durationMinutes || 30))}`}</Typography>
+        </Box>
+      </Box>) });
+  });
+  rows.sort((x, y) => x.time.localeCompare(y.time));
+  return (
+    <Box sx={{ p: 1, display: "grid", gap: 0.8 }}>
+      {rows.length === 0 ? <Typography color="text.secondary" sx={{ p: 2, textAlign: "center" }}>Nenhum atendimento neste dia.</Typography> : rows.map((r) => <Box key={r.key}>{r.node}</Box>)}
+      <Box role="button" tabIndex={0} onClick={() => onNew({ dateISO })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNew({ dateISO }); } }}
+        sx={{ mt: 0.5, py: 1.1, textAlign: "center", borderRadius: 2, border: "2px dashed", borderColor: "primary.main", color: "primary.main", fontWeight: 800, cursor: "pointer" }}>+ Agendar neste dia</Box>
+    </Box>
+  );
+}
+
 export default function AgendaCalendarBoard(props: Props) {
+  const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
+  if (props.view === "day" && isMobile) {
+    return <DayListView dateISO={props.dateISO} items={props.items} professionalNames={props.professionalNames} agendaBlocks={props.agendaBlocks} onAppointmentClick={props.onAppointmentClick} onNew={props.onNew} materialAlerts={props.materialAlerts} financialAlerts={props.financialAlerts} />;
+  }
   if (props.view === "month") {
     return (
       <MonthView

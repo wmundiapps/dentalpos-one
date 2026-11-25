@@ -19,7 +19,12 @@ import {
   FormControlLabel,
   Checkbox,
   Collapse,
+  useMediaQuery,
 } from "@mui/material";
+import type { Theme } from "@mui/material";
+import AgendaMobileBar from "../components/agenda/AgendaMobileBar";
+import { professionalColorMap } from "../components/AgendaCalendarBoard";
+import { setAgendaLegend } from "../utils/agendaLegend";
 import AddIcon from "@mui/icons-material/Add";
 import MiniMonthCalendar from "../components/MiniMonthCalendar";
 import AgendaPrintDialog from "../components/AgendaPrintDialog";
@@ -766,6 +771,12 @@ export default function Agenda() {
       ),
     [items, backendDoctors],
   );
+  const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
+  const colorMap = useMemo(() => professionalColorMap([...professionals, ...items.map((item) => item.professionalName)]), [professionals, items]);
+  useEffect(() => {
+    setAgendaLegend(professionals.filter((n) => n !== "Todos").map((name) => ({ name, color: colorMap.get(name.trim()) || "#1976d2" })));
+    return () => setAgendaLegend([]);
+  }, [professionals, colorMap]);
   const filterVisible = usePendingVisibility();
   const alerts = filterVisible(getOperationalAlerts()).filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
   const normalizeProfessionalName = (value: unknown) =>
@@ -979,6 +990,13 @@ export default function Agenda() {
     setDate(iso(next));
   };
 
+  const step = (kind: "small" | "big", direction: -1 | 1) => {
+    const next = new Date(`${date}T12:00:00`);
+    if (view === "month") next.setMonth(next.getMonth() + direction * (kind === "small" ? 1 : 12), 1);
+    else next.setDate(next.getDate() + direction * (kind === "small" ? 1 : 7));
+    setDate(iso(next));
+  };
+
   const copyBooking = async () => {
     const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
     const url = `${window.location.origin}${import.meta.env.BASE_URL}agendamento-online?clinicId=${encodeURIComponent(clinicId)}`;
@@ -1082,6 +1100,23 @@ export default function Agenda() {
 
   return (
     <Box sx={{ textAlign: "left" }}>
+      {isMobile ? (
+        <AgendaMobileBar
+          date={date} view={view} isToday={date === today()} onStep={step} onDate={setDate} onToday={() => setDate(today())} onView={setView}
+          professionals={professionals} colors={colorMap} professional={professional} onProfessional={setProfessional}
+          onNewAppointment={() => openNew({ dateISO: date })}
+          onNewCommitment={() => { setCompDoctor(selectedBackendDoctorId || ""); setCompDate(date); setCompTitle(""); setCompStart("12:00"); setCompEnd("13:00"); setCompOpen(true); }}
+          moreOpen={showMore} onToggleMore={() => setShowMore((v) => { const next = !v; try { localStorage.setItem("dentalpos.agenda.showMore", next ? "1" : "0"); } catch { /* sem armazenamento */ } return next; })}
+          extra={<>
+            <Button variant="outlined" onClick={() => setPrintOpen(true)}>Imprimir agenda</Button>
+            <ExportMenu label="Baixar / imprimir agenda" build={() => {
+              const inRange = items.filter((a) => range.includes(a.dateISO)).sort((a, b) => `${a.dateISO} ${a.time}`.localeCompare(`${b.dateISO} ${b.time}`));
+              return { title: `Agenda de ${range[0].split("-").reverse().join("/")}${range.length > 1 ? ` a ${range[range.length - 1].split("-").reverse().join("/")}` : ""}`, fileBase: "agenda", headers: ["Data", "Hora", "Paciente", "Telefone", "Profissional", "Procedimento", "Sala", "Situação"], rows: inRange.map((a) => [a.dateISO.split("-").reverse().join("/"), a.time, a.patientName, a.patientPhone || "", a.professionalName, a.procedure, a.room, a.status]) };
+            }} />
+            {view === "day" && selectedBackendDoctorId ? <Button color="warning" variant={closedDayBlock(selectedBackendDoctorId) ? "contained" : "outlined"} onClick={() => void toggleCloseDay(selectedBackendDoctorId)}>{closedDayBlock(selectedBackendDoctorId) ? "Reabrir agenda do dia" : "Fechar agenda do dia"}</Button> : null}
+          </>}
+        />
+      ) : (
       <PageHeader
         compact
         title="Agenda"
@@ -1091,12 +1126,13 @@ export default function Agenda() {
         secondaryLabel="Novo compromisso"
         onSecondary={() => { setCompDoctor(selectedBackendDoctorId || ""); setCompDate(date); setCompTitle(""); setCompStart("12:00"); setCompEnd("13:00"); setCompOpen(true); }}
       />
+      )}
       <AbsenceRecallDialog open={absenceOpen} onClose={() => setAbsenceOpen(false)} />
       <AgendaPrintDialog open={printOpen} onClose={() => setPrintOpen(false)} items={items} professionals={professionals} defaultView={view} dateISO={date} defaultProfessional={professional} />
       <CloseAgendaDialog open={closeAgendaOpen} onClose={() => setCloseAgendaOpen(false)} doctors={backendDoctors} defaultDoctorId={selectedBackendDoctorId} defaultDate={date} appointments={items} onSaved={refreshAgendaConfiguration} />
       {holdTarget && <FinancialHoldDialog patientId={holdTarget.id} patientName={holdTarget.name} open onClose={() => setHoldTarget(null)} onResolved={(id) => { holdResolvedFor.current = id; }} onScheduleAnyway={holdTarget.retry ? () => { setHoldTarget(null); void saveWith(true); } : undefined} />}
 
-      <Paper variant="outlined" sx={{ p: 1, borderRadius: 3, mb: 1 }}>
+      {!isMobile && <Paper variant="outlined" sx={{ p: 1, borderRadius: 3, mb: 1 }}>
         <Box
           sx={{
             display: "grid",
@@ -1175,7 +1211,7 @@ export default function Agenda() {
           </Button>
         </Box>
 
-      </Paper>
+      </Paper>}
       <Collapse in={showMore} unmountOnExit>
         <Box sx={{ mb: 2 }}>
       <AgendaPatientSearch
@@ -1265,13 +1301,13 @@ export default function Agenda() {
         >
           <Box
             sx={{
+              display: isMobile ? "none" : "flex",
               px: 2,
               py: 1.25,
               bgcolor: "action.hover",
               borderBottom: 1,
               borderColor: "divider",
-              display: "flex",
-              alignItems: "center",
+ alignItems: "center",
               justifyContent: "space-between",
               gap: 2,
               position: view === "day" ? "sticky" : "static",

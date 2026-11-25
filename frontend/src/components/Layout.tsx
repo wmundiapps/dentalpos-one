@@ -14,6 +14,7 @@ import PendingLockGate from "./PendingLockGate";
 import ToastHost from "./ToastHost";
 import PrintHeader from "./PrintHeader";
 import Sidebar from "./Sidebar";
+import { AlertsDrawerHost } from "./alerts/AlertsMenu";
 
 interface LayoutProps {
   children: ReactNode;
@@ -49,7 +50,7 @@ export default function Layout({
         <Header />
         <Box className="no-print"><DemoBanner /></Box>
         <Box className="no-print"><SubscriptionBanner /></Box>
-        <Box className="no-print"><PendingAlertsBar /></Box>
+        <Box className="no-print" sx={{ display: { xs: "none", md: "block" } }}><PendingAlertsBar /></Box>
         <ToastHost />
 
         <Box
@@ -70,6 +71,7 @@ export default function Layout({
       </Box>
 
       <Box className="no-print"><EvaluationWidget /></Box>
+      <Box className="no-print"><AlertsDrawerHost /></Box>
     </Box>
   );
 }
