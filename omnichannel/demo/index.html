@@ -1,0 +1,8 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Demo Omnichannel WMundi</title>
+<style>body{font-family:system-ui;max-width:720px;margin:0 auto;padding:24px 16px}button{margin:4px;padding:8px 14px;border-radius:8px;border:1px solid #ccc;cursor:pointer}</style></head><body>
+<h1>Demonstração Omnichannel</h1><p>Modo demonstração: nenhum lead nem mensagem é enviado. Escolha o sistema e clique no botão 💬.</p>
+<div id="b"></div><script>
+var P={wmundi:'WMundi (site)',revah:'Revah',edumaster:'EduMaster',dentalpos:'CompletoDonto',studiobeautybarber:'Studio Beauty Barber',marpe:'Marpê'};
+function load(p){var o=document.getElementById('wmundi-omni');if(o)o.remove();var s=document.createElement('script');s.src='../wmundi-omnichannel.js';s.dataset.product=p;s.dataset.demo='true';document.body.appendChild(s);}
+Object.keys(P).forEach(function(k){var b=document.createElement('button');b.textContent=P[k];b.onclick=function(){load(k)};document.getElementById('b').appendChild(b)});load('wmundi');
+</script></body></html>

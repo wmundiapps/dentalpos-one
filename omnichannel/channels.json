@@ -1,0 +1,12 @@
+{
+  "_aviso": "Preencha 'handle'/'phone'/'email' reais de cada canal. Canal sem valor fica oculto no widget (nunca inventamos contato). Textos de autorização são texto legal: não mudar sem aprovação.",
+  "api": "https://api.dentalpos.com.br/api",
+  "products": {
+    "wmundi":  { "name": "WMundi (site)",       "channelName": "Omnichannel WMundi Site",        "color": "#0b5fff", "channels": { "whatsapp": "554499466451", "instagram": "wmundimkt", "facebook": "WMundi", "email": "info@wmundi.com", "telegram": "", "phone": "" } },
+    "revah":   { "name": "Revah",               "channelName": "Omnichannel Revah",              "color": "#7c3aed", "channels": { "whatsapp": "554499466451", "instagram": "wmundimkt", "facebook": "WMundi", "email": "info@wmundi.com", "telegram": "", "phone": "" } },
+    "edumaster": { "name": "EduMaster",         "channelName": "Omnichannel EduMaster",          "color": "#059669", "channels": { "whatsapp": "554499466451", "instagram": "wmundimkt", "facebook": "WMundi", "email": "info@wmundi.com", "telegram": "", "phone": "" } },
+    "dentalpos": { "name": "CompletoDonto / DentalPos", "channelName": "Omnichannel CompletoDonto", "color": "#0891b2", "channels": { "whatsapp": "554499466451", "instagram": "wmundimkt", "facebook": "WMundi", "email": "contato@dentalpos.com.br", "telegram": "", "phone": "" } },
+    "studiobeautybarber": { "name": "Studio Beauty Barber", "channelName": "Omnichannel Studio Beauty Barber", "color": "#b45309", "channels": { "whatsapp": "554499466451", "instagram": "wmundimkt", "facebook": "WMundi", "email": "info@wmundi.com", "telegram": "", "phone": "" } },
+    "marpe":   { "name": "Marpê",               "channelName": "Omnichannel Marpê",              "color": "#dc2626", "channels": { "whatsapp": "554499466451", "instagram": "wmundimkt", "facebook": "WMundi", "email": "info@wmundi.com", "telegram": "", "phone": "" } }
+  }
+}
