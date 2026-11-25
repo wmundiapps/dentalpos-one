@@ -5,20 +5,23 @@
  */
 (function () {
   'use strict';
-  var script = document.currentScript || (function () { var s = document.getElementsByTagName('script'); return s[s.length - 1]; })();
+  if (window.WMundiOmni) return;
+  var script = document.currentScript || document.querySelector('script[src*="wmundi-omnichannel"]');
   var d = script ? script.dataset : {};
   var DEFAULTS = {
     api: 'https://api.dentalpos.com.br/api',
     whatsapp: '554499466451', instagram: 'wmundimkt', facebook: 'WMundi', email: 'info@wmundi.com', telegram: '', phone: ''
   };
-  var NAMES = { wmundi: 'WMundi', revah: 'Revah', edumaster: 'EduMaster', dentalpos: 'CompletoDonto', studiobeautybarber: 'Studio Beauty Barber', marpe: 'Marpê' };
+  var NAMES = { wmundi: 'WMundi', revah: 'Revah', edumaster: 'EduMaster', dentalpos: 'DentalPos', studiobeautybarber: 'Studio Beauty Barber', marpe: 'Marpê' };
   var product = (d.product || 'wmundi').toLowerCase();
   var cfg = {};
   Object.keys(DEFAULTS).forEach(function (k) { cfg[k] = d[k] != null ? d[k] : DEFAULTS[k]; });
   var demo = d.demo === 'true' || /[?&]omni_demo=1/.test(location.search);
-  var color = d.color || '#0b5fff';
+  var color = /^#[0-9a-f]{3,8}$/i.test(d.color || '') ? d.color : '#0b5fff';
+  if (!/^https:\/\//.test(cfg.api)) cfg.api = DEFAULTS.api;
   var label = NAMES[product] || product;
-  var CONSENT = 'Autorizo a WMundi a falar comigo pelo canal escolhido (inclusive com atendimento automático por inteligência artificial) sobre o produto. Posso responder SAIR a qualquer momento para não receber mais mensagens.';
+  // Texto aprovado pelo Robson e pela Dra. Roberta em 31/10/2026 (mesmo da página /falar). Mudança exige nova aprovação.
+  var CONSENT = 'Autorizo a WMundi a falar comigo pelo WhatsApp (inclusive com atendimento automático por inteligência artificial) sobre o teste do sistema. Posso responder SAIR a qualquer momento para não receber mais mensagens.';
 
   function digits(v) { return String(v || '').replace(/\D/g, ''); }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -78,10 +81,10 @@
     track('lead_submit');
     if (demo) { st.className = 'st ok'; st.textContent = 'Demonstração: lead de ' + body.name + ' seria registrado para ' + label + '.'; return; }
     go.disabled = true; st.className = 'st'; st.textContent = 'Enviando...';
-    fetch(cfg.api.replace(/\/$/, '') + '/marketing/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    fetch(cfg.api.replace(/\/$/, '') + '/marketing/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: (window.AbortController ? (function () { var c = new AbortController(); setTimeout(function () { c.abort(); }, 15000); return c.signal; })() : undefined) })
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Falha ao enviar'); return j; }); })
-      .then(function (j) { st.className = 'st ok'; st.textContent = 'Pronto! Abrindo o WhatsApp...'; if (j.whatsappUrl) window.open(j.whatsappUrl, '_blank', 'noopener'); })
-      .catch(function (err) { st.className = 'st er'; st.textContent = err.message || 'Não foi possível enviar agora.'; go.disabled = false; });
+      .then(function (j) { st.className = 'st ok'; st.textContent = 'Pronto! Abrindo o WhatsApp...'; if (j.whatsappUrl && /^https:\/\/(wa\.me|api\.whatsapp\.com)\//.test(j.whatsappUrl)) window.open(j.whatsappUrl, '_blank', 'noopener'); })
+      .catch(function (err) { st.className = 'st er'; st.textContent = (err && err.name === 'AbortError') ? 'Demorou demais. Tente de novo.' : (err.message || 'Não foi possível enviar agora.'); go.disabled = false; });
   });
   function mount() { document.body.appendChild(host); }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);

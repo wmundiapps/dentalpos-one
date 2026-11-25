@@ -32,7 +32,7 @@ export const PRODUCTS: MarketingProduct[] = [
   { key: 'simulaclinic', name: 'SimulaClinic', aliases: ['simulaclinic', 'simula clinic'], facts: [], url: null },
   { key: 'allcollege', name: 'AllCollege', aliases: ['allcollege', 'all college'], facts: [], url: null },
   { key: 'imedico', name: 'iMédico', aliases: ['imedico', 'i medico', 'consultorio medico', 'clinica medica'], facts: [], url: null },
-  { key: 'revah', name: 'Revah', aliases: ['revah', 'revah crm', 'disparador'], facts: [], url: null },
+  { key: 'revah', name: 'Revah', aliases: ['revah', 'revah crm'], facts: [], url: null },
   { key: 'marpe', name: 'Marpê', aliases: ['marpe', 'marpê'], facts: [], url: null },
   { key: 'outros', name: 'Outros', aliases: [], facts: [], url: null, kind: 'outros' },
 ]
