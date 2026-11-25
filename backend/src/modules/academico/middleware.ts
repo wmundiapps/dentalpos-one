@@ -27,6 +27,7 @@ export type AcademicRole =
   | 'CONTADOR'
   | 'ANALISTA_CONTABIL'
   | 'CLIENTE_CONTABIL'
+  | 'HR'
 
 export interface AuthenticatedRequest extends Request {
   user?: {

@@ -14,11 +14,13 @@ import SimuladorTab from "../../edu/regulatorio/SimuladorTab";
 import AnaliseIaTab from "../../edu/regulatorio/AnaliseIaTab";
 import ComissaoMecTab from "../../edu/regulatorio/ComissaoMecTab";
 import ExcelenciaTab from "../../edu/regulatorio/ExcelenciaTab";
+import MontadorCursoTab from "../../edu/regulatorio/MontadorCursoTab";
 
 const TABS: Array<[string, () => ReactElement]> = [
   ["Painel regulatório", () => <PainelTab />],
   ["Comissão de avaliação do MEC", () => <ComissaoMecTab />],
   ["Excelência MEC", () => <ExcelenciaTab />],
+  ["Montador de curso (e-MEC)", () => <MontadorCursoTab />],
   ["Processos MEC", () => <ProcessosTab />],
   ["Atos e portarias", () => <AtosTab />],
   ["Checklists", () => <ChecklistsTab />],
@@ -28,7 +30,7 @@ const TABS: Array<[string, () => ReactElement]> = [
   ["Análise por IA", () => <AnaliseIaTab />],
 ];
 
-const ABAS: Record<string, number> = { comissao: 1, excelencia: 2 };
+const ABAS: Record<string, number> = { comissao: 1, excelencia: 2, montador: 3, processos: 4, checklists: 6 };
 
 export default function EduRegulatorio() {
   const [params] = useSearchParams();

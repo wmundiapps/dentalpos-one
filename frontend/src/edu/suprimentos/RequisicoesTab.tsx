@@ -26,6 +26,7 @@ function Detalhe({ id, onClose }: { id: string; onClose: () => void }) {
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                   <Typography variant="h6" sx={{ fontWeight: 800 }}>{r.numero}</Typography><StatusChip value={r.status} /><Tag text={label(r.tipo)} /><Tag text={`Urgência ${label(r.urgencia)}`} tone={r.urgencia === "URGENTE" ? "error" : r.urgencia === "ALTA" ? "warning" : "default"} />
                 </Box>
+                {r.assunto && <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{r.assunto}</Typography>}
                 {idx >= 0 ? (
                   <Box sx={{ overflowX: "auto" }}>
                     <Stepper activeStep={idx} alternativeLabel sx={{ minWidth: 640 }}>{FLUXO.map((s) => <Step key={s}><StepLabel>{label(s)}</StepLabel></Step>)}</Stepper>
@@ -76,7 +77,7 @@ export default function RequisicoesTab() {
         filters={[{ key: "status", label: "Situação", options: STATUS }, { key: "tipo", label: "Tipo", options: ["COMPRA", "INSUMO"] }]}
         toolbar={<><Button onClick={() => setMinhas(!minhas)} variant={minhas ? "contained" : "outlined"}>Somente minhas</Button><Button variant="contained" startIcon={<AddIcon />} onClick={() => setNova(true)}>Nova requisição</Button></>}
         columns={[
-          { key: "numero", label: "Número" }, { key: "tipo", label: "Tipo", render: (r) => <Tag text={label(r.tipo)} /> }, { key: "urgencia", label: "Urgência", render: (r) => <Tag text={label(r.urgencia)} tone={r.urgencia === "URGENTE" ? "error" : r.urgencia === "ALTA" ? "warning" : "default"} /> },
+          { key: "numero", label: "Número" }, { key: "assunto", label: "Assunto", render: (r) => r.assunto || "—" }, { key: "tipo", label: "Tipo", render: (r) => <Tag text={label(r.tipo)} /> }, { key: "urgencia", label: "Urgência", render: (r) => <Tag text={label(r.urgencia)} tone={r.urgencia === "URGENTE" ? "error" : r.urgencia === "ALTA" ? "warning" : "default"} /> },
           { key: "itens", label: "Itens", render: (r) => (r.itens || []).length }, { key: "valorEstimado", label: "Valor estimado", align: "right", render: (r) => brl(r.valorEstimado) },
           { key: "necessarioEm", label: "Necessário até", render: (r) => fmtDate(r.necessarioEm) }, { key: "status", label: "Situação", render: (r) => <StatusChip value={r.status} /> },
         ]}

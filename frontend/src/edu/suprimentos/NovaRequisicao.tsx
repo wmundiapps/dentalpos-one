@@ -32,7 +32,7 @@ export default function NovaRequisicao({ open, onClose, onSaved }: { open: boole
     setBusy(true);
     try {
       const body: any = {
-        tipo: f.tipo, urgencia: f.urgencia, justificativa: f.justificativa || undefined, cursoId: f.cursoId || undefined, centroCustoId: f.centroCustoId || undefined,
+        tipo: f.tipo, assunto: f.assunto || undefined, urgencia: f.urgencia, justificativa: f.justificativa || undefined, cursoId: f.cursoId || undefined, centroCustoId: f.centroCustoId || undefined,
         laboratorioId: f.laboratorioId || undefined, almoxarifadoId: f.almoxarifadoId || undefined, necessarioEm: f.necessarioEm ? new Date(`${f.necessarioEm}T12:00:00`).toISOString() : undefined,
         itens: validas.map((l) => ({ itemId: l.itemId || undefined, descricao: l.descricao || undefined, unidade: l.unidade || undefined, quantidade: Number(l.quantidade), precoEstimado: l.precoEstimado === "" ? undefined : Number(l.precoEstimado) })),
       };
@@ -55,6 +55,7 @@ export default function NovaRequisicao({ open, onClose, onSaved }: { open: boole
           <TextField select size="small" label="Urgência" value={f.urgencia} onChange={(e) => set("urgencia", e.target.value)}>
             {["BAIXA", "NORMAL", "ALTA", "URGENTE"].map((u) => <MenuItem key={u} value={u}>{u}</MenuItem>)}
           </TextField>
+          <TextField size="small" label="Assunto" placeholder="Ex.: Reposição de material de laboratório" value={f.assunto || ""} onChange={(e) => set("assunto", e.target.value)} sx={{ gridColumn: { md: "1 / -1" } }} />
           <TextField select size="small" label="Curso" value={f.cursoId || ""} onChange={(e) => set("cursoId", e.target.value)}><MenuItem value="">—</MenuItem>{cursos.map((c) => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}</TextField>
           <TextField size="small" label="Centro de custo (ID)" value={f.centroCustoId || ""} onChange={(e) => set("centroCustoId", e.target.value)} />
           <TextField size="small" label="Laboratório (ID)" value={f.laboratorioId || ""} onChange={(e) => set("laboratorioId", e.target.value)} />

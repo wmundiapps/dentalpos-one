@@ -51,6 +51,7 @@ const itemReqSchema = z.object({
 })
 const reqSchema = z.object({
   tipo: z.enum(['COMPRA', 'INSUMO']).default('COMPRA'),
+  assunto: z.string().min(3).max(200).optional().nullable(),
   cursoId: z.string().optional().nullable(), laboratorioId: z.string().optional().nullable(), centroCustoId: z.string().optional().nullable(),
   classSectionId: z.string().optional().nullable(), almoxarifadoId: z.string().optional().nullable(), departamentoId: z.string().optional().nullable(),
   justificativa: z.string().optional().nullable(), urgencia: z.enum(['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']).default('NORMAL'),

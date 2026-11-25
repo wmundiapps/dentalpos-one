@@ -194,7 +194,7 @@ router.post(
 
 router.get(
   '/outbox',
-  requireRole(...ATENDE),
+  requireRole(...ATENDE, 'HR'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req)
     const { skip, take, page, pageSize } = pageParams(req.query)
@@ -231,7 +231,7 @@ const enfileirarSchema = z.object({
 })
 router.post(
   '/outbox',
-  requireRole(...ATENDE),
+  requireRole(...ATENDE, 'HR'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req)
     const b = parseBody(enfileirarSchema, req.body)

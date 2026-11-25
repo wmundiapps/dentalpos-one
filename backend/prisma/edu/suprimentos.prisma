@@ -365,6 +365,7 @@ model SupRequisicao {
   tipo            SupRequisicaoTipo @default(COMPRA)
   status          SupRequisicaoStatus @default(RASCUNHO)
   solicitanteUserId String
+  assunto         String?       // título curto da requisição, para quem recebe identificar rápido
   cursoId         String?
   laboratorioId   String?       // EduSpace
   centroCustoId   String?       // EduCostCenter
