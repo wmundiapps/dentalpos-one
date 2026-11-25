@@ -1,0 +1,186 @@
+{
+ "slug": "controle-de-estoque",
+ "nome": "Controle de estoque",
+ "cat": "mod",
+ "tagline": "Entradas, saídas e níveis de estoque sempre atualizados e integrados à gestão.",
+ "persona": "Distribuidora 'Depósito Exemplo Beta' (empresa FICTÍCIA)",
+ "kpis": [
+  {
+   "l": "Itens cadastrados",
+   "v": "1.248",
+   "d": "em 3 depósitos"
+  },
+  {
+   "l": "Valor em estoque",
+   "v": "R$ 386.900",
+   "d": "custo médio"
+  },
+  {
+   "l": "Abaixo do mínimo",
+   "v": "14",
+   "d": "reposição sugerida"
+  },
+  {
+   "l": "Giro mensal",
+   "v": "2,4x",
+   "d": "média geral"
+  }
+ ],
+ "table": {
+  "title": "Itens e níveis de estoque",
+  "cols": [
+   "Item",
+   "Saldo",
+   "Mínimo",
+   "Situação"
+  ],
+  "rows": [
+   [
+    "Produto Modelo 001",
+    "320 un",
+    "100 un",
+    "ok:Normal"
+   ],
+   [
+    "Produto Modelo 014",
+    "85 un",
+    "120 un",
+    "bad:Abaixo do mínimo"
+   ],
+   [
+    "Produto Modelo 027",
+    "140 un",
+    "150 un",
+    "warn:Próximo do mínimo"
+   ],
+   [
+    "Produto Modelo 033",
+    "560 un",
+    "200 un",
+    "ok:Normal"
+   ],
+   [
+    "Produto Modelo 045",
+    "0 un",
+    "50 un",
+    "bad:Ruptura"
+   ],
+   [
+    "Produto Modelo 052",
+    "210 un",
+    "80 un",
+    "ok:Normal"
+   ],
+   [
+    "Produto Modelo 068",
+    "60 un",
+    "60 un",
+    "warn:No mínimo"
+   ]
+  ]
+ },
+ "chart": {
+  "title": "Saídas mensais (unidades)",
+  "labels": [
+   "Jun",
+   "Jul",
+   "Ago",
+   "Set",
+   "Out",
+   "Nov"
+  ],
+  "values": [
+   3800,
+   4100,
+   3950,
+   4400,
+   4700,
+   4900
+  ]
+ },
+ "sim": {
+  "title": "Simulador: ponto de reposição",
+  "intro": "Mexa na demanda e no prazo do fornecedor para ver quando repor e quanto manter de segurança.",
+  "inputs": [
+   {
+    "id": "dem",
+    "label": "Saída média por dia (un)",
+    "min": 1,
+    "max": 100,
+    "step": 1,
+    "val": 20,
+    "unit": ""
+   },
+   {
+    "id": "prazo",
+    "label": "Prazo do fornecedor (dias)",
+    "min": 1,
+    "max": 45,
+    "step": 1,
+    "val": 10,
+    "unit": "dias"
+   },
+   {
+    "id": "seg",
+    "label": "Estoque de segurança (dias)",
+    "min": 0,
+    "max": 20,
+    "step": 1,
+    "val": 4,
+    "unit": "dias"
+   },
+   {
+    "id": "custo",
+    "label": "Custo unitário (R$)",
+    "min": 5,
+    "max": 500,
+    "step": 5,
+    "val": 60,
+    "unit": ""
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Ponto de reposição (un)",
+    "expr": "dem*(prazo+seg)",
+    "fmt": "int"
+   },
+   {
+    "label": "Estoque de segurança (un)",
+    "expr": "dem*seg",
+    "fmt": "int"
+   },
+   {
+    "label": "Capital no ponto de reposição",
+    "expr": "dem*(prazo+seg)*custo",
+    "fmt": "brl"
+   }
+  ]
+ },
+ "fluxo": [
+  "O produto é cadastrado com saldo e nível mínimo",
+  "Entradas e saídas atualizam o saldo automaticamente",
+  "O sistema alerta quando o item chega ao mínimo",
+  "A reposição é sugerida com base no consumo"
+ ],
+ "recursos": [
+  "Cadastro de itens e depósitos",
+  "Entradas e saídas com histórico",
+  "Alertas de estoque mínimo",
+  "Inventário e conferência",
+  "Custo médio por item",
+  "Curva de consumo e giro",
+  "Integração com vendas e compras",
+  "Relatórios por período"
+ ],
+ "faq": [
+  {
+   "q": "Funciona com mais de um depósito?",
+   "a": "Sim, o modelo mostra saldos separados por depósito, conforme a configuração contratada."
+  },
+  {
+   "q": "Os números são reais?",
+   "a": "Não. São dados fictícios, apenas ilustrativos."
+  }
+ ]
+}

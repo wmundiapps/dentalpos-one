@@ -1,0 +1,187 @@
+{
+  "slug": "urbanflow",
+  "nome": "UrbanFlow",
+  "cat": "mob",
+  "tagline": "Estacionamento rotativo para prefeituras: vaga no app, pagamento pelo celular e arrecadação transparente.",
+  "persona": "Prefeitura Exemplo de Vila Modelo (órgão FICTÍCIO) com estacionamento rotativo em 6 zonas",
+  "kpis": [
+    {
+      "l": "Vagas monitoradas",
+      "v": "600",
+      "d": "em 6 zonas"
+    },
+    {
+      "l": "Ocupação média",
+      "v": "59%",
+      "d": "horário comercial"
+    },
+    {
+      "l": "Arrecadação do mês",
+      "v": "R$ 198.400,00",
+      "d": "modelo ilustrativo"
+    },
+    {
+      "l": "Pagamentos pelo celular",
+      "v": "81%",
+      "d": "do total de tickets"
+    }
+  ],
+  "table": {
+    "title": "Zonas de estacionamento",
+    "cols": [
+      "Zona",
+      "Vagas",
+      "Ocupação",
+      "Arrecadação no mês",
+      "Status"
+    ],
+    "rows": [
+      [
+        "Centro Comercial",
+        "180",
+        "78%",
+        "R$ 62.300,00",
+        "warn:Quase lotada"
+      ],
+      [
+        "Entorno da Rodoviária",
+        "90",
+        "52%",
+        "R$ 24.100,00",
+        "ok:Normal"
+      ],
+      [
+        "Hospital Exemplo",
+        "110",
+        "61%",
+        "R$ 38.200,00",
+        "ok:Normal"
+      ],
+      [
+        "Praça da Matriz",
+        "70",
+        "40%",
+        "R$ 19.800,00",
+        "ok:Normal"
+      ],
+      [
+        "Mercado Municipal",
+        "100",
+        "58%",
+        "R$ 38.600,00",
+        "ok:Normal"
+      ],
+      [
+        "Escola Exemplo",
+        "50",
+        "33%",
+        "R$ 15.400,00",
+        "info:Baixa demanda"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Arrecadação mensal (R$ mil)",
+    "labels": [
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov"
+    ],
+    "values": [
+      151,
+      163,
+      170,
+      182,
+      191,
+      198
+    ]
+  },
+  "sim": {
+    "title": "Simulador: arrecadação do rotativo",
+    "intro": "Mexa no número de vagas, na ocupação, na tarifa e nas horas de operação para estimar uma arrecadação ilustrativa.",
+    "inputs": [
+      {
+        "id": "vagas",
+        "label": "Vagas rotativas",
+        "min": 100,
+        "max": 2000,
+        "step": 50,
+        "val": 600,
+        "unit": ""
+      },
+      {
+        "id": "ocup",
+        "label": "Ocupação média",
+        "min": 20,
+        "max": 95,
+        "step": 5,
+        "val": 60,
+        "unit": "%"
+      },
+      {
+        "id": "tarifa",
+        "label": "Tarifa por hora",
+        "min": 1,
+        "max": 8,
+        "step": 0.5,
+        "val": 3,
+        "unit": "R$"
+      },
+      {
+        "id": "horas",
+        "label": "Horas de operação por dia",
+        "min": 4,
+        "max": 14,
+        "step": 1,
+        "val": 8,
+        "unit": "h"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Vagas ocupadas em média",
+        "expr": "Math.round(vagas*ocup/100)",
+        "fmt": "int"
+      },
+      {
+        "label": "Arrecadação por dia útil",
+        "expr": "vagas*ocup/100*horas*tarifa",
+        "fmt": "brl"
+      },
+      {
+        "label": "Arrecadação em 26 dias",
+        "expr": "vagas*ocup/100*horas*tarifa*26",
+        "fmt": "brl"
+      }
+    ]
+  },
+  "fluxo": [
+    "O motorista vê no aplicativo as vagas livres da zona",
+    "Ele estaciona, informa a placa e escolhe o tempo",
+    "O pagamento é feito pelo celular, por Pix ou cartão",
+    "A fiscalização consulta a placa e a prefeitura acompanha a arrecadação em tempo real"
+  ],
+  "recursos": [
+    "Mapa de vagas no aplicativo",
+    "Pagamento por Pix e cartão",
+    "Aviso de tempo expirando",
+    "Aplicativo de fiscalização por placa",
+    "Painel de arrecadação por zona",
+    "Tarifas por zona e horário",
+    "Relatórios para prestação de contas",
+    "Cadastro de isenções, como idosos e PCD"
+  ],
+  "faq": [
+    {
+      "q": "A prefeitura consegue acompanhar o dinheiro arrecadado?",
+      "a": "Neste modelo ilustrativo, sim: o painel mostra a arrecadação por zona e por dia. As regras reais dependem do contrato e da lei municipal."
+    },
+    {
+      "q": "O motorista precisa baixar o aplicativo?",
+      "a": "O modelo prevê aplicativo e também pagamento por canais alternativos. Os detalhes são definidos sob consulta."
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "slug": "completodonto",
+  "nome": "Completodonto",
+  "cat": "saude",
+  "tagline": "Agenda, prontuário, financeiro e equipe da clínica odontológica em um só painel.",
+  "persona": "Clínica Exemplo Sorriso (empresa FICTÍCIA) com 4 dentistas e 2 recepcionistas",
+  "kpis": [
+    {"l": "Consultas no mês", "v": "400", "d": "modelo ilustrativo"},
+    {"l": "Faturamento", "v": "R$ 88,3 mil", "d": "bruto, já descontadas as faltas"},
+    {"l": "Taxa de faltas", "v": "8%", "d": "com lembretes automáticos"},
+    {"l": "Inadimplência", "v": "4,2%", "d": "sobre o faturado"}
+  ],
+  "table": {
+    "title": "Agenda de hoje",
+    "cols": ["Horário", "Paciente", "Procedimento", "Status"],
+    "rows": [
+      ["08:00", "Cliente Exemplo 01", "Limpeza e profilaxia", "ok:Confirmado"],
+      ["08:45", "Maria Modelo", "Restauração", "ok:Confirmado"],
+      ["09:30", "Cliente Exemplo 02", "Avaliação ortodôntica", "warn:Aguardando"],
+      ["10:15", "João Modelo", "Canal (sessão 2)", "ok:Confirmado"],
+      ["11:00", "Cliente Exemplo 03", "Clareamento", "info:Novo"],
+      ["14:00", "Ana Modelo", "Extração", "bad:Faltou"],
+      ["15:00", "Cliente Exemplo 04", "Retorno de implante", "ok:Confirmado"]
+    ]
+  },
+  "chart": {
+    "title": "Faturamento mensal (R$ mil)",
+    "labels": ["Jun", "Jul", "Ago", "Set", "Out", "Nov"],
+    "values": [74, 77, 80, 83, 85, 88.3]
+  },
+  "sim": {
+    "title": "Simulador: faltas e lembretes",
+    "intro": "Ajuste o volume de pacientes, o valor médio da consulta, a taxa de faltas e a redução obtida com lembretes automáticos.",
+    "inputs": [
+      {"id": "pac", "label": "Pacientes agendados por mês", "min": 100, "max": 1000, "step": 10, "val": 400, "unit": ""},
+      {"id": "ticket", "label": "Valor médio por consulta", "min": 100, "max": 800, "step": 10, "val": 240, "unit": "R$"},
+      {"id": "falta", "label": "Taxa de faltas", "min": 0, "max": 30, "step": 1, "val": 8, "unit": "%"},
+      {"id": "lembrete", "label": "Faltas evitadas com lembretes", "min": 0, "max": 80, "step": 5, "val": 30, "unit": "%"}
+    ],
+    "outputs": [
+      {"label": "Receita prevista (após faltas)", "expr": "pac*ticket*(1-falta/100)", "fmt": "brl"},
+      {"label": "Consultas perdidas por faltas", "expr": "pac*falta/100", "fmt": "int"},
+      {"label": "Consultas recuperadas com lembretes", "expr": "pac*falta/100*lembrete/100", "fmt": "dec1"},
+      {"label": "Receita recuperada (ilustrativa)", "expr": "pac*falta/100*lembrete/100*ticket", "fmt": "brl"}
+    ]
+  },
+  "fluxo": [
+    "A recepção agenda o paciente e o sistema envia o lembrete.",
+    "O dentista abre o prontuário e registra o atendimento.",
+    "O procedimento realizado gera o lançamento financeiro.",
+    "A gestão acompanha agenda, caixa e produtividade da equipe."
+  ],
+  "recursos": [
+    "Agenda por profissional e por cadeira",
+    "Prontuário eletrônico com odontograma",
+    "Orçamentos e plano de tratamento",
+    "Contas a receber e fluxo de caixa",
+    "Lembretes automáticos de consulta",
+    "Controle de comissões da equipe",
+    "Relatórios de produtividade",
+    "Permissões por perfil de usuário"
+  ],
+  "faq": [
+    {"q": "Os dados desta demonstração são reais?", "a": "Não. Pacientes, valores e a clínica são fictícios e servem apenas como modelo ilustrativo."},
+    {"q": "Posso ver o sistema com os dados da minha clínica?", "a": "Sim, fale com a equipe da WMundi para uma apresentação personalizada. Os valores estão sob consulta."}
+  ]
+}

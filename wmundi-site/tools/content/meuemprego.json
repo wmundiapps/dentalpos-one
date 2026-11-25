@@ -1,0 +1,190 @@
+{
+  "slug": "meuemprego",
+  "nome": "MeuEmprego",
+  "cat": "car",
+  "tagline": "Perfil profissional, vagas compatíveis e acompanhamento de candidaturas em um só lugar.",
+  "persona": "Maria Modelo (pessoa FICTÍCIA), candidata a vagas administrativas",
+  "kpis": [
+    {
+      "l": "Vagas compatíveis",
+      "v": "48",
+      "d": "com o perfil cadastrado"
+    },
+    {
+      "l": "Candidaturas enviadas",
+      "v": "12",
+      "d": "nas últimas 4 semanas"
+    },
+    {
+      "l": "Entrevistas agendadas",
+      "v": "3",
+      "d": "próximos 10 dias"
+    },
+    {
+      "l": "Perfil completo",
+      "v": "86%",
+      "d": "faltam 2 itens"
+    }
+  ],
+  "table": {
+    "title": "Minhas candidaturas (dados fictícios)",
+    "cols": [
+      "Vaga",
+      "Empresa",
+      "Cidade",
+      "Status"
+    ],
+    "rows": [
+      [
+        "Assistente administrativo",
+        "Empresa Exemplo Alfa",
+        "Maringá",
+        "ok:Entrevista agendada"
+      ],
+      [
+        "Auxiliar financeiro",
+        "Comercial Exemplo Beta",
+        "Londrina",
+        "info:Enviada"
+      ],
+      [
+        "Analista de atendimento",
+        "Serviços Exemplo Gama",
+        "Curitiba",
+        "warn:Em análise"
+      ],
+      [
+        "Recepcionista",
+        "Clínica Exemplo Aurora",
+        "Maringá",
+        "ok:Entrevista agendada"
+      ],
+      [
+        "Assistente de RH",
+        "Indústria Exemplo Delta",
+        "Cascavel",
+        "bad:Não selecionada"
+      ],
+      [
+        "Auxiliar de escritório",
+        "Distribuidora Exemplo Norte",
+        "Maringá",
+        "warn:Em análise"
+      ],
+      [
+        "Atendente comercial",
+        "Loja Exemplo Sul",
+        "Londrina",
+        "info:Enviada"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Candidaturas enviadas por semana",
+    "labels": [
+      "Sem 1",
+      "Sem 2",
+      "Sem 3",
+      "Sem 4",
+      "Sem 5",
+      "Sem 6",
+      "Sem 7",
+      "Sem 8"
+    ],
+    "values": [
+      2,
+      3,
+      4,
+      3,
+      5,
+      4,
+      6,
+      5
+    ]
+  },
+  "sim": {
+    "title": "Simulador: ritmo de candidaturas",
+    "intro": "Mude o ritmo de candidaturas e as taxas de retorno para ver um exemplo ilustrativo de entrevistas.",
+    "inputs": [
+      {
+        "id": "cand",
+        "label": "Candidaturas por semana",
+        "min": 1,
+        "max": 30,
+        "step": 1,
+        "val": 6,
+        "unit": ""
+      },
+      {
+        "id": "semanas",
+        "label": "Semanas de busca",
+        "min": 2,
+        "max": 16,
+        "step": 1,
+        "val": 8,
+        "unit": ""
+      },
+      {
+        "id": "retorno",
+        "label": "Empresas que respondem",
+        "min": 5,
+        "max": 40,
+        "step": 1,
+        "val": 15,
+        "unit": "%"
+      },
+      {
+        "id": "entrev",
+        "label": "Respostas que viram entrevista",
+        "min": 10,
+        "max": 80,
+        "step": 5,
+        "val": 40,
+        "unit": "%"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Candidaturas no período",
+        "expr": "cand*semanas",
+        "fmt": "int"
+      },
+      {
+        "label": "Respostas esperadas (exemplo)",
+        "expr": "cand*semanas*retorno/100",
+        "fmt": "dec1"
+      },
+      {
+        "label": "Entrevistas estimadas (exemplo)",
+        "expr": "cand*semanas*retorno/100*entrev/100",
+        "fmt": "dec1"
+      }
+    ]
+  },
+  "fluxo": [
+    "Monte seu perfil e currículo no sistema",
+    "Receba vagas compatíveis com sua área e cidade",
+    "Candidate-se com poucos cliques",
+    "Acompanhe respostas e entrevistas no painel"
+  ],
+  "recursos": [
+    "Perfil profissional e currículo online",
+    "Vagas sugeridas por compatibilidade",
+    "Alertas de novas vagas",
+    "Acompanhamento de candidaturas",
+    "Agenda de entrevistas",
+    "Dicas de currículo e entrevista",
+    "Painel de empresas para publicar vagas",
+    "Privacidade dos dados do candidato"
+  ],
+  "faq": [
+    {
+      "q": "O MeuEmprego garante emprego?",
+      "a": "Não. Este modelo ilustrativo apenas mostra como organizar perfil, vagas e candidaturas."
+    },
+    {
+      "q": "As vagas e empresas são reais?",
+      "a": "Não. Todas as vagas, empresas e pessoas desta tela são fictícias."
+    }
+  ]
+}

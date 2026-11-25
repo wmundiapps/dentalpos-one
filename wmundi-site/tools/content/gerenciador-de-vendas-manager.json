@@ -1,0 +1,186 @@
+{
+  "slug": "gerenciador-de-vendas-manager",
+  "nome": "Gerenciador de vendas (Manager)",
+  "cat": "mod",
+  "tagline": "Funil de vendas, propostas, metas e acompanhamento da equipe comercial em um painel.",
+  "persona": "Comercial Exemplo Vértice (empresa FICTÍCIA), equipe de 5 vendedores",
+  "kpis": [
+    {
+      "l": "Receita fechada no mês",
+      "v": "R$ 101.200",
+      "d": "11 vendas, ticket médio R$ 9.200"
+    },
+    {
+      "l": "Meta do mês",
+      "v": "68%",
+      "d": "meta de R$ 148.000"
+    },
+    {
+      "l": "Pipeline aberto",
+      "v": "R$ 428.500",
+      "d": "em 64 oportunidades"
+    },
+    {
+      "l": "Propostas abertas",
+      "v": "37",
+      "d": "9 vencem esta semana"
+    }
+  ],
+  "table": {
+    "title": "Oportunidades em andamento (dados fictícios)",
+    "cols": [
+      "Oportunidade",
+      "Etapa",
+      "Valor",
+      "Status"
+    ],
+    "rows": [
+      [
+        "Empresa Exemplo Alfa",
+        "Proposta enviada",
+        "R$ 18.500,00",
+        "info:Proposta enviada"
+      ],
+      [
+        "Comercial Exemplo Beta",
+        "Negociação",
+        "R$ 9.800,00",
+        "warn:Negociando"
+      ],
+      [
+        "Indústria Exemplo Gama",
+        "Fechamento",
+        "R$ 32.000,00",
+        "ok:Pronta para fechar"
+      ],
+      [
+        "Serviços Exemplo Delta",
+        "Qualificação",
+        "R$ 6.400,00",
+        "info:Novo contato"
+      ],
+      [
+        "Loja Exemplo Épsilon",
+        "Proposta enviada",
+        "R$ 11.700,00",
+        "warn:Sem resposta há 6 dias"
+      ],
+      [
+        "Clínica Exemplo Zeta",
+        "Negociação",
+        "R$ 14.300,00",
+        "ok:Em andamento"
+      ],
+      [
+        "Distribuidora Exemplo Eta",
+        "Fechamento",
+        "R$ 7.900,00",
+        "bad:Risco de perda"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Receita fechada por mês (R$ mil)",
+    "labels": [
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov"
+    ],
+    "values": [
+      72,
+      85,
+      79,
+      93,
+      88,
+      101
+    ]
+  },
+  "sim": {
+    "title": "Simulador: funil de vendas",
+    "intro": "Mude leads, taxas de conversão e ticket para ver um exemplo ilustrativo do funil.",
+    "inputs": [
+      {
+        "id": "leads",
+        "label": "Leads por mês",
+        "min": 20,
+        "max": 500,
+        "step": 10,
+        "val": 120,
+        "unit": ""
+      },
+      {
+        "id": "conv",
+        "label": "Leads que viram proposta",
+        "min": 10,
+        "max": 80,
+        "step": 1,
+        "val": 35,
+        "unit": "%"
+      },
+      {
+        "id": "fech",
+        "label": "Propostas fechadas",
+        "min": 5,
+        "max": 60,
+        "step": 1,
+        "val": 25,
+        "unit": "%"
+      },
+      {
+        "id": "ticket",
+        "label": "Ticket médio (R$)",
+        "min": 1000,
+        "max": 30000,
+        "step": 500,
+        "val": 9000,
+        "unit": ""
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Propostas geradas",
+        "expr": "Math.round(leads*conv/100)",
+        "fmt": "int"
+      },
+      {
+        "label": "Vendas fechadas (exemplo)",
+        "expr": "leads*conv/100*fech/100",
+        "fmt": "dec1"
+      },
+      {
+        "label": "Receita estimada (exemplo)",
+        "expr": "leads*conv/100*fech/100*ticket",
+        "fmt": "brl"
+      }
+    ]
+  },
+  "fluxo": [
+    "Cadastre leads e oportunidades no funil",
+    "Gere e envie propostas padronizadas",
+    "Defina metas e acompanhe cada vendedor",
+    "Analise conversão por etapa e ajuste a estratégia"
+  ],
+  "recursos": [
+    "Funil visual por etapas",
+    "Propostas com modelos padronizados",
+    "Metas por vendedor e por equipe",
+    "Agenda de follow-ups",
+    "Histórico de contatos",
+    "Previsão de fechamento",
+    "Ranking e desempenho da equipe",
+    "Relatórios de conversão"
+  ],
+  "faq": [
+    {
+      "q": "A previsão de vendas é garantida?",
+      "a": "Não. Os valores deste modelo ilustrativo são exemplos calculados com números fictícios."
+    },
+    {
+      "q": "Posso acompanhar cada vendedor?",
+      "a": "Sim, o modelo mostra metas e desempenho por pessoa, com dados totalmente fictícios."
+    }
+  ]
+}

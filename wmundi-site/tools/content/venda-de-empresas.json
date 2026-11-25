@@ -1,0 +1,65 @@
+{
+  "slug": "venda-de-empresas",
+  "nome": "Venda de Empresas",
+  "cat": "mkt",
+  "tagline": "Aplicativo para anunciar empresas à venda e conectar vendedores a compradores interessados.",
+  "persona": "Corretora 'Ponte Exemplo Negócios' — empresa FICTÍCIA que publica anúncios de empresas à venda",
+  "kpis": [
+    {"l": "Anúncios ativos", "v": "38", "d": "empresas à venda"},
+    {"l": "Visitas aos anúncios", "v": "12.450", "d": "no mês"},
+    {"l": "Propostas recebidas", "v": "64", "d": "no mês"},
+    {"l": "Negociações em andamento", "v": "9", "d": "com contato liberado"}
+  ],
+  "table": {
+    "title": "Anúncios em destaque (dados fictícios)",
+    "cols": ["Empresa à venda", "Segmento", "Valor pedido", "Status"],
+    "rows": [
+      ["Padaria Exemplo Pão Quente", "Alimentação", "R$ 380.000", "ok:Publicado"],
+      ["Oficina Exemplo Motor", "Automotivo", "R$ 520.000", "info:Novo"],
+      ["Loja Exemplo Moda Viva", "Varejo", "R$ 260.000", "ok:Publicado"],
+      ["Escola Exemplo Aprender", "Educação", "R$ 910.000", "warn:Em negociação"],
+      ["Clínica Exemplo Bem-Estar", "Saúde", "R$ 740.000", "ok:Publicado"],
+      ["Transportadora Exemplo Rota", "Logística", "R$ 1.250.000", "warn:Em negociação"],
+      ["Lanchonete Exemplo Sabor", "Alimentação", "R$ 180.000", "bad:Vendida"]
+    ]
+  },
+  "chart": {
+    "title": "Visitas aos anúncios por mês",
+    "labels": ["Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out"],
+    "values": [5200, 6100, 7050, 8300, 9400, 10600, 11500, 12450]
+  },
+  "sim": {
+    "title": "Simulador: valor de referência para anunciar",
+    "intro": "Informe faturamento, margem e múltiplo para ver uma referência ilustrativa de valor; a avaliação real exige análise profissional.",
+    "inputs": [
+      {"id": "fat", "label": "Faturamento mensal", "min": 20000, "max": 500000, "step": 5000, "val": 120000, "unit": "R$"},
+      {"id": "marg", "label": "Margem de lucro (%)", "min": 5, "max": 60, "step": 1, "val": 20, "unit": "%"},
+      {"id": "mult", "label": "Múltiplo do lucro anual", "min": 1, "max": 6, "step": 0.5, "val": 2.5, "unit": "x"}
+    ],
+    "outputs": [
+      {"label": "Lucro mensal estimado", "expr": "fat*marg/100", "fmt": "brl"},
+      {"label": "Lucro anual estimado", "expr": "fat*marg/100*12", "fmt": "brl"},
+      {"label": "Valor de referência para o anúncio (ilustrativo)", "expr": "fat*marg/100*12*mult", "fmt": "brl"}
+    ]
+  },
+  "fluxo": [
+    "O vendedor cadastra a empresa com segmento, números e fotos",
+    "O anúncio é revisado e publicado no aplicativo",
+    "Compradores interessados enviam propostas",
+    "As partes combinam a negociação, com dados sensíveis liberados só após acordo"
+  ],
+  "recursos": [
+    "Cadastro de anúncio com fotos e descrição",
+    "Busca por segmento, cidade e faixa de valor",
+    "Envio de propostas pelo aplicativo",
+    "Dados sensíveis liberados após acordo de confidencialidade",
+    "Painel de visitas e propostas",
+    "Alertas para compradores com interesse",
+    "Anúncios com destaque",
+    "Calculadora de valor de referência"
+  ],
+  "faq": [
+    {"q": "O aplicativo avalia a minha empresa?", "a": "Não. O simulador mostra apenas uma referência ilustrativa. Uma avaliação real deve ser feita por profissional habilitado."},
+    {"q": "A identidade da empresa aparece no anúncio?", "a": "Neste modelo, o anúncio pode ser publicado sem identificar a empresa, e os dados completos só são liberados após o acordo entre as partes."}
+  ]
+}

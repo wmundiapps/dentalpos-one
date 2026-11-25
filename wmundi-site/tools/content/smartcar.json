@@ -1,0 +1,51 @@
+{
+  "slug": "smartcar",
+  "nome": "Smartcar",
+  "cat": "mob",
+  "tagline": "Gestão para o setor automotivo: ordens de serviço, agenda de oficina e lembrete de revisão do cliente.",
+  "persona": "Auto Center Exemplo Roda Viva (empresa FICTÍCIA), oficina mecânica de médio porte",
+  "kpis": [
+    {"l":"Ordens abertas","v":"37","d":"em andamento hoje"},
+    {"l":"Veículos na oficina","v":"14","d":"nos boxes agora"},
+    {"l":"Ticket médio da OS","v":"R$ 640,00","d":"modelo ilustrativo"},
+    {"l":"Revisões agendadas","v":"52","d":"próximos 30 dias"}
+  ],
+  "table": {
+    "title": "Ordens de serviço",
+    "cols": ["OS","Veículo","Serviço","Valor","Status"],
+    "rows": [
+      ["OS-2001","Sedan Exemplo, placa AAA-0A00","Revisão de 40 mil km","R$ 780,00","info:Em execução"],
+      ["OS-2002","Hatch Exemplo, placa BBB-0B00","Troca de pastilhas","R$ 420,00","ok:Pronto"],
+      ["OS-2003","SUV Exemplo, placa CCC-0C00","Alinhamento e balanceamento","R$ 190,00","ok:Entregue"],
+      ["OS-2004","Picape Exemplo, placa DDD-0D00","Troca de embreagem","R$ 1.850,00","warn:Aguardando peça"],
+      ["OS-2005","Hatch Exemplo, placa EEE-0E00","Diagnóstico elétrico","R$ 150,00","warn:Aguardando aprovação"],
+      ["OS-2006","Sedan Exemplo, placa FFF-0F00","Troca de óleo e filtros","R$ 360,00","info:Na fila"]
+    ]
+  },
+  "chart": {
+    "title": "Ordens de serviço concluídas por mês",
+    "labels": ["Jun","Jul","Ago","Set","Out","Nov"],
+    "values": [118,126,131,140,152,161]
+  },
+  "sim": {
+    "title": "Simulador: faturamento e retorno de revisões",
+    "intro": "Ajuste o volume de ordens, o ticket e a taxa de clientes que voltam para a revisão lembrada pelo sistema.",
+    "inputs": [
+      {"id":"os","label":"Ordens de serviço por mês","min":40,"max":500,"step":10,"val":160,"unit":""},
+      {"id":"ticket","label":"Ticket médio","min":150,"max":2000,"step":10,"val":640,"unit":"R$"},
+      {"id":"retorno","label":"Clientes que voltam na revisão","min":10,"max":80,"step":5,"val":35,"unit":"%"},
+      {"id":"margem","label":"Margem sobre o faturamento","min":10,"max":50,"step":1,"val":28,"unit":"%"}
+    ],
+    "outputs": [
+      {"label":"Faturamento mensal","expr":"os*ticket","fmt":"brl"},
+      {"label":"Retornos de revisão","expr":"Math.round(os*retorno/100)","fmt":"int"},
+      {"label":"Margem estimada","expr":"os*ticket*margem/100","fmt":"brl"}
+    ]
+  },
+  "fluxo": ["O cliente agenda ou chega à oficina e o veículo é cadastrado","A ordem de serviço é aberta com orçamento e aprovação","A equipe executa, registra peças e mão de obra e avisa quando fica pronto","O sistema agenda o lembrete da próxima revisão"],
+  "recursos": ["Cadastro de veículos e clientes","Ordens de serviço e orçamentos","Agenda dos boxes","Controle de peças e estoque","Histórico de manutenção por veículo","Lembrete de revisão por quilometragem ou data","Aviso ao cliente por mensagem","Relatórios de faturamento"],
+  "faq": [
+    {"q":"O sistema serve para concessionárias e oficinas?","a":"Este modelo mostra uma oficina. O escopo para outros tipos de negócio automotivo é definido sob consulta."},
+    {"q":"Os dados mostrados são reais?","a":"Não. Veículos, placas, clientes e valores são fictícios e apenas ilustram a tela."}
+  ]
+}

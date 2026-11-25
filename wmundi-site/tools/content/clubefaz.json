@@ -1,0 +1,194 @@
+{
+  "slug": "clubefaz",
+  "nome": "Clubefaz",
+  "cat": "neg",
+  "tagline": "Marketplace que conecta clientes a prestadores avaliados, com pedido e pagamento no mesmo lugar.",
+  "persona": "Marketplace Exemplo Faz Bem (empresa FICTÍCIA) com prestadores de serviços residenciais e locais",
+  "kpis": [
+    {
+      "l": "Prestadores ativos",
+      "v": "128",
+      "d": "cadastros aprovados"
+    },
+    {
+      "l": "Pedidos no mês",
+      "v": "342",
+      "d": "modelo ilustrativo"
+    },
+    {
+      "l": "Ticket médio",
+      "v": "R$ 186,00",
+      "d": "por pedido concluído"
+    },
+    {
+      "l": "Avaliação média",
+      "v": "4,7 de 5",
+      "d": "últimos 90 dias"
+    }
+  ],
+  "table": {
+    "title": "Pedidos recentes",
+    "cols": [
+      "Pedido",
+      "Serviço",
+      "Prestador",
+      "Valor",
+      "Status"
+    ],
+    "rows": [
+      [
+        "#1001",
+        "Limpeza residencial",
+        "Prestador Exemplo 01",
+        "R$ 180,00",
+        "ok:Concluído"
+      ],
+      [
+        "#1002",
+        "Reparo elétrico",
+        "Prestador Exemplo 07",
+        "R$ 240,00",
+        "info:Em andamento"
+      ],
+      [
+        "#1003",
+        "Pintura de parede",
+        "Prestador Exemplo 12",
+        "R$ 650,00",
+        "warn:Aguardando aceite"
+      ],
+      [
+        "#1004",
+        "Montagem de móveis",
+        "Prestador Exemplo 03",
+        "R$ 150,00",
+        "ok:Concluído"
+      ],
+      [
+        "#1005",
+        "Jardinagem",
+        "Prestador Exemplo 19",
+        "R$ 120,00",
+        "ok:Concluído"
+      ],
+      [
+        "#1006",
+        "Encanador",
+        "Prestador Exemplo 05",
+        "R$ 210,00",
+        "bad:Cancelado"
+      ],
+      [
+        "#1007",
+        "Aulas de reforço",
+        "Prestador Exemplo 22",
+        "R$ 90,00",
+        "info:Novo"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Pedidos por mês",
+    "labels": [
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov"
+    ],
+    "values": [
+      168,
+      205,
+      240,
+      281,
+      318,
+      342
+    ]
+  },
+  "sim": {
+    "title": "Simulador: volume e comissão do marketplace",
+    "intro": "Ajuste a quantidade de prestadores, os pedidos por prestador, o ticket e a comissão para ver um volume ilustrativo.",
+    "inputs": [
+      {
+        "id": "prest",
+        "label": "Prestadores ativos",
+        "min": 20,
+        "max": 500,
+        "step": 10,
+        "val": 128,
+        "unit": ""
+      },
+      {
+        "id": "ped",
+        "label": "Pedidos por prestador no mês",
+        "min": 1,
+        "max": 10,
+        "step": 1,
+        "val": 3,
+        "unit": ""
+      },
+      {
+        "id": "ticket",
+        "label": "Ticket médio",
+        "min": 50,
+        "max": 600,
+        "step": 10,
+        "val": 186,
+        "unit": "R$"
+      },
+      {
+        "id": "com",
+        "label": "Comissão da plataforma",
+        "min": 5,
+        "max": 25,
+        "step": 1,
+        "val": 12,
+        "unit": "%"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Pedidos no mês",
+        "expr": "prest*ped",
+        "fmt": "int"
+      },
+      {
+        "label": "Volume transacionado",
+        "expr": "prest*ped*ticket",
+        "fmt": "brl"
+      },
+      {
+        "label": "Receita da plataforma",
+        "expr": "prest*ped*ticket*com/100",
+        "fmt": "brl"
+      }
+    ]
+  },
+  "fluxo": [
+    "O cliente busca o serviço e compara prestadores e avaliações",
+    "O pedido é enviado e o prestador aceita ou propõe horário",
+    "O serviço é realizado e o pagamento é liberado",
+    "O cliente avalia e o prestador ganha reputação na plataforma"
+  ],
+  "recursos": [
+    "Cadastro e aprovação de prestadores",
+    "Busca por categoria e região",
+    "Pedidos e orçamentos",
+    "Pagamento dentro da plataforma",
+    "Avaliações e reputação",
+    "Chat entre cliente e prestador",
+    "Painel de comissões",
+    "Relatórios de pedidos"
+  ],
+  "faq": [
+    {
+      "q": "Os prestadores precisam passar por aprovação?",
+      "a": "Neste modelo ilustrativo, sim: o cadastro pode ser analisado antes de aparecer na busca. As regras reais são definidas com cada cliente."
+    },
+    {
+      "q": "Como a comissão é configurada?",
+      "a": "A comissão é um parâmetro da plataforma e pode variar por categoria. Os valores exibidos aqui são fictícios."
+    }
+  ]
+}

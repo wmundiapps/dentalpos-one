@@ -1,0 +1,181 @@
+{
+  "slug": "edumaster-pro",
+  "nome": "EduMaster Pro",
+  "cat": "edu",
+  "tagline": "Matrículas, turmas, frequência e mensalidades da instituição de ensino em um só painel.",
+  "persona": "Colégio 'Exemplo Horizonte' (instituição FICTÍCIA) - secretaria e coordenação",
+  "kpis": [
+    {
+      "l": "Alunos matriculados",
+      "v": "1.240",
+      "d": "ano letivo modelo"
+    },
+    {
+      "l": "Turmas ativas",
+      "v": "42",
+      "d": "manhã e tarde"
+    },
+    {
+      "l": "Frequência média",
+      "v": "94,2%",
+      "d": "últimos 30 dias"
+    },
+    {
+      "l": "Inadimplência",
+      "v": "6,1%",
+      "d": "mensalidades vencidas"
+    }
+  ],
+  "table": {
+    "title": "Turmas do dia",
+    "cols": [
+      "Turma",
+      "Professor(a)",
+      "Alunos",
+      "Status"
+    ],
+    "rows": [
+      [
+        "6º Ano A",
+        "Maria Modelo",
+        "32",
+        "ok:Chamada feita"
+      ],
+      [
+        "6º Ano B",
+        "João Exemplo",
+        "30",
+        "ok:Chamada feita"
+      ],
+      [
+        "7º Ano A",
+        "Ana Demonstração",
+        "31",
+        "warn:Chamada pendente"
+      ],
+      [
+        "8º Ano C",
+        "Carlos Fictício",
+        "29",
+        "ok:Chamada feita"
+      ],
+      [
+        "9º Ano A",
+        "Paula Modelo",
+        "33",
+        "info:Prova hoje"
+      ],
+      [
+        "1ª Série EM",
+        "Rui Exemplo",
+        "35",
+        "warn:Chamada pendente"
+      ],
+      [
+        "2ª Série EM",
+        "Lúcia Demonstração",
+        "34",
+        "ok:Chamada feita"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Matrículas por mês (modelo)",
+    "labels": [
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dez",
+      "Jan",
+      "Fev",
+      "Mar"
+    ],
+    "values": [
+      18,
+      9,
+      12,
+      25,
+      96,
+      210,
+      180,
+      45
+    ]
+  },
+  "sim": {
+    "title": "Simulador: receita de mensalidades",
+    "intro": "Ajuste alunos, mensalidade média e inadimplência para ver uma estimativa ilustrativa.",
+    "inputs": [
+      {
+        "id": "alu",
+        "label": "Alunos matriculados",
+        "min": 200,
+        "max": 3000,
+        "step": 20,
+        "val": 1240,
+        "unit": ""
+      },
+      {
+        "id": "men",
+        "label": "Mensalidade média (R$)",
+        "min": 300,
+        "max": 3000,
+        "step": 50,
+        "val": 850,
+        "unit": ""
+      },
+      {
+        "id": "ina",
+        "label": "Inadimplência (%)",
+        "min": 0,
+        "max": 30,
+        "step": 1,
+        "val": 6,
+        "unit": ""
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Receita prevista no mês",
+        "expr": "alu*men",
+        "fmt": "brl"
+      },
+      {
+        "label": "Valor em atraso estimado",
+        "expr": "alu*men*ina/100",
+        "fmt": "brl"
+      },
+      {
+        "label": "Receita líquida estimada",
+        "expr": "alu*men*(1-ina/100)",
+        "fmt": "brl"
+      }
+    ]
+  },
+  "fluxo": [
+    "Secretaria cadastra o aluno e a matrícula",
+    "Coordenação monta as turmas e os horários",
+    "Professores registram chamada e notas",
+    "Financeiro acompanha mensalidades e avisos aos responsáveis"
+  ],
+  "recursos": [
+    "Cadastro de alunos e responsáveis",
+    "Matrícula e rematrícula",
+    "Turmas, horários e disciplinas",
+    "Diário de classe com chamada",
+    "Notas e boletim",
+    "Mensalidades e controle de atrasos",
+    "Comunicados aos responsáveis",
+    "Relatórios para a direção"
+  ],
+  "faq": [
+    {
+      "q": "Esta tela mostra dados reais?",
+      "a": "Não. Todos os nomes e números são fictícios e servem apenas como modelo ilustrativo."
+    },
+    {
+      "q": "Atende escolas de tamanhos diferentes?",
+      "a": "O modelo foi pensado para instituições de ensino; condições e adequações são tratadas sob consulta."
+    }
+  ]
+}

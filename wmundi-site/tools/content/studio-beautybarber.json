@@ -1,0 +1,188 @@
+{
+  "slug": "studio-beautybarber",
+  "nome": "Studio BeautyBarber",
+  "cat": "neg",
+  "tagline": "Agenda, comandas, comissões e fidelização para salões e barbearias.",
+  "persona": "Barbearia 'Exemplo Navalha & Estilo' (negócio FICTÍCIO)",
+  "kpis": [
+    {
+      "l": "Atendimentos hoje",
+      "v": "34",
+      "d": "3 profissionais"
+    },
+    {
+      "l": "Faturamento do dia",
+      "v": "R$ 2.480",
+      "d": "modelo"
+    },
+    {
+      "l": "Ticket médio",
+      "v": "R$ 72,90",
+      "d": "por atendimento"
+    },
+    {
+      "l": "Taxa de retorno",
+      "v": "68%",
+      "d": "clientes em 45 dias"
+    }
+  ],
+  "table": {
+    "title": "Agenda de hoje",
+    "cols": [
+      "Horário",
+      "Cliente",
+      "Serviço",
+      "Status"
+    ],
+    "rows": [
+      [
+        "09:00",
+        "Cliente Exemplo 01",
+        "Corte masculino",
+        "ok:Concluído"
+      ],
+      [
+        "09:45",
+        "Cliente Exemplo 02",
+        "Barba",
+        "ok:Concluído"
+      ],
+      [
+        "10:30",
+        "Cliente Exemplo 03",
+        "Corte + barba",
+        "info:Em atendimento"
+      ],
+      [
+        "11:30",
+        "Cliente Exemplo 04",
+        "Coloração",
+        "warn:Aguardando"
+      ],
+      [
+        "14:00",
+        "Cliente Exemplo 05",
+        "Escova",
+        "ok:Confirmado"
+      ],
+      [
+        "15:00",
+        "Cliente Exemplo 06",
+        "Corte infantil",
+        "ok:Confirmado"
+      ],
+      [
+        "16:30",
+        "Cliente Exemplo 07",
+        "Hidratação",
+        "bad:Faltou"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Faturamento semanal (R$, modelo)",
+    "labels": [
+      "Seg",
+      "Ter",
+      "Qua",
+      "Qui",
+      "Sex",
+      "Sáb",
+      "Dom"
+    ],
+    "values": [
+      1250,
+      1480,
+      1720,
+      1950,
+      2890,
+      3420,
+      0
+    ]
+  },
+  "sim": {
+    "title": "Simulador: faturamento e comissões",
+    "intro": "Mexa nos atendimentos, no ticket e na comissão para ver uma estimativa ilustrativa do mês.",
+    "inputs": [
+      {
+        "id": "atd",
+        "label": "Atendimentos por dia",
+        "min": 5,
+        "max": 80,
+        "step": 1,
+        "val": 34,
+        "unit": ""
+      },
+      {
+        "id": "tkt",
+        "label": "Ticket médio (R$)",
+        "min": 20,
+        "max": 250,
+        "step": 5,
+        "val": 70,
+        "unit": ""
+      },
+      {
+        "id": "dia",
+        "label": "Dias de funcionamento no mês",
+        "min": 10,
+        "max": 30,
+        "step": 1,
+        "val": 26,
+        "unit": ""
+      },
+      {
+        "id": "com",
+        "label": "Comissão dos profissionais (%)",
+        "min": 0,
+        "max": 70,
+        "step": 5,
+        "val": 40,
+        "unit": ""
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Faturamento bruto no mês",
+        "expr": "atd*tkt*dia",
+        "fmt": "brl"
+      },
+      {
+        "label": "Comissões a pagar",
+        "expr": "atd*tkt*dia*com/100",
+        "fmt": "brl"
+      },
+      {
+        "label": "Receita após comissões",
+        "expr": "atd*tkt*dia*(1-com/100)",
+        "fmt": "brl"
+      }
+    ]
+  },
+  "fluxo": [
+    "Cliente agenda pelo link ou na recepção",
+    "Profissional inicia o atendimento e abre a comanda",
+    "Serviços e produtos são lançados e pagos",
+    "Sistema calcula comissões e lembra o retorno do cliente"
+  ],
+  "recursos": [
+    "Agenda por profissional",
+    "Comanda e caixa",
+    "Cálculo automático de comissões",
+    "Cadastro de clientes e histórico",
+    "Lembretes de agendamento",
+    "Controle de estoque de produtos",
+    "Pacotes e fidelidade",
+    "Relatórios financeiros"
+  ],
+  "faq": [
+    {
+      "q": "Serve para salão e barbearia?",
+      "a": "Sim, o modelo cobre serviços de cabelo, barba, estética e produtos; os detalhes são tratados sob consulta."
+    },
+    {
+      "q": "Os números são reais?",
+      "a": "Não. Clientes, valores e agenda são fictícios e ilustrativos."
+    }
+  ]
+}

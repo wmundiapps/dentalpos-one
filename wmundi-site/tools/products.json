@@ -1,0 +1,281 @@
+[
+ {
+  "cat": "saude",
+  "nome": "Completodonto",
+  "desc": "Gestão para clínicas odontológicas: agenda, prontuário, financeiro e equipe.",
+  "color": null,
+  "ic": null,
+  "logo": "/assets/logo-completodonto.png",
+  "slug": "completodonto"
+ },
+ {
+  "cat": "saude",
+  "nome": "Gerenciador Odontológico",
+  "desc": "Gestão para consultórios e clínicas de odontologia.",
+  "color": "#7a4dff",
+  "ic": "GO",
+  "logo": null,
+  "slug": "gerenciador-odontologico"
+ },
+ {
+  "cat": "saude",
+  "nome": "AlignSystem®",
+  "desc": "Consulta on-line para o seu próximo paciente de alinhadores.",
+  "color": "#7a4dff",
+  "ic": "A",
+  "logo": null,
+  "slug": "alignsystem"
+ },
+ {
+  "cat": "saude",
+  "nome": "MedicinaOnline",
+  "desc": "Consultas médicas on-line.",
+  "color": "#7a4dff",
+  "ic": "M",
+  "logo": null,
+  "slug": "medicinaonline"
+ },
+ {
+  "cat": "mkt",
+  "nome": "REVAH",
+  "desc": "Mensageria multicanal com CRM e inteligência artificial.",
+  "color": null,
+  "ic": null,
+  "logo": "/assets/logo-revah.svg",
+  "slug": "revah"
+ },
+ {
+  "cat": "mkt",
+  "nome": "WMundi AI Agent",
+  "desc": "Agente de IA por texto e por voz para atender e vender.",
+  "color": "#ff5a4e",
+  "ic": "WA",
+  "logo": null,
+  "slug": "wmundi-ai-agent"
+ },
+ {
+  "cat": "mkt",
+  "nome": "Mundi Business",
+  "desc": "Disparo de mensagens em massa.",
+  "color": "#ff5a4e",
+  "ic": "MB",
+  "logo": null,
+  "slug": "mundi-business"
+ },
+ {
+  "cat": "mkt",
+  "nome": "WhatSpeak",
+  "desc": "Assinatura de baixo custo.",
+  "color": "#ff5a4e",
+  "ic": "W",
+  "logo": null,
+  "slug": "whatspeak"
+ },
+ {
+  "cat": "mkt",
+  "nome": "Venda de Empresas",
+  "desc": "Aplicativo para anunciar e vender empresas.",
+  "color": "#ff5a4e",
+  "ic": "VD",
+  "logo": null,
+  "slug": "venda-de-empresas"
+ },
+ {
+  "cat": "edu",
+  "nome": "AllCollege",
+  "desc": "Plataforma de estudos com IA.",
+  "color": "#13b58f",
+  "ic": "A",
+  "logo": null,
+  "slug": "allcollege"
+ },
+ {
+  "cat": "edu",
+  "nome": "EduMaster Pro",
+  "desc": "Gestão para instituições de ensino.",
+  "color": "#13b58f",
+  "ic": "EP",
+  "logo": null,
+  "slug": "edumaster-pro"
+ },
+ {
+  "cat": "edu",
+  "nome": "Equivalia",
+  "desc": "Equivalência acadêmica para faculdades.",
+  "color": "#13b58f",
+  "ic": "E",
+  "logo": null,
+  "slug": "equivalia"
+ },
+ {
+  "cat": "neg",
+  "nome": "Studio BeautyBarber",
+  "desc": "Sistema para salões e barbearias.",
+  "color": "#e08a00",
+  "ic": "SB",
+  "logo": null,
+  "slug": "studio-beautybarber"
+ },
+ {
+  "cat": "neg",
+  "nome": "Lavacar Smartwash",
+  "desc": "Gestão para lava-car.",
+  "color": "#e08a00",
+  "ic": "LS",
+  "logo": null,
+  "slug": "lavacar-smartwash"
+ },
+ {
+  "cat": "neg",
+  "nome": "SpaceHour",
+  "desc": "Locação de salas por hora.",
+  "color": null,
+  "ic": null,
+  "logo": "/assets/logo-spacehour.png",
+  "slug": "spacehour"
+ },
+ {
+  "cat": "neg",
+  "nome": "Clubefaz",
+  "desc": "Marketplace de serviços.",
+  "color": "#e08a00",
+  "ic": "C",
+  "logo": null,
+  "slug": "clubefaz"
+ },
+ {
+  "cat": "neg",
+  "nome": "Cashbacksmart",
+  "desc": "Rede de cashback multiempresa.",
+  "color": "#e08a00",
+  "ic": "C",
+  "logo": null,
+  "slug": "cashbacksmart"
+ },
+ {
+  "cat": "mob",
+  "nome": "Smartcar",
+  "desc": "Solução para o setor automotivo.",
+  "color": "#0b8f8f",
+  "ic": "S",
+  "logo": null,
+  "slug": "smartcar"
+ },
+ {
+  "cat": "mob",
+  "nome": "UrbanFlow",
+  "desc": "Estacionamento rotativo inteligente para prefeituras: vaga visível no aplicativo, pagamento pelo celular e arrecadação transparente.",
+  "color": "#0b8f8f",
+  "ic": "U",
+  "logo": null,
+  "slug": "urbanflow"
+ },
+ {
+  "cat": "mob",
+  "nome": "EarlyCar",
+  "desc": "Carona compartilhada corporativa.",
+  "color": "#0b8f8f",
+  "ic": "E",
+  "logo": null,
+  "slug": "earlycar"
+ },
+ {
+  "cat": "fin",
+  "nome": "CobrançaHub",
+  "desc": "Cobrança automatizada com IA.",
+  "color": "#2f5bff",
+  "ic": "C",
+  "logo": null,
+  "slug": "cobrancahub"
+ },
+ {
+  "cat": "fin",
+  "nome": "BoletoHub",
+  "desc": "Captura e pagamento de boletos.",
+  "color": "#2f5bff",
+  "ic": "B",
+  "logo": null,
+  "slug": "boletohub"
+ },
+ {
+  "cat": "car",
+  "nome": "MeuEmprego",
+  "desc": "Solução WMundi® para carreira e vagas. Consulte a nossa equipe para conhecer os detalhes.",
+  "color": "#c2410c",
+  "ic": "M",
+  "logo": null,
+  "slug": "meuemprego"
+ },
+ {
+  "cat": "mod",
+  "nome": "Agentes de IA",
+  "desc": "Atendimento automático por texto e voz no WhatsApp, Instagram e site, 24 horas por dia.",
+  "color": "#0f9fc9",
+  "ic": "AD",
+  "logo": null,
+  "slug": "agentes-de-ia"
+ },
+ {
+  "cat": "mod",
+  "nome": "Gerenciador de vendas (Manager)",
+  "desc": "Funil de vendas, propostas, metas e acompanhamento da equipe comercial.",
+  "color": "#0f9fc9",
+  "ic": "GD",
+  "logo": null,
+  "slug": "gerenciador-de-vendas-manager"
+ },
+ {
+  "cat": "mod",
+  "nome": "Gerenciador fiscal e contábil",
+  "desc": "Notas, impostos, receitas e despesas organizados e integrados à contabilidade.",
+  "color": "#0f9fc9",
+  "ic": "GF",
+  "logo": null,
+  "slug": "gerenciador-fiscal-e-contabil"
+ },
+ {
+  "cat": "mod",
+  "nome": "Controle de estoque",
+  "desc": "Entradas, saídas e níveis de estoque integrados ao sistema de gestão.",
+  "color": "#0f9fc9",
+  "ic": "CD",
+  "logo": null,
+  "slug": "controle-de-estoque"
+ },
+ {
+  "cat": "mod",
+  "nome": "Gerenciador de RH",
+  "desc": "Colaboradores, documentos, férias, escalas e indicadores de pessoas.",
+  "color": "#0f9fc9",
+  "ic": "GD",
+  "logo": null,
+  "slug": "gerenciador-de-rh"
+ },
+ {
+  "cat": "mod",
+  "nome": "Ponto por Reconhecimento Facial",
+  "desc": "Registro da jornada pelo rosto, com prova de vida, em terminais da empresa. Modo manual, modo sem internet, atestados, banco de horas e alertas ao gestor, integrados ao RH.",
+  "color": "#0f9fc9",
+  "ic": "PP",
+  "logo": null,
+  "slug": "ponto-por-reconhecimento-facial"
+ },
+ {
+  "cat": "mod",
+  "nome": "Precificador de Hotelaria",
+  "desc": "Diária certa por nível de apartamento, com ponto de equilíbrio, lucro desejado e comparação com o mercado. Personalizado para qualquer segmento.",
+  "color": "#0f9fc9",
+  "ic": "P",
+  "logo": null,
+  "slug": "precificador-de-hotelaria"
+ },
+ {
+  "cat": "mod",
+  "nome": "ERP sob medida por segmento",
+  "desc": "Sistema integrado de gestão (financeiro, vendas, estoque, RH e mais), modular e com inteligência artificial, criado para o seu segmento.",
+  "color": "#0b1b3f",
+  "ic": "ERP",
+  "logo": null,
+  "slug": "erp-sob-medida-por-segmento"
+ }
+]

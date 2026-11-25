@@ -1,0 +1,189 @@
+{
+ "slug": "precificador-de-hotelaria",
+ "nome": "Precificador de Hotelaria",
+ "cat": "mod",
+ "tagline": "Diária por nível de apartamento com ponto de equilíbrio, lucro desejado e comparação com o mercado.",
+ "persona": "Pousada 'Hotel Exemplo Vista Azul' (empresa FICTÍCIA) com 30 apartamentos",
+ "kpis": [
+  {
+   "l": "Diária média",
+   "v": "R$ 289",
+   "d": "todos os níveis"
+  },
+  {
+   "l": "Ponto de equilíbrio",
+   "v": "R$ 241",
+   "d": "por diária ocupada"
+  },
+  {
+   "l": "Ocupação do mês",
+   "v": "68%",
+   "d": "meta 72%"
+  },
+  {
+   "l": "Posição no mercado",
+   "v": "+4%",
+   "d": "acima da média local"
+  }
+ ],
+ "table": {
+  "title": "Diária sugerida por nível de apartamento",
+  "cols": [
+   "Nível",
+   "Ponto de equilíbrio",
+   "Diária sugerida",
+   "Status"
+  ],
+  "rows": [
+   [
+    "Standard",
+    "R$ 168",
+    "R$ 232",
+    "ok:Acima do mercado"
+   ],
+   [
+    "Superior",
+    "R$ 196",
+    "R$ 268",
+    "ok:Alinhada"
+   ],
+   [
+    "Luxo",
+    "R$ 238",
+    "R$ 329",
+    "ok:Alinhada"
+   ],
+   [
+    "Suíte",
+    "R$ 284",
+    "R$ 390",
+    "warn:Abaixo do mercado"
+   ],
+   [
+    "Família",
+    "R$ 262",
+    "R$ 345",
+    "info:Revisar em alta temporada"
+   ],
+   [
+    "Suíte master",
+    "R$ 340",
+    "R$ 418",
+    "bad:Margem baixa"
+   ]
+  ]
+ },
+ "chart": {
+  "title": "Diária média por mês (R$)",
+  "labels": [
+   "Jun",
+   "Jul",
+   "Ago",
+   "Set",
+   "Out",
+   "Nov"
+  ],
+  "values": [
+   262,
+   298,
+   271,
+   276,
+   283,
+   289
+  ]
+ },
+ "sim": {
+  "title": "Simulador: diária ideal",
+  "intro": "Informe custos, ocupação e lucro desejado para ver o ponto de equilíbrio e a diária sugerida (modelo ilustrativo).",
+  "inputs": [
+   {
+    "id": "apt",
+    "label": "Apartamentos",
+    "min": 5,
+    "max": 200,
+    "step": 1,
+    "val": 30,
+    "unit": ""
+   },
+   {
+    "id": "custo",
+    "label": "Custo fixo mensal (R$)",
+    "min": 20000,
+    "max": 600000,
+    "step": 5000,
+    "val": 120000,
+    "unit": ""
+   },
+   {
+    "id": "cvar",
+    "label": "Custo variável por diária (R$)",
+    "min": 10,
+    "max": 150,
+    "step": 5,
+    "val": 45,
+    "unit": ""
+   },
+   {
+    "id": "ocup",
+    "label": "Ocupação esperada (%)",
+    "min": 30,
+    "max": 95,
+    "step": 1,
+    "val": 68,
+    "unit": "%"
+   },
+   {
+    "id": "lucro",
+    "label": "Lucro desejado (%)",
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "val": 15,
+    "unit": "%"
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Diárias vendidas no mês",
+    "expr": "apt*30*ocup/100",
+    "fmt": "int"
+   },
+   {
+    "label": "Ponto de equilíbrio por diária",
+    "expr": "custo/(apt*30*ocup/100)+cvar",
+    "fmt": "brl"
+   },
+   {
+    "label": "Diária sugerida",
+    "expr": "(custo/(apt*30*ocup/100)+cvar)*(1+lucro/100)",
+    "fmt": "brl"
+   }
+  ]
+ },
+ "fluxo": [
+  "Cadastre custos fixos, variáveis e níveis de apartamento",
+  "O sistema calcula o ponto de equilíbrio por diária",
+  "Defina o lucro desejado e compare com o mercado",
+  "A diária sugerida é aplicada por nível e temporada"
+ ],
+ "recursos": [
+  "Níveis de apartamento",
+  "Ponto de equilíbrio por diária",
+  "Lucro desejado configurável",
+  "Comparação com preços do mercado",
+  "Sazonalidade e alta temporada",
+  "Cenários de ocupação",
+  "Adaptável a outros segmentos",
+  "Histórico de diárias"
+ ],
+ "faq": [
+  {
+   "q": "Serve só para hotéis?",
+   "a": "Não. O modelo pode ser personalizado para outros segmentos que cobram por diária ou período."
+  },
+  {
+   "q": "Os valores são recomendação real?",
+   "a": "Não. São dados fictícios e ilustrativos, sem garantia de resultado."
+  }
+ ]
+}

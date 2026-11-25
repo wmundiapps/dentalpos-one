@@ -1,0 +1,66 @@
+{
+  "slug": "medicinaonline",
+  "nome": "MedicinaOnline",
+  "cat": "saude",
+  "tagline": "Teleconsultas médicas com agenda, sala de vídeo e receita digital.",
+  "persona": "Clínica Exemplo Telesaúde (empresa FICTÍCIA) com 4 médicos atendendo on-line",
+  "kpis": [
+    {"l": "Teleconsultas no mês", "v": "640", "d": "modelo ilustrativo"},
+    {"l": "Espera média na sala virtual", "v": "7 min", "d": "após o horário marcado"},
+    {"l": "Satisfação dos pacientes", "v": "4,7 / 5", "d": "pesquisa pós-consulta"},
+    {"l": "Retornos agendados", "v": "38%", "d": "das consultas realizadas"}
+  ],
+  "table": {
+    "title": "Teleconsultas de hoje",
+    "cols": ["Horário", "Paciente", "Especialidade", "Status"],
+    "rows": [
+      ["08:00", "Cliente Exemplo 01", "Clínica geral", "ok:Concluída"],
+      ["08:30", "Maria Modelo", "Dermatologia", "ok:Concluída"],
+      ["09:00", "Cliente Exemplo 02", "Cardiologia", "info:Em atendimento"],
+      ["09:30", "João Modelo", "Clínica geral", "warn:Na sala de espera"],
+      ["10:00", "Cliente Exemplo 03", "Pediatria", "ok:Confirmada"],
+      ["10:30", "Ana Modelo", "Endocrinologia", "ok:Confirmada"],
+      ["11:00", "Cliente Exemplo 04", "Clínica geral", "bad:Cancelada"]
+    ]
+  },
+  "chart": {
+    "title": "Teleconsultas por mês",
+    "labels": ["Jun", "Jul", "Ago", "Set", "Out", "Nov"],
+    "values": [410, 465, 520, 560, 605, 640]
+  },
+  "sim": {
+    "title": "Simulador: capacidade de atendimento",
+    "intro": "Defina a equipe e a rotina de atendimento para estimar o volume mensal de teleconsultas.",
+    "inputs": [
+      {"id": "med", "label": "Médicos atendendo", "min": 1, "max": 20, "step": 1, "val": 4, "unit": ""},
+      {"id": "cons", "label": "Consultas por médico por dia", "min": 4, "max": 30, "step": 1, "val": 8, "unit": ""},
+      {"id": "dias", "label": "Dias de atendimento no mês", "min": 10, "max": 26, "step": 1, "val": 20, "unit": ""},
+      {"id": "dur", "label": "Duração média da consulta", "min": 10, "max": 60, "step": 5, "val": 20, "unit": "min"}
+    ],
+    "outputs": [
+      {"label": "Teleconsultas por mês", "expr": "med*cons*dias", "fmt": "int"},
+      {"label": "Horas de atendimento no mês", "expr": "med*cons*dias*dur/60", "fmt": "dec1"},
+      {"label": "Tempo de consulta por médico ao dia", "expr": "cons*dur", "fmt": "min"}
+    ]
+  },
+  "fluxo": [
+    "O paciente escolhe a especialidade e o horário na agenda on-line.",
+    "No horário marcado, entra na sala virtual e aguarda o médico.",
+    "O médico atende por vídeo e registra o prontuário.",
+    "A receita e os documentos digitais são enviados ao paciente."
+  ],
+  "recursos": [
+    "Agenda on-line por especialidade",
+    "Sala de vídeo com sala de espera",
+    "Prontuário eletrônico",
+    "Receitas e atestados digitais",
+    "Envio de exames pelo paciente",
+    "Lembretes por mensagem",
+    "Pagamento da consulta on-line",
+    "Pesquisa de satisfação"
+  ],
+  "faq": [
+    {"q": "Os dados desta demonstração são reais?", "a": "Não. Pacientes, médicos e números são fictícios e servem como modelo ilustrativo."},
+    {"q": "A teleconsulta atende a todos os casos?", "a": "Não. A indicação do atendimento on-line depende do julgamento do profissional de saúde."}
+  ]
+}

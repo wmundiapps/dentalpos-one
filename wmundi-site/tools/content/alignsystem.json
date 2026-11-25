@@ -1,0 +1,65 @@
+{
+  "slug": "alignsystem",
+  "nome": "AlignSystem®",
+  "cat": "saude",
+  "tagline": "Triagem por consulta on-line para atrair o próximo paciente de alinhadores.",
+  "persona": "Clínica Exemplo Alinha (empresa FICTÍCIA) com foco em ortodontia estética",
+  "kpis": [
+    {"l": "Consultas on-line no mês", "v": "120", "d": "modelo ilustrativo"},
+    {"l": "Casos aprovados", "v": "48", "d": "pacientes que iniciaram tratamento"},
+    {"l": "Taxa de conversão", "v": "40%", "d": "consulta em tratamento"},
+    {"l": "Tempo médio até a resposta", "v": "18 min", "d": "dentro do horário comercial"}
+  ],
+  "table": {
+    "title": "Triagens recentes",
+    "cols": ["Paciente", "Queixa", "Data", "Status"],
+    "rows": [
+      ["Cliente Exemplo 01", "Dentes desalinhados", "03/11", "ok:Caso aprovado"],
+      ["Maria Modelo", "Espaços entre os dentes", "04/11", "warn:Aguardando fotos"],
+      ["Cliente Exemplo 02", "Mordida cruzada", "05/11", "info:Nova consulta"],
+      ["João Modelo", "Recidiva de aparelho antigo", "06/11", "ok:Caso aprovado"],
+      ["Cliente Exemplo 03", "Dentes sobrepostos", "07/11", "warn:Avaliando proposta"],
+      ["Ana Modelo", "Estética do sorriso", "08/11", "bad:Sem indicação"],
+      ["Cliente Exemplo 04", "Dentes desalinhados", "09/11", "info:Nova consulta"]
+    ]
+  },
+  "chart": {
+    "title": "Consultas on-line por mês",
+    "labels": ["Jun", "Jul", "Ago", "Set", "Out", "Nov"],
+    "values": [62, 75, 88, 97, 108, 120]
+  },
+  "sim": {
+    "title": "Simulador: de consulta a tratamento",
+    "intro": "Altere o volume de consultas, a conversão e o valor médio do caso para ver um cenário ilustrativo.",
+    "inputs": [
+      {"id": "cons", "label": "Consultas on-line por mês", "min": 20, "max": 300, "step": 10, "val": 120, "unit": ""},
+      {"id": "conv", "label": "Conversão em tratamento", "min": 10, "max": 70, "step": 5, "val": 40, "unit": "%"},
+      {"id": "ticket", "label": "Valor médio por caso", "min": 3000, "max": 15000, "step": 500, "val": 8000, "unit": "R$"}
+    ],
+    "outputs": [
+      {"label": "Casos fechados no mês", "expr": "cons*conv/100", "fmt": "int"},
+      {"label": "Receita potencial (ilustrativa)", "expr": "cons*conv/100*ticket", "fmt": "brl"},
+      {"label": "Consultas necessárias para 10 casos", "expr": "Math.ceil(10/(conv/100))", "fmt": "int"}
+    ]
+  },
+  "fluxo": [
+    "O paciente agenda uma consulta on-line pela página da clínica.",
+    "Ele envia fotos do sorriso e responde a um questionário.",
+    "O dentista avalia o caso e apresenta a proposta na videochamada.",
+    "Aprovado o caso, o paciente segue para a moldagem ou escaneamento."
+  ],
+  "recursos": [
+    "Página de agendamento de consulta on-line",
+    "Questionário de triagem do paciente",
+    "Envio de fotos intra e extraorais",
+    "Videochamada para avaliação do caso",
+    "Proposta de tratamento enviada ao paciente",
+    "Funil de casos por etapa",
+    "Lembretes automáticos de consulta",
+    "Relatório de conversão"
+  ],
+  "faq": [
+    {"q": "A consulta on-line substitui o exame presencial?", "a": "Neste modelo ela é uma triagem inicial. A indicação e o tratamento dependem da avaliação do dentista."},
+    {"q": "Os valores do simulador são reais?", "a": "Não. São números fictícios de um modelo ilustrativo, sem promessa de resultado."}
+  ]
+}

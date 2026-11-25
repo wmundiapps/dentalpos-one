@@ -1,0 +1,66 @@
+{
+  "slug": "allcollege",
+  "nome": "AllCollege",
+  "cat": "edu",
+  "tagline": "Plataforma de estudos com IA para resumir conteúdo, criar revisões e organizar a rotina do estudante.",
+  "persona": "Turma 'Faculdade Exemplo Horizonte' — instituição FICTÍCIA com estudantes de vários cursos",
+  "kpis": [
+    {"l": "Estudantes ativos", "v": "1.870", "d": "na semana"},
+    {"l": "Horas de estudo", "v": "6.320", "d": "registradas na semana"},
+    {"l": "Resumos gerados pela IA", "v": "9.450", "d": "no mês"},
+    {"l": "Aproveitamento médio", "v": "74%", "d": "nos simulados"}
+  ],
+  "table": {
+    "title": "Plano de estudos da semana (dados fictícios)",
+    "cols": ["Disciplina", "Tarefa", "Prazo", "Status"],
+    "rows": [
+      ["Anatomia Geral", "Revisar resumo do capítulo 4", "Seg", "ok:Concluída"],
+      ["Direito Civil", "Fazer 20 questões de contratos", "Ter", "ok:Concluída"],
+      ["Cálculo I", "Lista de exercícios de derivadas", "Qua", "warn:Em andamento"],
+      ["Administração", "Estudo de caso em grupo", "Qui", "info:Nova"],
+      ["Fisiologia", "Cartões de revisão do sistema renal", "Sex", "warn:Em andamento"],
+      ["Estatística", "Simulado de probabilidade", "Sáb", "info:Agendada"],
+      ["Português Jurídico", "Entrega de resenha", "Seg", "bad:Atrasada"]
+    ]
+  },
+  "chart": {
+    "title": "Horas de estudo por semana",
+    "labels": ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"],
+    "values": [3900, 4300, 4750, 5100, 5480, 5760, 6050, 6320]
+  },
+  "sim": {
+    "title": "Simulador: plano de estudos até a prova",
+    "intro": "Mude as horas diárias, os dias de estudo e o prazo para estimar o tempo total e as revisões feitas com a ajuda da IA.",
+    "inputs": [
+      {"id": "hdia", "label": "Horas de estudo por dia", "min": 0.5, "max": 8, "step": 0.5, "val": 2, "unit": "h"},
+      {"id": "dias", "label": "Dias de estudo por semana", "min": 1, "max": 7, "step": 1, "val": 5, "unit": "dias"},
+      {"id": "sem", "label": "Semanas até a prova", "min": 1, "max": 16, "step": 1, "val": 6, "unit": "sem"},
+      {"id": "cph", "label": "Cartões de revisão por hora", "min": 5, "max": 60, "step": 5, "val": 20, "unit": ""}
+    ],
+    "outputs": [
+      {"label": "Horas totais de estudo até a prova", "expr": "hdia*dias*sem", "fmt": "dec1"},
+      {"label": "Horas de estudo por semana", "expr": "hdia*dias", "fmt": "dec1"},
+      {"label": "Cartões de revisão estudados", "expr": "hdia*dias*sem*cph", "fmt": "int"}
+    ]
+  },
+  "fluxo": [
+    "O estudante envia o material da disciplina ou o conteúdo da aula",
+    "A IA gera resumos, cartões de revisão e questões",
+    "O plano de estudos distribui as tarefas pelos dias da semana",
+    "Simulados mostram os pontos fracos para a próxima revisão"
+  ],
+  "recursos": [
+    "Resumos automáticos de conteúdo",
+    "Cartões de revisão espaçada",
+    "Geração de questões e simulados",
+    "Plano de estudos semanal",
+    "Tutor de IA para tirar dúvidas",
+    "Agenda de provas e entregas",
+    "Acompanhamento de horas e desempenho",
+    "Organização por disciplina"
+  ],
+  "faq": [
+    {"q": "A IA faz os trabalhos pelo estudante?", "a": "Não. O modelo ilustra apoio ao estudo, com resumos, revisões e dúvidas, sem substituir o aprendizado do estudante."},
+    {"q": "Os resultados dos simulados são garantidos?", "a": "Não. Os números são fictícios e servem apenas como exemplo visual da plataforma."}
+  ]
+}

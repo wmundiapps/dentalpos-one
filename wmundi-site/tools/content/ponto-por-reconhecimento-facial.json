@@ -1,0 +1,177 @@
+{
+ "slug": "ponto-por-reconhecimento-facial",
+ "nome": "Ponto por Reconhecimento Facial",
+ "cat": "mod",
+ "tagline": "Jornada registrada pelo rosto, com prova de vida, banco de horas e alertas ao gestor.",
+ "persona": "Rede 'Lojas Exemplo Delta' (empresa FICTÍCIA) com terminal na entrada",
+ "kpis": [
+  {
+   "l": "Marcações hoje",
+   "v": "142",
+   "d": "36 colaboradores"
+  },
+  {
+   "l": "Em modo sem internet",
+   "v": "1",
+   "d": "sincroniza ao reconectar"
+  },
+  {
+   "l": "Atrasos no mês",
+   "v": "18",
+   "d": "média de 9 min"
+  },
+  {
+   "l": "Banco de horas",
+   "v": "+112 h",
+   "d": "saldo da equipe"
+  }
+ ],
+ "table": {
+  "title": "Marcações do dia",
+  "cols": [
+   "Colaborador",
+   "Entrada",
+   "Saída",
+   "Status"
+  ],
+  "rows": [
+   [
+    "Colaborador Exemplo 01",
+    "08:00",
+    "17:02",
+    "ok:Facial validado"
+   ],
+   [
+    "Colaborador Exemplo 02",
+    "08:12",
+    "17:15",
+    "warn:Atraso 12 min"
+   ],
+   [
+    "Colaborador Exemplo 03",
+    "07:58",
+    "--",
+    "info:Em jornada"
+   ],
+   [
+    "Colaborador Exemplo 04",
+    "08:00",
+    "12:00",
+    "info:Atestado meio período"
+   ],
+   [
+    "Colaborador Exemplo 05",
+    "08:05",
+    "17:00",
+    "info:Modo manual"
+   ],
+   [
+    "Colaborador Exemplo 06",
+    "--",
+    "--",
+    "bad:Falta sem justificativa"
+   ],
+   [
+    "Colaborador Exemplo 07",
+    "08:01",
+    "17:03",
+    "ok:Facial validado"
+   ]
+  ]
+ },
+ "chart": {
+  "title": "Marcações por dia da semana",
+  "labels": [
+   "Seg",
+   "Ter",
+   "Qua",
+   "Qui",
+   "Sex",
+   "Sáb"
+  ],
+  "values": [
+   142,
+   140,
+   138,
+   141,
+   136,
+   64
+  ]
+ },
+ "sim": {
+  "title": "Simulador: horas e banco de horas",
+  "intro": "Altere equipe, atrasos e horas extras para estimar o saldo mensal do banco de horas (valores ilustrativos).",
+  "inputs": [
+   {
+    "id": "func",
+    "label": "Colaboradores",
+    "min": 5,
+    "max": 200,
+    "step": 1,
+    "val": 36,
+    "unit": ""
+   },
+   {
+    "id": "atraso",
+    "label": "Atraso médio por pessoa no mês (min)",
+    "min": 0,
+    "max": 120,
+    "step": 5,
+    "val": 30,
+    "unit": "min"
+   },
+   {
+    "id": "extra",
+    "label": "Horas extras por pessoa no mês (h)",
+    "min": 0,
+    "max": 30,
+    "step": 1,
+    "val": 6,
+    "unit": "h"
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Horas de atraso da equipe",
+    "expr": "func*atraso/60",
+    "fmt": "dec1"
+   },
+   {
+    "label": "Horas extras da equipe",
+    "expr": "func*extra",
+    "fmt": "int"
+   },
+   {
+    "label": "Saldo do banco de horas (h)",
+    "expr": "func*extra-func*atraso/60",
+    "fmt": "dec1"
+   }
+  ]
+ },
+ "fluxo": [
+  "O colaborador se identifica pelo rosto no terminal",
+  "A prova de vida confirma que é uma pessoa real",
+  "A marcação alimenta jornada e banco de horas",
+  "Atrasos e faltas geram alertas ao gestor e ao RH"
+ ],
+ "recursos": [
+  "Reconhecimento facial com prova de vida",
+  "Terminais da empresa",
+  "Modo manual com justificativa",
+  "Modo sem internet com sincronização",
+  "Registro de atestados",
+  "Banco de horas automático",
+  "Alertas de atraso e falta ao gestor",
+  "Integração com o RH"
+ ],
+ "faq": [
+  {
+   "q": "E se faltar internet?",
+   "a": "No modelo, o terminal guarda as marcações e envia quando a conexão volta."
+  },
+  {
+   "q": "As imagens e dados são reais?",
+   "a": "Não. Nomes e marcações são fictícios, apenas para demonstração."
+  }
+ ]
+}

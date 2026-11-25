@@ -1,0 +1,190 @@
+{
+  "slug": "equivalia",
+  "nome": "Equivalia",
+  "cat": "edu",
+  "tagline": "Análise de equivalência de disciplinas para transferências e aproveitamento de estudos.",
+  "persona": "Faculdade 'Exemplo Saber' (instituição FICTÍCIA) - secretaria acadêmica",
+  "kpis": [
+    {
+      "l": "Pedidos no mês",
+      "v": "86",
+      "d": "modelo"
+    },
+    {
+      "l": "Em análise",
+      "v": "23",
+      "d": "aguardando coordenação"
+    },
+    {
+      "l": "Disciplinas equivalentes",
+      "v": "312",
+      "d": "aprovadas no período"
+    },
+    {
+      "l": "Tempo médio",
+      "v": "3,8 dias",
+      "d": "da abertura ao parecer"
+    }
+  ],
+  "table": {
+    "title": "Pedidos de equivalência",
+    "cols": [
+      "Aluno",
+      "Curso de destino",
+      "Disciplinas",
+      "Status"
+    ],
+    "rows": [
+      [
+        "Aluno Exemplo 01",
+        "Administração",
+        "8",
+        "ok:Deferido"
+      ],
+      [
+        "Aluno Exemplo 02",
+        "Direito",
+        "12",
+        "warn:Em análise"
+      ],
+      [
+        "Aluno Exemplo 03",
+        "Pedagogia",
+        "6",
+        "ok:Deferido"
+      ],
+      [
+        "Aluno Exemplo 04",
+        "Engenharia Civil",
+        "10",
+        "bad:Indeferido parcial"
+      ],
+      [
+        "Aluno Exemplo 05",
+        "Enfermagem",
+        "9",
+        "warn:Em análise"
+      ],
+      [
+        "Aluno Exemplo 06",
+        "Contabilidade",
+        "7",
+        "info:Novo"
+      ],
+      [
+        "Aluno Exemplo 07",
+        "Psicologia",
+        "11",
+        "ok:Deferido"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Pedidos recebidos por mês (modelo)",
+    "labels": [
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dez",
+      "Jan"
+    ],
+    "values": [
+      34,
+      52,
+      118,
+      96,
+      71,
+      86,
+      40,
+      63
+    ]
+  },
+  "sim": {
+    "title": "Simulador: aproveitamento de estudos",
+    "intro": "Informe o volume de pedidos e o tempo de análise para estimar a carga de trabalho da secretaria.",
+    "inputs": [
+      {
+        "id": "ped",
+        "label": "Pedidos por mês",
+        "min": 10,
+        "max": 500,
+        "step": 5,
+        "val": 86,
+        "unit": ""
+      },
+      {
+        "id": "dis",
+        "label": "Disciplinas por pedido",
+        "min": 1,
+        "max": 20,
+        "step": 1,
+        "val": 9,
+        "unit": ""
+      },
+      {
+        "id": "tmp",
+        "label": "Minutos por disciplina",
+        "min": 2,
+        "max": 30,
+        "step": 1,
+        "val": 6,
+        "unit": ""
+      },
+      {
+        "id": "apr",
+        "label": "Aproveitamento (%)",
+        "min": 10,
+        "max": 100,
+        "step": 5,
+        "val": 70,
+        "unit": ""
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Disciplinas a analisar",
+        "expr": "ped*dis",
+        "fmt": "int"
+      },
+      {
+        "label": "Horas de análise por mês",
+        "expr": "ped*dis*tmp/60",
+        "fmt": "dec1"
+      },
+      {
+        "label": "Disciplinas aproveitadas",
+        "expr": "Math.round(ped*dis*apr/100)",
+        "fmt": "int"
+      }
+    ]
+  },
+  "fluxo": [
+    "Aluno envia histórico e ementas",
+    "Sistema compara disciplinas com a matriz do curso",
+    "Coordenação revisa e emite o parecer",
+    "Secretaria registra o aproveitamento no histórico"
+  ],
+  "recursos": [
+    "Cadastro de matrizes curriculares",
+    "Comparação de ementas e cargas horárias",
+    "Sugestão de disciplinas equivalentes",
+    "Fluxo de parecer da coordenação",
+    "Anexo de documentos do aluno",
+    "Histórico de decisões",
+    "Protocolo e acompanhamento do pedido",
+    "Relatórios por curso"
+  ],
+  "faq": [
+    {
+      "q": "O sistema decide a equivalência sozinho?",
+      "a": "Neste modelo, ele apoia a análise com sugestões; a decisão final fica com a coordenação."
+    },
+    {
+      "q": "Os dados exibidos são reais?",
+      "a": "Não. Alunos, cursos e números são fictícios e ilustrativos."
+    }
+  ]
+}

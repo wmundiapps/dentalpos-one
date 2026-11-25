@@ -1,0 +1,190 @@
+{
+  "slug": "spacehour",
+  "nome": "SpaceHour",
+  "cat": "neg",
+  "tagline": "Reservas, cobrança e ocupação de salas alugadas por hora, com agenda sem conflitos.",
+  "persona": "Centro 'Exemplo Espaço Plural' (empresa FICTÍCIA) - salas para consultórios e reuniões",
+  "kpis": [
+    {
+      "l": "Salas cadastradas",
+      "v": "8",
+      "d": "modelo"
+    },
+    {
+      "l": "Horas reservadas no mês",
+      "v": "612",
+      "d": "de 1.040 disponíveis"
+    },
+    {
+      "l": "Taxa de ocupação",
+      "v": "58,8%",
+      "d": "612 / 1.040 horas"
+    },
+    {
+      "l": "Receita de locação",
+      "v": "R$ 24.480",
+      "d": "valor médio R$ 40/hora"
+    }
+  ],
+  "table": {
+    "title": "Reservas de hoje",
+    "cols": [
+      "Sala",
+      "Locatário",
+      "Horário",
+      "Status"
+    ],
+    "rows": [
+      [
+        "Sala 1",
+        "Profissional Exemplo 01",
+        "08:00 - 12:00",
+        "ok:Pago"
+      ],
+      [
+        "Sala 2",
+        "Profissional Exemplo 02",
+        "09:00 - 11:00",
+        "ok:Pago"
+      ],
+      [
+        "Sala 3",
+        "Empresa Exemplo Ltda.",
+        "10:00 - 13:00",
+        "warn:Pagamento pendente"
+      ],
+      [
+        "Sala 4",
+        "Profissional Exemplo 03",
+        "13:00 - 17:00",
+        "ok:Pago"
+      ],
+      [
+        "Sala 5",
+        "Profissional Exemplo 04",
+        "14:00 - 16:00",
+        "info:Nova reserva"
+      ],
+      [
+        "Sala 6",
+        "Equipe Modelo",
+        "15:00 - 18:00",
+        "ok:Pago"
+      ],
+      [
+        "Sala 7",
+        "Profissional Exemplo 05",
+        "18:00 - 21:00",
+        "bad:Cancelada"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Horas reservadas por mês (modelo)",
+    "labels": [
+      "Mai",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dez"
+    ],
+    "values": [
+      420,
+      468,
+      510,
+      545,
+      580,
+      598,
+      612,
+      470
+    ]
+  },
+  "sim": {
+    "title": "Simulador: ocupação e receita das salas",
+    "intro": "Altere o número de salas, o valor da hora e a ocupação para ver uma estimativa ilustrativa.",
+    "inputs": [
+      {
+        "id": "sal",
+        "label": "Número de salas",
+        "min": 1,
+        "max": 30,
+        "step": 1,
+        "val": 8,
+        "unit": ""
+      },
+      {
+        "id": "hdi",
+        "label": "Horas disponíveis por sala por mês",
+        "min": 40,
+        "max": 300,
+        "step": 10,
+        "val": 130,
+        "unit": ""
+      },
+      {
+        "id": "vh",
+        "label": "Valor médio da hora (R$)",
+        "min": 10,
+        "max": 200,
+        "step": 5,
+        "val": 40,
+        "unit": ""
+      },
+      {
+        "id": "ocu",
+        "label": "Ocupação (%)",
+        "min": 10,
+        "max": 100,
+        "step": 1,
+        "val": 59,
+        "unit": ""
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Horas disponíveis no mês",
+        "expr": "sal*hdi",
+        "fmt": "int"
+      },
+      {
+        "label": "Horas reservadas",
+        "expr": "Math.round(sal*hdi*ocu/100)",
+        "fmt": "int"
+      },
+      {
+        "label": "Receita estimada de locação",
+        "expr": "Math.round(sal*hdi*ocu/100)*vh",
+        "fmt": "brl"
+      }
+    ]
+  },
+  "fluxo": [
+    "Locatário escolhe sala, dia e horário",
+    "Sistema confirma sem conflito de agenda",
+    "Pagamento é gerado e acompanhado",
+    "Acesso à sala e relatório de ocupação para o gestor"
+  ],
+  "recursos": [
+    "Agenda por sala sem conflito de horário",
+    "Reserva por hora, período ou pacote",
+    "Cadastro de locatários",
+    "Cobrança e controle de pagamentos",
+    "Regras de cancelamento",
+    "Mapa de ocupação",
+    "Aviso de reserva por mensagem",
+    "Relatórios de receita por sala"
+  ],
+  "faq": [
+    {
+      "q": "Posso ter valores diferentes por sala?",
+      "a": "Sim, o modelo permite valor da hora por sala e por faixa de horário; detalhes sob consulta."
+    },
+    {
+      "q": "Os números são reais?",
+      "a": "Não. Salas, locatários e valores são fictícios e ilustrativos."
+    }
+  ]
+}

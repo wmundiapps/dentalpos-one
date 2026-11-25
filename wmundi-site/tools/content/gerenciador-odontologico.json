@@ -1,0 +1,65 @@
+{
+  "slug": "gerenciador-odontologico",
+  "nome": "Gerenciador Odontológico",
+  "cat": "saude",
+  "tagline": "Orçamentos, prontuário e estoque do consultório organizados sem planilhas.",
+  "persona": "Consultório Exemplo Dental (empresa FICTÍCIA) com 1 dentista e 1 auxiliar",
+  "kpis": [
+    {"l": "Orçamentos no mês", "v": "40", "d": "modelo ilustrativo"},
+    {"l": "Orçamentos aprovados", "v": "18", "d": "45% de aprovação"},
+    {"l": "Valor aprovado", "v": "R$ 45 mil", "d": "ticket médio de R$ 2.500"},
+    {"l": "Itens de estoque em alerta", "v": "5", "d": "abaixo do mínimo"}
+  ],
+  "table": {
+    "title": "Orçamentos recentes",
+    "cols": ["Paciente", "Procedimento", "Valor", "Status"],
+    "rows": [
+      ["Cliente Exemplo 01", "Implante unitário", "R$ 4.200", "ok:Aprovado"],
+      ["Maria Modelo", "Facetas (4 dentes)", "R$ 6.800", "warn:Em análise"],
+      ["Cliente Exemplo 02", "Tratamento de canal", "R$ 1.150", "ok:Aprovado"],
+      ["João Modelo", "Prótese total", "R$ 3.900", "bad:Recusado"],
+      ["Cliente Exemplo 03", "Clareamento", "R$ 900", "ok:Aprovado"],
+      ["Ana Modelo", "Aparelho fixo", "R$ 3.200", "info:Novo"],
+      ["Cliente Exemplo 04", "Periodontia", "R$ 1.600", "warn:Em análise"]
+    ]
+  },
+  "chart": {
+    "title": "Valor aprovado por mês (R$ mil)",
+    "labels": ["Jun", "Jul", "Ago", "Set", "Out", "Nov"],
+    "values": [31, 34, 38, 36, 41, 45]
+  },
+  "sim": {
+    "title": "Simulador: aprovação de orçamentos",
+    "intro": "Mude a quantidade de orçamentos, o valor médio e a taxa de aprovação para ver o efeito no valor aprovado.",
+    "inputs": [
+      {"id": "orc", "label": "Orçamentos apresentados por mês", "min": 10, "max": 100, "step": 5, "val": 40, "unit": ""},
+      {"id": "ticket", "label": "Valor médio do orçamento", "min": 500, "max": 8000, "step": 100, "val": 2500, "unit": "R$"},
+      {"id": "aprov", "label": "Taxa de aprovação", "min": 10, "max": 90, "step": 5, "val": 45, "unit": "%"}
+    ],
+    "outputs": [
+      {"label": "Orçamentos aprovados", "expr": "orc*aprov/100", "fmt": "int"},
+      {"label": "Valor aprovado (ilustrativo)", "expr": "orc*ticket*aprov/100", "fmt": "brl"},
+      {"label": "Valor não aprovado", "expr": "orc*ticket*(100-aprov)/100", "fmt": "brl"}
+    ]
+  },
+  "fluxo": [
+    "Cadastre o paciente e abra o prontuário com odontograma.",
+    "Monte o orçamento com os procedimentos e as formas de pagamento.",
+    "Acompanhe a aprovação e agende as sessões do tratamento.",
+    "O sistema baixa o estoque e registra o recebimento."
+  ],
+  "recursos": [
+    "Prontuário e odontograma digital",
+    "Orçamentos com acompanhamento de aprovação",
+    "Agenda do consultório",
+    "Controle de estoque com alerta de mínimo",
+    "Receitas e atestados em modelos prontos",
+    "Controle de contas a receber",
+    "Histórico de imagens e documentos do paciente",
+    "Relatórios simples de atendimentos"
+  ],
+  "faq": [
+    {"q": "Serve para consultório com um único dentista?", "a": "Sim. O modelo foi pensado para consultórios pequenos e também para clínicas com várias cadeiras."},
+    {"q": "Os números mostrados são garantia de resultado?", "a": "Não. São valores fictícios de um modelo ilustrativo e não representam resultado real."}
+  ]
+}

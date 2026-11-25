@@ -1,0 +1,188 @@
+{
+  "slug": "lavacar-smartwash",
+  "nome": "Lavacar Smartwash",
+  "cat": "neg",
+  "tagline": "Fila de lavagens, pacotes, equipe e caixa de lava-car organizados no mesmo lugar.",
+  "persona": "Lava-car 'Exemplo Brilho Total' (negócio FICTÍCIO)",
+  "kpis": [
+    {
+      "l": "Veículos hoje",
+      "v": "42",
+      "d": "modelo"
+    },
+    {
+      "l": "Faturamento do dia",
+      "v": "R$ 3.150",
+      "d": "serviços e adicionais"
+    },
+    {
+      "l": "Tempo médio de lavagem",
+      "v": "38 min",
+      "d": "lavagem completa"
+    },
+    {
+      "l": "Clientes com pacote",
+      "v": "57",
+      "d": "planos mensais ativos"
+    }
+  ],
+  "table": {
+    "title": "Fila de serviços",
+    "cols": [
+      "Veículo",
+      "Serviço",
+      "Responsável",
+      "Status"
+    ],
+    "rows": [
+      [
+        "Hatch prata (ABC-0000)",
+        "Lavagem simples",
+        "Equipe A",
+        "ok:Concluído"
+      ],
+      [
+        "Sedã preto (ABC-0001)",
+        "Lavagem completa",
+        "Equipe B",
+        "info:Em lavagem"
+      ],
+      [
+        "SUV branca (ABC-0002)",
+        "Higienização interna",
+        "Equipe A",
+        "info:Em lavagem"
+      ],
+      [
+        "Picape cinza (ABC-0003)",
+        "Lavagem + cera",
+        "Equipe B",
+        "warn:Na fila"
+      ],
+      [
+        "Hatch vermelho (ABC-0004)",
+        "Lavagem simples",
+        "Equipe A",
+        "warn:Na fila"
+      ],
+      [
+        "Sedã azul (ABC-0005)",
+        "Polimento",
+        "Equipe C",
+        "ok:Pronto p/ retirada"
+      ],
+      [
+        "Moto (ABC-0006)",
+        "Lavagem moto",
+        "Equipe C",
+        "ok:Concluído"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Veículos atendidos por dia (modelo)",
+    "labels": [
+      "Seg",
+      "Ter",
+      "Qua",
+      "Qui",
+      "Sex",
+      "Sáb",
+      "Dom"
+    ],
+    "values": [
+      28,
+      31,
+      29,
+      34,
+      46,
+      58,
+      40
+    ]
+  },
+  "sim": {
+    "title": "Simulador: capacidade e faturamento",
+    "intro": "Ajuste o ticket, os boxes e o tempo de lavagem para estimar a capacidade do dia (valores ilustrativos).",
+    "inputs": [
+      {
+        "id": "box",
+        "label": "Boxes de lavagem",
+        "min": 1,
+        "max": 10,
+        "step": 1,
+        "val": 3,
+        "unit": ""
+      },
+      {
+        "id": "tmp",
+        "label": "Minutos por lavagem",
+        "min": 10,
+        "max": 120,
+        "step": 2,
+        "val": 38,
+        "unit": ""
+      },
+      {
+        "id": "hor",
+        "label": "Horas de funcionamento por dia",
+        "min": 4,
+        "max": 14,
+        "step": 1,
+        "val": 9,
+        "unit": ""
+      },
+      {
+        "id": "tkt",
+        "label": "Ticket médio (R$)",
+        "min": 20,
+        "max": 300,
+        "step": 5,
+        "val": 75,
+        "unit": ""
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Veículos por dia (capacidade)",
+        "expr": "Math.floor(box*hor*60/tmp)",
+        "fmt": "int"
+      },
+      {
+        "label": "Faturamento diário na capacidade",
+        "expr": "Math.floor(box*hor*60/tmp)*tkt",
+        "fmt": "brl"
+      },
+      {
+        "label": "Faturamento a 70% da capacidade, em 26 dias",
+        "expr": "Math.floor(box*hor*60/tmp)*tkt*0.7*26",
+        "fmt": "brl"
+      }
+    ]
+  },
+  "fluxo": [
+    "Recepção registra o veículo e escolhe o serviço",
+    "Veículo entra na fila e é atribuído a uma equipe",
+    "Equipe conclui e o cliente é avisado",
+    "Pagamento no caixa ou no pacote mensal do cliente"
+  ],
+  "recursos": [
+    "Fila de serviços em tempo real",
+    "Tabela de serviços e adicionais",
+    "Pacotes e planos mensais",
+    "Cadastro de clientes e veículos",
+    "Comissão e produtividade da equipe",
+    "Aviso de veículo pronto",
+    "Controle de caixa",
+    "Relatórios por período"
+  ],
+  "faq": [
+    {
+      "q": "Funciona para mais de uma unidade?",
+      "a": "O modelo ilustra uma unidade; operações com várias unidades são tratadas sob consulta."
+    },
+    {
+      "q": "Os dados são reais?",
+      "a": "Não. Placas, clientes e valores são fictícios e ilustrativos."
+    }
+  ]
+}

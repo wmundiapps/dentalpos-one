@@ -1,0 +1,187 @@
+{
+  "slug": "earlycar",
+  "nome": "EarlyCar",
+  "cat": "mob",
+  "tagline": "Carona compartilhada corporativa: colaboradores combinam rotas, dividem custos e reduzem carros.",
+  "persona": "Indústria Exemplo Horizonte (empresa FICTÍCIA) com 420 colaboradores cadastrados",
+  "kpis": [
+    {
+      "l": "Colaboradores cadastrados",
+      "v": "420",
+      "d": "no programa"
+    },
+    {
+      "l": "Caronas no mês",
+      "v": "1.260",
+      "d": "modelo ilustrativo"
+    },
+    {
+      "l": "Ocupação por carro",
+      "v": "2,8 pessoas",
+      "d": "incluindo o motorista"
+    },
+    {
+      "l": "Carros fora das ruas",
+      "v": "96",
+      "d": "por dia, estimado"
+    }
+  ],
+  "table": {
+    "title": "Rotas de carona da semana",
+    "cols": [
+      "Rota",
+      "Motorista",
+      "Lugares",
+      "Saída",
+      "Status"
+    ],
+    "rows": [
+      [
+        "Zona Norte para a Planta",
+        "Colaborador Exemplo 01",
+        "3 de 4",
+        "06:10",
+        "ok:Completa"
+      ],
+      [
+        "Centro para a Planta",
+        "Colaborador Exemplo 04",
+        "2 de 4",
+        "06:20",
+        "info:2 vagas livres"
+      ],
+      [
+        "Bairro Jardim para a Planta",
+        "Colaborador Exemplo 09",
+        "4 de 4",
+        "06:00",
+        "ok:Completa"
+      ],
+      [
+        "Zona Sul para a Planta",
+        "Colaborador Exemplo 12",
+        "1 de 3",
+        "06:30",
+        "warn:Poucos passageiros"
+      ],
+      [
+        "Planta para Centro (volta)",
+        "Colaborador Exemplo 17",
+        "3 de 4",
+        "17:30",
+        "ok:Confirmada"
+      ],
+      [
+        "Planta para Zona Norte (volta)",
+        "Colaborador Exemplo 21",
+        "0 de 4",
+        "18:00",
+        "bad:Cancelada"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Caronas realizadas por mês",
+    "labels": [
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov"
+    ],
+    "values": [
+      540,
+      690,
+      820,
+      990,
+      1130,
+      1260
+    ]
+  },
+  "sim": {
+    "title": "Simulador: impacto do programa de carona",
+    "intro": "Altere a quantidade de colaboradores, a adesão, as pessoas por carro e o trajeto para estimar carros evitados e economia ilustrativa.",
+    "inputs": [
+      {
+        "id": "colab",
+        "label": "Colaboradores elegíveis",
+        "min": 50,
+        "max": 3000,
+        "step": 10,
+        "val": 420,
+        "unit": ""
+      },
+      {
+        "id": "adesao",
+        "label": "Adesão ao programa",
+        "min": 5,
+        "max": 80,
+        "step": 5,
+        "val": 40,
+        "unit": "%"
+      },
+      {
+        "id": "pessoas",
+        "label": "Pessoas por carro",
+        "min": 2,
+        "max": 5,
+        "step": 1,
+        "val": 3,
+        "unit": ""
+      },
+      {
+        "id": "km",
+        "label": "Distância de ida e volta",
+        "min": 10,
+        "max": 120,
+        "step": 5,
+        "val": 40,
+        "unit": "km"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Carros a menos por dia",
+        "expr": "Math.round(colab*adesao/100*(1-1/pessoas))",
+        "fmt": "int"
+      },
+      {
+        "label": "Km evitados por mês (22 dias)",
+        "expr": "Math.round(colab*adesao/100*(1-1/pessoas))*km*22",
+        "fmt": "int"
+      },
+      {
+        "label": "Economia estimada com combustível",
+        "expr": "Math.round(colab*adesao/100*(1-1/pessoas))*km*22*0.6",
+        "fmt": "brl"
+      }
+    ]
+  },
+  "fluxo": [
+    "O colaborador se cadastra e informa endereço e horário de trabalho",
+    "O sistema sugere rotas e pessoas compatíveis",
+    "A carona é combinada pelo aplicativo e confirmada no dia",
+    "A empresa acompanha adesão, ocupação e custos divididos"
+  ],
+  "recursos": [
+    "Cadastro de colaboradores por empresa",
+    "Sugestão de rotas e pares",
+    "Oferta e busca de vagas",
+    "Divisão de custos entre os participantes",
+    "Confirmação de embarque",
+    "Painel de adesão para o RH",
+    "Estimativa de emissões evitadas",
+    "Regras de segurança e avaliação entre colegas"
+  ],
+  "faq": [
+    {
+      "q": "Só colaboradores da mesma empresa participam?",
+      "a": "Neste modelo ilustrativo, sim: o acesso é restrito ao grupo corporativo cadastrado."
+    },
+    {
+      "q": "A economia mostrada é garantida?",
+      "a": "Não. Os valores usam premissas fictícias, como o custo por quilômetro, e servem apenas para demonstração."
+    }
+  ]
+}

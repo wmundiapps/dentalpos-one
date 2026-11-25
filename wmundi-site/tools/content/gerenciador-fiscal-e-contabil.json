@@ -1,0 +1,177 @@
+{
+ "slug": "gerenciador-fiscal-e-contabil",
+ "nome": "Gerenciador fiscal e contábil",
+ "cat": "mod",
+ "tagline": "Notas, impostos, receitas e despesas organizados e prontos para a contabilidade.",
+ "persona": "Comércio 'Empresa Exemplo Alfa Ltda' (empresa FICTÍCIA) com contador parceiro fictício",
+ "kpis": [
+  {
+   "l": "Receita do mês",
+   "v": "R$ 184.500",
+   "d": "126 notas emitidas"
+  },
+  {
+   "l": "Despesas do mês",
+   "v": "R$ 121.300",
+   "d": "conciliadas"
+  },
+  {
+   "l": "Impostos a recolher",
+   "v": "R$ 22.140",
+   "d": "vence dia 20"
+  },
+  {
+   "l": "Pendências fiscais",
+   "v": "3",
+   "d": "notas sem categoria"
+  }
+ ],
+ "table": {
+  "title": "Documentos fiscais recentes",
+  "cols": [
+   "Documento",
+   "Cliente / Fornecedor",
+   "Valor",
+   "Status"
+  ],
+  "rows": [
+   [
+    "NF-e 000101",
+    "Cliente Exemplo 01",
+    "R$ 8.400,00",
+    "ok:Escriturada"
+   ],
+   [
+    "NF-e 000102",
+    "Cliente Exemplo 02",
+    "R$ 3.250,00",
+    "ok:Escriturada"
+   ],
+   [
+    "NFS-e 000045",
+    "Cliente Exemplo 03",
+    "R$ 5.900,00",
+    "info:Emitida"
+   ],
+   [
+    "Entrada 7781",
+    "Fornecedor Modelo A",
+    "R$ 12.780,00",
+    "ok:Conciliada"
+   ],
+   [
+    "Entrada 7782",
+    "Fornecedor Modelo B",
+    "R$ 4.310,00",
+    "warn:Sem categoria"
+   ],
+   [
+    "Guia DAS",
+    "Receita (modelo)",
+    "R$ 22.140,00",
+    "warn:Vence dia 20"
+   ],
+   [
+    "NF-e 000098",
+    "Cliente Exemplo 04",
+    "R$ 2.150,00",
+    "bad:Divergência"
+   ]
+  ]
+ },
+ "chart": {
+  "title": "Receita mensal (R$ mil)",
+  "labels": [
+   "Jun",
+   "Jul",
+   "Ago",
+   "Set",
+   "Out",
+   "Nov"
+  ],
+  "values": [
+   152,
+   161,
+   170,
+   168,
+   177,
+   184.5
+  ]
+ },
+ "sim": {
+  "title": "Simulador: carga de impostos e resultado",
+  "intro": "Ajuste receita, despesas e alíquota efetiva para ver o imposto estimado e o resultado do mês (valores ilustrativos).",
+  "inputs": [
+   {
+    "id": "rec",
+    "label": "Receita mensal (R$)",
+    "min": 50000,
+    "max": 500000,
+    "step": 5000,
+    "val": 184500,
+    "unit": ""
+   },
+   {
+    "id": "desp",
+    "label": "Despesas mensais (R$)",
+    "min": 20000,
+    "max": 400000,
+    "step": 5000,
+    "val": 121300,
+    "unit": ""
+   },
+   {
+    "id": "aliq",
+    "label": "Alíquota efetiva (%)",
+    "min": 4,
+    "max": 20,
+    "step": 0.5,
+    "val": 12,
+    "unit": "%"
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Imposto estimado",
+    "expr": "rec*aliq/100",
+    "fmt": "brl"
+   },
+   {
+    "label": "Resultado após impostos",
+    "expr": "rec-desp-rec*aliq/100",
+    "fmt": "brl"
+   },
+   {
+    "label": "Margem líquida (%)",
+    "expr": "(rec-desp-rec*aliq/100)/rec*100",
+    "fmt": "dec1"
+   }
+  ]
+ },
+ "fluxo": [
+  "Notas de entrada e saída são importadas e classificadas",
+  "Receitas e despesas são conciliadas por categoria",
+  "Impostos do período são calculados e as guias organizadas",
+  "A contabilidade recebe os dados prontos para fechamento"
+ ],
+ "recursos": [
+  "Painel de receitas e despesas",
+  "Organização de notas de entrada e saída",
+  "Apuração de impostos por período",
+  "Calendário de guias e vencimentos",
+  "Conciliação de lançamentos",
+  "Classificação por plano de contas",
+  "Pendências e divergências em lista",
+  "Exportação para a contabilidade"
+ ],
+ "faq": [
+  {
+   "q": "Substitui o contador?",
+   "a": "Não. Organiza os dados para facilitar o trabalho da contabilidade; as obrigações legais seguem com o profissional responsável."
+  },
+  {
+   "q": "Os valores desta tela são reais?",
+   "a": "Não. É um modelo ilustrativo com dados fictícios."
+  }
+ ]
+}

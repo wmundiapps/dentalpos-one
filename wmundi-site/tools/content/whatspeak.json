@@ -1,0 +1,66 @@
+{
+  "slug": "whatspeak",
+  "nome": "WhatSpeak",
+  "cat": "mkt",
+  "tagline": "Assinatura de baixo custo para a equipe atender clientes por WhatsApp em um só painel.",
+  "persona": "Estúdio 'Ateliê Exemplo Design' — empresa FICTÍCIA com equipe pequena de atendimento",
+  "kpis": [
+    {"l": "Atendentes ativos", "v": "12", "d": "usando a assinatura"},
+    {"l": "Conversas no mês", "v": "3.940", "d": "em um painel único"},
+    {"l": "Tempo médio de resposta", "v": "2 min", "d": "em horário comercial"},
+    {"l": "Satisfação dos clientes", "v": "4,6/5", "d": "pesquisa pós-atendimento"}
+  ],
+  "table": {
+    "title": "Atividade por atendente, principais (dados fictícios)",
+    "cols": ["Atendente", "Equipe", "Conversas no mês", "Status"],
+    "rows": [
+      ["Maria Modelo", "Vendas", "612", "ok:Online"],
+      ["João Modelo", "Vendas", "548", "ok:Online"],
+      ["Atendente Exemplo 03", "Suporte", "497", "warn:Ausente"],
+      ["Atendente Exemplo 04", "Suporte", "455", "ok:Online"],
+      ["Atendente Exemplo 05", "Pós-venda", "389", "info:Em treinamento"],
+      ["Atendente Exemplo 06", "Financeiro", "341", "ok:Online"],
+      ["Atendente Exemplo 07", "Vendas", "302", "bad:Offline"]
+    ]
+  },
+  "chart": {
+    "title": "Conversas atendidas por mês",
+    "labels": ["Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out"],
+    "values": [1850, 2200, 2480, 2900, 3250, 3510, 3720, 3940]
+  },
+  "sim": {
+    "title": "Simulador: capacidade da equipe",
+    "intro": "Informe o tamanho da equipe e o ritmo de conversas para estimar o volume mensal e quantas ferramentas poderiam ser reunidas em uma só.",
+    "inputs": [
+      {"id": "atend", "label": "Atendentes", "min": 1, "max": 20, "step": 1, "val": 3, "unit": ""},
+      {"id": "cdia", "label": "Conversas por atendente por dia", "min": 10, "max": 120, "step": 5, "val": 40, "unit": ""},
+      {"id": "dias", "label": "Dias de atendimento por mês", "min": 15, "max": 30, "step": 1, "val": 22, "unit": "dias"},
+      {"id": "ferr", "label": "Ferramentas de atendimento hoje", "min": 1, "max": 8, "step": 1, "val": 4, "unit": ""}
+    ],
+    "outputs": [
+      {"label": "Conversas por mês", "expr": "atend*cdia*dias", "fmt": "int"},
+      {"label": "Conversas por atendente por mês", "expr": "cdia*dias", "fmt": "int"},
+      {"label": "Ferramentas que podem ser unificadas", "expr": "Math.max(ferr-1,0)", "fmt": "int"}
+    ]
+  },
+  "fluxo": [
+    "Conectar o número de WhatsApp da empresa",
+    "Cadastrar os atendentes e as equipes",
+    "Distribuir as conversas entre quem está disponível",
+    "Acompanhar o volume e a satisfação no painel"
+  ],
+  "recursos": [
+    "Painel único para vários atendentes",
+    "Distribuição automática de conversas",
+    "Respostas rápidas e modelos de texto",
+    "Etiquetas e notas por contato",
+    "Histórico de conversas por cliente",
+    "Horário de atendimento e mensagem de ausência",
+    "Relatórios de volume por equipe",
+    "Assinatura mensal de baixo custo"
+  ],
+  "faq": [
+    {"q": "Como funciona a assinatura?", "a": "É uma assinatura mensal pensada para ter custo baixo. Os valores estão sob consulta e não aparecem neste modelo."},
+    {"q": "Posso começar com poucos atendentes?", "a": "Sim, o modelo ilustra equipes pequenas que podem crescer aos poucos, de acordo com a necessidade."}
+  ]
+}

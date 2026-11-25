@@ -1,0 +1,66 @@
+{
+  "slug": "mundi-business",
+  "nome": "Mundi Business",
+  "cat": "mkt",
+  "tagline": "Disparo de mensagens em massa com segmentação, agendamento e relatório de entrega e resposta.",
+  "persona": "Rede 'Mercado Exemplo Bairro' — empresa FICTÍCIA que avisa clientes sobre ofertas e pedidos",
+  "kpis": [
+    {"l": "Mensagens enviadas", "v": "48.200", "d": "no mês"},
+    {"l": "Taxa de entrega", "v": "96,4%", "d": "sobre o total enviado"},
+    {"l": "Taxa de resposta", "v": "11,8%", "d": "sobre as entregues"},
+    {"l": "Descadastros", "v": "0,6%", "d": "pedidos de sair da lista"}
+  ],
+  "table": {
+    "title": "Campanhas do mês (dados fictícios)",
+    "cols": ["Campanha", "Envios", "Respostas", "Status"],
+    "rows": [
+      ["Ofertas da semana", "9.800", "1.160", "ok:Concluída"],
+      ["Aviso de pedido pronto", "8.400", "990", "ok:Concluída"],
+      ["Reativação de clientes", "7.200", "850", "ok:Concluída"],
+      ["Pesquisa de satisfação", "6.500", "770", "warn:Em envio"],
+      ["Convite para evento", "5.900", "700", "ok:Concluída"],
+      ["Cupom de aniversário", "5.400", "640", "info:Agendada"],
+      ["Lembrete de cartão fidelidade", "5.000", "580", "ok:Concluída"]
+    ]
+  },
+  "chart": {
+    "title": "Mensagens enviadas por mês",
+    "labels": ["Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out"],
+    "values": [21500, 26300, 29800, 34100, 38600, 42000, 45300, 48200]
+  },
+  "sim": {
+    "title": "Simulador: alcance de uma campanha",
+    "intro": "Mude o tamanho da lista, a frequência dos envios e as taxas esperadas para ver uma estimativa ilustrativa.",
+    "inputs": [
+      {"id": "lista", "label": "Contatos na lista", "min": 1000, "max": 50000, "step": 500, "val": 10000, "unit": ""},
+      {"id": "envios", "label": "Envios por mês", "min": 1, "max": 8, "step": 1, "val": 2, "unit": "x"},
+      {"id": "entrega", "label": "Taxa de entrega (%)", "min": 80, "max": 99, "step": 1, "val": 95, "unit": "%"},
+      {"id": "resp", "label": "Taxa de resposta (%)", "min": 1, "max": 30, "step": 1, "val": 10, "unit": "%"}
+    ],
+    "outputs": [
+      {"label": "Mensagens entregues por mês", "expr": "lista*envios*entrega/100", "fmt": "int"},
+      {"label": "Respostas esperadas por mês", "expr": "lista*envios*entrega/100*resp/100", "fmt": "int"},
+      {"label": "Média de envios por dia útil", "expr": "lista*envios/22", "fmt": "dec1"}
+    ]
+  },
+  "fluxo": [
+    "Importar ou selecionar a lista de contatos",
+    "Segmentar o público e montar a mensagem",
+    "Agendar o disparo respeitando o ritmo de envio",
+    "Acompanhar entrega, respostas e descadastros"
+  ],
+  "recursos": [
+    "Envio em massa com agendamento",
+    "Segmentação por etiquetas e filtros",
+    "Variáveis de personalização, como o nome",
+    "Lista de descadastro automática",
+    "Controle de ritmo de envio",
+    "Relatório de entrega e respostas",
+    "Modelos de mensagem reutilizáveis",
+    "Importação de contatos por planilha"
+  ],
+  "faq": [
+    {"q": "Posso enviar para qualquer contato?", "a": "O modelo prevê envio apenas para contatos que autorizaram receber mensagens, com opção de sair da lista a qualquer momento."},
+    {"q": "Os números do simulador são garantidos?", "a": "Não. São valores ilustrativos para você testar cenários; o resultado real depende da lista, da mensagem e das regras dos canais."}
+  ]
+}

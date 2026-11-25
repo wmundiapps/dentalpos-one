@@ -1,0 +1,177 @@
+{
+ "slug": "gerenciador-de-rh",
+ "nome": "Gerenciador de RH",
+ "cat": "mod",
+ "tagline": "Colaboradores, documentos, férias, escalas e indicadores de pessoas em um só painel.",
+ "persona": "Empresa 'Grupo Exemplo Gama' (empresa FICTÍCIA) com 48 colaboradores",
+ "kpis": [
+  {
+   "l": "Colaboradores ativos",
+   "v": "48",
+   "d": "3 em férias"
+  },
+  {
+   "l": "Turnover (12 meses)",
+   "v": "9,4%",
+   "d": "4 desligamentos"
+  },
+  {
+   "l": "Documentos a vencer",
+   "v": "6",
+   "d": "próximos 30 dias"
+  },
+  {
+   "l": "Absenteísmo",
+   "v": "2,1%",
+   "d": "mês atual"
+  }
+ ],
+ "table": {
+  "title": "Colaboradores e pendências",
+  "cols": [
+   "Colaborador",
+   "Setor",
+   "Situação",
+   "Status"
+  ],
+  "rows": [
+   [
+    "Colaborador Exemplo 01",
+    "Atendimento",
+    "Escala semanal",
+    "ok:Ativo"
+   ],
+   [
+    "Colaborador Exemplo 02",
+    "Financeiro",
+    "Férias até 12/12",
+    "info:Em férias"
+   ],
+   [
+    "Colaborador Exemplo 03",
+    "Operações",
+    "Exame periódico vence em 15 dias",
+    "warn:Documento a vencer"
+   ],
+   [
+    "Colaborador Exemplo 04",
+    "Comercial",
+    "Admissão em andamento",
+    "info:Admissão"
+   ],
+   [
+    "Colaborador Exemplo 05",
+    "Operações",
+    "Atestado de 2 dias",
+    "warn:Afastado"
+   ],
+   [
+    "Colaborador Exemplo 06",
+    "Atendimento",
+    "Férias vencidas há 45 dias",
+    "bad:Férias em atraso"
+   ],
+   [
+    "Colaborador Exemplo 07",
+    "Administrativo",
+    "Documentação completa",
+    "ok:Ativo"
+   ]
+  ]
+ },
+ "chart": {
+  "title": "Colaboradores ativos por mês",
+  "labels": [
+   "Jun",
+   "Jul",
+   "Ago",
+   "Set",
+   "Out",
+   "Nov"
+  ],
+  "values": [
+   44,
+   45,
+   45,
+   46,
+   47,
+   48
+  ]
+ },
+ "sim": {
+  "title": "Simulador: custo de rotatividade",
+  "intro": "Ajuste o quadro e a rotatividade para estimar quantas saídas e qual custo de reposição ilustrativo por ano.",
+  "inputs": [
+   {
+    "id": "quadro",
+    "label": "Colaboradores",
+    "min": 10,
+    "max": 300,
+    "step": 1,
+    "val": 48,
+    "unit": ""
+   },
+   {
+    "id": "turn",
+    "label": "Rotatividade anual (%)",
+    "min": 0,
+    "max": 50,
+    "step": 0.5,
+    "val": 9.4,
+    "unit": "%"
+   },
+   {
+    "id": "custoRep",
+    "label": "Custo de reposição por vaga (R$)",
+    "min": 1000,
+    "max": 20000,
+    "step": 500,
+    "val": 6000,
+    "unit": ""
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Saídas por ano",
+    "expr": "quadro*turn/100",
+    "fmt": "dec1"
+   },
+   {
+    "label": "Custo anual de reposição",
+    "expr": "quadro*turn/100*custoRep",
+    "fmt": "brl"
+   },
+   {
+    "label": "Saídas por mês",
+    "expr": "quadro*turn/100/12",
+    "fmt": "dec1"
+   }
+  ]
+ },
+ "fluxo": [
+  "O colaborador é cadastrado com seus documentos",
+  "Férias, escalas e afastamentos são programados",
+  "O sistema avisa vencimentos de exames e documentos",
+  "Indicadores de pessoas orientam as decisões do gestor"
+ ],
+ "recursos": [
+  "Cadastro completo de colaboradores",
+  "Documentos com aviso de vencimento",
+  "Controle de férias e períodos aquisitivos",
+  "Escalas de trabalho",
+  "Atestados e afastamentos",
+  "Indicadores de turnover e absenteísmo",
+  "Organograma por setor",
+  "Acesso do colaborador aos próprios dados"
+ ],
+ "faq": [
+  {
+   "q": "O colaborador vê os dados dos outros?",
+   "a": "Neste modelo, cada colaborador vê apenas os próprios dados; gestão e RH veem o conjunto."
+  },
+  {
+   "q": "Os dados são reais?",
+   "a": "Não. Tudo aqui é fictício e ilustrativo."
+  }
+ ]
+}

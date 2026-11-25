@@ -1,0 +1,186 @@
+{
+ "slug": "erp-sob-medida-por-segmento",
+ "nome": "ERP sob medida por segmento",
+ "cat": "mod",
+ "tagline": "Gestão integrada de financeiro, vendas, estoque e RH, modular e com IA, para o seu segmento.",
+ "persona": "Indústria 'Grupo Exemplo Ômega' (empresa FICTÍCIA), módulos ativos de exemplo",
+ "kpis": [
+  {
+   "l": "Faturamento do mês",
+   "v": "R$ 642.800",
+   "d": "vendas integradas"
+  },
+  {
+   "l": "Saldo de caixa",
+   "v": "R$ 218.400",
+   "d": "previsão 30 dias"
+  },
+  {
+   "l": "Pedidos em aberto",
+   "v": "37",
+   "d": "11 aguardando estoque"
+  },
+  {
+   "l": "Módulos ativos",
+   "v": "5",
+   "d": "de 8 disponíveis"
+  }
+ ],
+ "table": {
+  "title": "Módulos e integrações do modelo",
+  "cols": [
+   "Módulo",
+   "Indicador",
+   "Dado do mês",
+   "Status"
+  ],
+  "rows": [
+   [
+    "Financeiro",
+    "Contas a receber",
+    "R$ 187.300",
+    "ok:Integrado"
+   ],
+   [
+    "Vendas",
+    "Pedidos faturados",
+    "214",
+    "ok:Integrado"
+   ],
+   [
+    "Estoque",
+    "Itens abaixo do mínimo",
+    "9",
+    "warn:Atenção"
+   ],
+   [
+    "RH",
+    "Colaboradores ativos",
+    "63",
+    "ok:Integrado"
+   ],
+   [
+    "Fiscal",
+    "Notas pendentes",
+    "4",
+    "warn:Atenção"
+   ],
+   [
+    "Assistente de IA",
+    "Consultas respondidas",
+    "128",
+    "info:Em teste"
+   ],
+   [
+    "Produção",
+    "Ordens abertas",
+    "22",
+    "info:Em implantação"
+   ]
+  ]
+ },
+ "chart": {
+  "title": "Faturamento mensal (R$ mil)",
+  "labels": [
+   "Jun",
+   "Jul",
+   "Ago",
+   "Set",
+   "Out",
+   "Nov"
+  ],
+  "values": [
+   540,
+   566,
+   581,
+   603,
+   618,
+   642.8
+  ]
+ },
+ "sim": {
+  "title": "Simulador: ganho de tempo com integração",
+  "intro": "Estime horas por mês gastas em tarefas manuais que a integração entre módulos poderia reduzir (cenário ilustrativo).",
+  "inputs": [
+   {
+    "id": "usuarios",
+    "label": "Usuários do sistema",
+    "min": 3,
+    "max": 200,
+    "step": 1,
+    "val": 25,
+    "unit": ""
+   },
+   {
+    "id": "horas",
+    "label": "Horas manuais por usuário no mês",
+    "min": 2,
+    "max": 60,
+    "step": 1,
+    "val": 16,
+    "unit": "h"
+   },
+   {
+    "id": "reducao",
+    "label": "Redução estimada (%)",
+    "min": 5,
+    "max": 70,
+    "step": 5,
+    "val": 35,
+    "unit": "%"
+   },
+   {
+    "id": "custoh",
+    "label": "Custo da hora (R$)",
+    "min": 15,
+    "max": 200,
+    "step": 5,
+    "val": 45,
+    "unit": ""
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Horas manuais por mês",
+    "expr": "usuarios*horas",
+    "fmt": "int"
+   },
+   {
+    "label": "Horas liberadas por mês",
+    "expr": "usuarios*horas*reducao/100",
+    "fmt": "int"
+   },
+   {
+    "label": "Valor das horas liberadas",
+    "expr": "usuarios*horas*reducao/100*custoh",
+    "fmt": "brl"
+   }
+  ]
+ },
+ "fluxo": [
+  "Levantamos os processos do seu segmento",
+  "Escolhemos os módulos e as regras de negócio",
+  "Os dados passam a circular entre as áreas",
+  "A IA apoia consultas e análises do gestor"
+ ],
+ "recursos": [
+  "Financeiro e fiscal",
+  "Vendas e pedidos",
+  "Estoque e compras",
+  "RH e ponto",
+  "Módulos sob medida por segmento",
+  "Painéis de gestão",
+  "Assistente com inteligência artificial",
+  "Perfis de acesso por área"
+ ],
+ "faq": [
+  {
+   "q": "O ERP é igual para todos os segmentos?",
+   "a": "Não. O modelo é modular e adaptado às regras e à rotina do segmento do cliente."
+  },
+  {
+   "q": "Os resultados do simulador são garantidos?",
+   "a": "Não. É um cenário ilustrativo com dados fictícios."
+  }
+ ]
+}

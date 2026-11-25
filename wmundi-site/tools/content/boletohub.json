@@ -1,0 +1,186 @@
+{
+  "slug": "boletohub",
+  "nome": "BoletoHub",
+  "cat": "fin",
+  "tagline": "Captura boletos de e-mail e arquivos, confere os dados e organiza o pagamento no vencimento.",
+  "persona": "Comercial Exemplo Alfa (empresa FICTÍCIA), financeiro com 2 pessoas",
+  "kpis": [
+    {
+      "l": "Boletos capturados no mês",
+      "v": "342",
+      "d": "e-mail, PDF e foto"
+    },
+    {
+      "l": "A pagar nesta semana",
+      "v": "R$ 96.820",
+      "d": "31 boletos"
+    },
+    {
+      "l": "Boletos pagos",
+      "v": "289",
+      "d": "84,5% do total capturado"
+    },
+    {
+      "l": "Divergências a revisar",
+      "v": "7",
+      "d": "valor ou beneficiário"
+    }
+  ],
+  "table": {
+    "title": "Fila de boletos (dados fictícios)",
+    "cols": [
+      "Fornecedor",
+      "Vencimento",
+      "Valor",
+      "Status"
+    ],
+    "rows": [
+      [
+        "Fornecedor Exemplo 01",
+        "27/11/2026",
+        "R$ 8.450,00",
+        "info:Capturado"
+      ],
+      [
+        "Fornecedor Exemplo 02",
+        "27/11/2026",
+        "R$ 3.210,50",
+        "ok:Conferido"
+      ],
+      [
+        "Fornecedor Exemplo 03",
+        "28/11/2026",
+        "R$ 15.900,00",
+        "warn:Aprovação pendente"
+      ],
+      [
+        "Fornecedor Exemplo 04",
+        "29/11/2026",
+        "R$ 1.780,00",
+        "ok:Agendado"
+      ],
+      [
+        "Fornecedor Exemplo 05",
+        "30/11/2026",
+        "R$ 6.320,90",
+        "warn:Valor divergente"
+      ],
+      [
+        "Fornecedor Exemplo 06",
+        "24/11/2026",
+        "R$ 2.490,00",
+        "ok:Pago"
+      ],
+      [
+        "Fornecedor Exemplo 07",
+        "23/11/2026",
+        "R$ 940,00",
+        "bad:Vencido"
+      ]
+    ]
+  },
+  "chart": {
+    "title": "Boletos capturados por mês",
+    "labels": [
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov"
+    ],
+    "values": [
+      258,
+      281,
+      296,
+      310,
+      327,
+      342
+    ]
+  },
+  "sim": {
+    "title": "Simulador: captura de boletos",
+    "intro": "Informe o volume e o tempo de digitação para ver um exemplo de horas e erros evitados.",
+    "inputs": [
+      {
+        "id": "boletos",
+        "label": "Boletos por mês",
+        "min": 50,
+        "max": 1000,
+        "step": 10,
+        "val": 340,
+        "unit": ""
+      },
+      {
+        "id": "minutos",
+        "label": "Minutos por boleto na digitação manual",
+        "min": 1,
+        "max": 10,
+        "step": 1,
+        "val": 4,
+        "unit": "min"
+      },
+      {
+        "id": "erro",
+        "label": "Erros de digitação",
+        "min": 0,
+        "max": 10,
+        "step": 1,
+        "val": 3,
+        "unit": "%"
+      },
+      {
+        "id": "medio",
+        "label": "Valor médio do boleto (R$)",
+        "min": 200,
+        "max": 5000,
+        "step": 100,
+        "val": 1200,
+        "unit": ""
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Horas de digitação manual (exemplo)",
+        "expr": "boletos*minutos/60",
+        "fmt": "dec1"
+      },
+      {
+        "label": "Boletos com possível erro",
+        "expr": "Math.round(boletos*erro/100)",
+        "fmt": "int"
+      },
+      {
+        "label": "Valor mensal sob controle",
+        "expr": "boletos*medio",
+        "fmt": "brl"
+      }
+    ]
+  },
+  "fluxo": [
+    "Receba boletos por e-mail, PDF ou foto",
+    "O sistema lê linha digitável, valor e vencimento",
+    "Confira divergências e aprove o pagamento",
+    "Acompanhe agendados, pagos e vencidos no painel"
+  ],
+  "recursos": [
+    "Captura de boletos por e-mail e upload",
+    "Leitura de linha digitável e código de barras",
+    "Conferência de beneficiário e valor",
+    "Fluxo de aprovação por alçada",
+    "Agenda de vencimentos",
+    "Alerta de boleto duplicado",
+    "Status de pagamento por fornecedor",
+    "Exportação para o financeiro"
+  ],
+  "faq": [
+    {
+      "q": "O BoletoHub paga os boletos sozinho?",
+      "a": "Neste modelo ilustrativo, o pagamento só segue após a aprovação definida pela empresa."
+    },
+    {
+      "q": "Os boletos mostrados são reais?",
+      "a": "Não. Fornecedores, valores e datas são fictícios e servem apenas como demonstração."
+    }
+  ]
+}

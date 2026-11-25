@@ -1,0 +1,66 @@
+{
+  "slug": "revah",
+  "nome": "REVAH",
+  "cat": "mkt",
+  "tagline": "Mensagens por vários canais, CRM e inteligência artificial para atender mais rápido.",
+  "persona": "Loja Exemplo Conecta (empresa FICTÍCIA) com 10 mil contatos e 3 atendentes",
+  "kpis": [
+    {"l": "Mensagens enviadas no mês", "v": "40.000", "d": "modelo ilustrativo"},
+    {"l": "Taxa de entrega", "v": "97,8%", "d": "todos os canais"},
+    {"l": "Respostas recebidas", "v": "4.800", "d": "12% das mensagens"},
+    {"l": "Respostas tratadas pela IA", "v": "60%", "d": "o restante vai para a equipe"}
+  ],
+  "table": {
+    "title": "Campanhas do mês",
+    "cols": ["Campanha", "Canal", "Envios", "Status"],
+    "rows": [
+      ["Boas-vindas novos contatos", "WhatsApp", "12.000", "ok:Concluída"],
+      ["Aviso de promoção da semana", "SMS", "9.500", "ok:Concluída"],
+      ["Lembrete de agendamento", "WhatsApp", "7.200", "ok:Concluída"],
+      ["Newsletter mensal", "E-mail", "5.800", "ok:Concluída"],
+      ["Reativação de contatos inativos", "WhatsApp", "3.500", "info:Em envio"],
+      ["Pesquisa de satisfação", "E-mail", "2.000", "warn:Agendada"]
+    ]
+  },
+  "chart": {
+    "title": "Mensagens enviadas por mês (mil)",
+    "labels": ["Jun", "Jul", "Ago", "Set", "Out", "Nov"],
+    "values": [22, 26, 29, 33, 37, 40]
+  },
+  "sim": {
+    "title": "Simulador: volume de mensagens e atendimento",
+    "intro": "Ajuste a base de contatos, a frequência de envio, a taxa de resposta e o quanto a IA assume do atendimento.",
+    "inputs": [
+      {"id": "cont", "label": "Contatos na base", "min": 500, "max": 50000, "step": 500, "val": 10000, "unit": ""},
+      {"id": "msgs", "label": "Mensagens por contato no mês", "min": 1, "max": 10, "step": 1, "val": 4, "unit": ""},
+      {"id": "resp", "label": "Taxa de resposta", "min": 1, "max": 40, "step": 1, "val": 12, "unit": "%"},
+      {"id": "ia", "label": "Respostas tratadas pela IA", "min": 0, "max": 90, "step": 5, "val": 60, "unit": "%"}
+    ],
+    "outputs": [
+      {"label": "Mensagens enviadas no mês", "expr": "cont*msgs", "fmt": "int"},
+      {"label": "Respostas recebidas", "expr": "cont*msgs*resp/100", "fmt": "int"},
+      {"label": "Respostas tratadas pela IA", "expr": "cont*msgs*resp/100*ia/100", "fmt": "int"},
+      {"label": "Respostas para a equipe humana", "expr": "cont*msgs*resp/100*(100-ia)/100", "fmt": "int"}
+    ]
+  },
+  "fluxo": [
+    "Importe ou cadastre os contatos e organize-os em segmentos no CRM.",
+    "Crie a campanha e escolha os canais de envio.",
+    "A inteligência artificial responde às dúvidas mais comuns.",
+    "Casos complexos passam para a equipe, com todo o histórico da conversa."
+  ],
+  "recursos": [
+    "Envio por WhatsApp, SMS e e-mail",
+    "CRM com histórico de cada contato",
+    "Segmentação da base",
+    "Respostas assistidas por inteligência artificial",
+    "Agendamento de campanhas",
+    "Respeito a pedidos de descadastro (SAIR)",
+    "Caixa de entrada unificada para a equipe",
+    "Relatórios de entrega e resposta"
+  ],
+  "faq": [
+    {"q": "Os números desta página são reais?", "a": "Não. Contatos, campanhas e resultados são fictícios, como modelo ilustrativo."},
+    {"q": "Os envios respeitam a vontade do contato?", "a": "O modelo prevê descadastro e uso de contatos com autorização. A responsabilidade pelas bases é de quem usa o sistema."}
+  ]
+}
