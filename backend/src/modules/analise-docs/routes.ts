@@ -79,7 +79,7 @@ router.get('/meta', requireRole(...OPERA), asyncHandler(async (req: Authenticate
     tipos: Object.entries(TIPOS_DOCUMENTO).map(([codigo, t]) => ({ codigo, nome: t.nome, origens: t.origens, itens: t.itens.map((i) => i.item) })),
     provedor: { ativo: cfg.provedor === 'EMEC' && ProvedorGatewayReal.configurado() ? 'EMEC' : 'SIMULADO', simulado: !(cfg.provedor === 'EMEC' && ProvedorGatewayReal.configurado()), configuradoReal: ProvedorGatewayReal.configurado(),
       aviso: 'A verificação de instituições usa uma base local de DEMONSTRAÇÃO (cadastro fictício). Nenhuma consulta real ao MEC (e-MEC) ou às secretarias estaduais de educação é feita sem credencial configurada.' },
-    ia: { extracao: 'Regras determinísticas + leitura de texto/PDF (sem OCR de imagens)', resumoIA: Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY) },
+    ia: { extracao: 'Regras determinísticas + leitura de texto/PDF + OCR de fotos/scans (JPEG/PNG/WebP, em português)', resumoIA: Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY) },
     aviso: 'O agente apoia a conferência humana: não substitui perícia documental nem decisão da instituição.',
     podeConfigurar: ehSuper(req),
   })
@@ -284,7 +284,7 @@ router.patch('/casos/:id/documentos/:docId/campos', requireRole(...OPERA), async
   if (!doc) fail(404, 'Documento não encontrado.')
   const atual = lerDados(doc.dadosCif) ?? {}
   const novos: Campos = { ...atual, ...b.campos }
-  const p = prepararDocumento(tenantId, { tipo: doc.tipo, campos: novos, metadados: { ...((doc.metadados as any) ?? {}), ...(b.metadados ?? {}) } })
+  const p = await prepararDocumento(tenantId, { tipo: doc.tipo, campos: novos, metadados: { ...((doc.metadados as any) ?? {}), ...(b.metadados ?? {}) } })
   await prisma.adcDocumento.update({ where: { id: doc.id }, data: { dadosCif: p.data.dadosCif, camposResumo: p.data.camposResumo, checklist: p.data.checklist, metadados: p.data.metadados, chaveDup: p.data.chaveDup, modoExtracao: 'CAMPOS', confianca: 0.95 } })
   if (novos.cpf || novos.nome) await prisma.adcCaso.update({ where: { id: caso.id }, data: { ...(novos.nome && !caso.sujeitoNome ? { sujeitoNome: mascararNomeDoc(novos.nome) } : {}), ...(novos.cpf && !caso.sujeitoCpfHash ? { sujeitoCpfHash: hashDocumento(novos.cpf, tenantId) } : {}) } })
   await evento(tenantId, caso.id, 'CAMPOS_EDITADOS', { usuarioId: uid(req), texto: `Campos conferidos/corrigidos manualmente: ${Object.keys(b.campos).join(', ')}.`, dados: { campos: Object.keys(b.campos) } })

@@ -6,6 +6,8 @@
 // (variáveis EMEC_API_URL / EMEC_API_TOKEN): um adaptador HTTP para um gateway que devolva o contrato descrito em README.md.
 // Ele NÃO foi testado contra o serviço oficial.
 import { createHash } from 'node:crypto'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { prisma } from '../../lib/prisma'
 import { normNome, semAcento, similaridadeTexto, soDigitos } from './logic'
 
@@ -150,9 +152,45 @@ export async function garantirBaseDemo(tenantId: string): Promise<number> {
   return r.count
 }
 
-// ------------------------------------------------------------------ EXTRATOR de arquivo (texto/PDF) — sem OCR
+// ------------------------------------------------------------------ OCR (fotos/scans sem texto — tesseract.js, português)
+// O modelo treinado (por.traineddata.gz) vem empacotado no repositório (assets/tessdata), não baixado de CDN em
+// tempo de execução: o ambiente de produção pode não ter saída livre para redes de CDN de terceiros.
+const TESSDATA_PATH = join(__dirname, '../../../assets/tessdata')
+// Cache de trabalho (versão descomprimida) separado do vendorizado acima: nunca escreve dentro do repositório.
+const TESSDATA_CACHE = join(tmpdir(), 'edumaster-tessdata-cache')
+
+let ocrWorker: Promise<any> | null = null
+async function obterOcrWorker() {
+  if (!ocrWorker) {
+    ocrWorker = (async () => {
+      const { mkdir } = await import('node:fs/promises')
+      await mkdir(TESSDATA_CACHE, { recursive: true })
+      const { createWorker } = await import('tesseract.js')
+      return createWorker('por', 1, { langPath: TESSDATA_PATH, cachePath: TESSDATA_CACHE })
+    })().catch((e) => { ocrWorker = null; throw e })
+  }
+  return ocrWorker
+}
+
+const MIME_OCR = /^image\/(png|jpe?g|webp|bmp|gif)$/i
+
+/** OCR best-effort de uma foto/scan (JPEG/PNG/WebP). Nunca lança: falha silenciosamente e deixa SEM_TEXTO. */
+export async function ocrImagem(buf: Buffer, mime: string): Promise<string | undefined> {
+  if (!MIME_OCR.test(mime)) return undefined
+  try {
+    const worker = await obterOcrWorker()
+    const { data } = await worker.recognize(buf)
+    const texto = String(data?.text || '').trim()
+    return texto || undefined
+  } catch (e) {
+    console.warn('[analise-docs] OCR falhou (seguindo sem texto extraído):', e instanceof Error ? e.message : e)
+    return undefined
+  }
+}
+
+// ------------------------------------------------------------------ EXTRATOR de arquivo (texto/PDF/foto via OCR)
 export interface ArquivoEntrada { nome?: string; mime?: string; dataUrl?: string; base64?: string }
-export interface ArquivoLido { hash?: string; tamanho?: number; mime?: string; texto?: string; metadados: Record<string, unknown>; modo: 'TEXTO' | 'PDF_TEXTO' | 'SEM_TEXTO'; assinaturaPdf?: boolean }
+export interface ArquivoLido { hash?: string; tamanho?: number; mime?: string; texto?: string; metadados: Record<string, unknown>; modo: 'TEXTO' | 'PDF_TEXTO' | 'OCR' | 'SEM_TEXTO'; assinaturaPdf?: boolean }
 
 export function decodificar(a: ArquivoEntrada): { buf: Buffer; mime?: string } | null {
   let b64 = a.base64
@@ -173,8 +211,11 @@ function dataPdf(s?: string) {
   return m ? `${m[1]}-${m[2]}-${m[3]}` : undefined
 }
 
-/** Lê o arquivo: hash, texto (text/* e PDF com texto não comprimido) e metadados de PDF. NÃO faz OCR de imagens. */
-export function lerArquivo(a: ArquivoEntrada | undefined): ArquivoLido | null {
+/**
+ * Lê o arquivo: hash, texto (text/* e PDF com texto não comprimido) e metadados de PDF. Para foto/scan de imagem
+ * (JPEG/PNG/WebP) sem texto embutido, tenta OCR (tesseract.js, português) — melhor esforço, nunca bloqueia o envio.
+ */
+export async function lerArquivo(a: ArquivoEntrada | undefined): Promise<ArquivoLido | null> {
   if (!a) return null
   const d = decodificar(a)
   if (!d) return null
@@ -189,7 +230,13 @@ export function lerArquivo(a: ArquivoEntrada | undefined): ArquivoLido | null {
     const meta: Record<string, unknown> = { producer: pega('Producer'), creator: pega('Creator'), criadoEm: dataPdf(pega('CreationDate')), modificadoEm: dataPdf(pega('ModDate')) }
     const assin = /\/ByteRange|\/Type\s*\/Sig\b|\/SubFilter\s*\/adbe\.pkcs7/.test(raw)
     if (assin) meta.assinaturaPresente = true
+    // PDF digitalizado (sem texto embutido): não dá para rasterizar a página aqui sem uma dependência pesada de
+    // renderização; peça para enviar como foto (JPEG/PNG) nesse caso, que passa pelo OCR abaixo.
     return { ...base, texto: texto || undefined, metadados: meta, modo: texto ? 'PDF_TEXTO' : 'SEM_TEXTO', assinaturaPdf: assin }
+  }
+  if (MIME_OCR.test(mime)) {
+    const texto = await ocrImagem(d.buf, mime)
+    return { ...base, texto, metadados: {}, modo: texto ? 'OCR' : 'SEM_TEXTO' }
   }
   return { ...base, metadados: {}, modo: 'SEM_TEXTO' }
 }

@@ -2,6 +2,7 @@ import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, 
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import { useEffect, useState } from "react";
 import { StudentPicker } from "../desempenho/kit";
 import { AD, AVISO_AGENTE, CONTEXTOS, call, errMsg, itemsOf, lerArquivoComoDataUrl, rotuloOrigem, useApi } from "./kit";
@@ -92,12 +93,16 @@ export default function NovoCasoDialog({ open, onClose, onCreated, preset }: { o
               </TextField>
               <Button component="label" size="small" variant="outlined" startIcon={<UploadFileIcon />}>
                 {d.arquivo ? "Trocar arquivo" : "Enviar arquivo"}
-                <input hidden type="file" accept=".pdf,.png,.jpg,.jpeg,.txt,.csv" onChange={(e) => { void anexar(i, e.target.files?.[0]); e.currentTarget.value = ""; }} />
+                <input hidden type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv" onChange={(e) => { void anexar(i, e.target.files?.[0]); e.currentTarget.value = ""; }} />
+              </Button>
+              <Button component="label" size="small" variant="outlined" startIcon={<PhotoCameraOutlinedIcon />}>
+                Escanear (foto)
+                <input hidden type="file" accept="image/*" capture="environment" onChange={(e) => { void anexar(i, e.target.files?.[0]); e.currentTarget.value = ""; }} />
               </Button>
               {docs.length > 1 && <IconButton aria-label="Remover documento" onClick={() => setDocs((l) => l.filter((_, k) => k !== i))}><DeleteOutlinedIcon /></IconButton>}
             </Box>
-            {d.arquivo && <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>Arquivo: {d.arquivo.nome} ({d.arquivo.mime})</Typography>}
-            <TextField size="small" fullWidth multiline minRows={4} label="Texto do documento / OCR (opcional se enviar PDF com texto)" value={d.texto} onChange={(e) => setDoc(i, { texto: e.target.value })}
+            {d.arquivo && <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>Arquivo: {d.arquivo.nome} ({d.arquivo.mime}){/^image\//.test(d.arquivo.mime || "") ? " — o texto será lido automaticamente por OCR." : ""}</Typography>}
+            <TextField size="small" fullWidth multiline minRows={4} label="Texto do documento (opcional — foto/PDF com texto já são lidos automaticamente)" value={d.texto} onChange={(e) => setDoc(i, { texto: e.target.value })}
               placeholder={"Nome: ...\nCPF: ...\nInstituição: ...\nCurso: ...\nCarga horária total: 3200h\nDisciplina | CH | Nota | Situação | Ano\nAnatomia | 80 | 8,5 | Aprovado | 2023"} />
           </Paper>
         ))}

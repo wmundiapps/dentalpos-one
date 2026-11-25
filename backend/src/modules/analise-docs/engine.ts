@@ -38,9 +38,9 @@ function resumoCampos(tipo: string, c: Campos) {
   return r
 }
 
-export function prepararDocumento(tenantId: string, d: DocumentoEntrada) {
+export async function prepararDocumento(tenantId: string, d: DocumentoEntrada) {
   if (!tipoValido(d.tipo)) fail(400, `Tipo de documento inválido: ${d.tipo}.`)
-  const lido = lerArquivo(d.arquivo)
+  const lido = await lerArquivo(d.arquivo)
   if (d.arquivo && (d.arquivo.dataUrl || d.arquivo.base64) && !lido) fail(400, 'Arquivo ilegível: envie data URL ou base64 válidos.')
   const texto = d.texto ?? lido?.texto
   const extraidos = texto ? extrairCampos(texto) : {}
@@ -52,7 +52,7 @@ export function prepararDocumento(tenantId: string, d: DocumentoEntrada) {
   if (lido?.assinaturaPdf && campos.assinaturaDigital === undefined) campos.assinaturaDigital = true
   const metadados: Metadados = { ...(lido?.metadados as Metadados), ...(d.metadados ?? {}) }
   if (metadados.assinaturaPresente === undefined && (campos.assinaturaDigital || lido?.assinaturaPdf)) metadados.assinaturaPresente = true
-  const modo = d.campos && Object.keys(d.campos).length && !texto ? 'CAMPOS' : lido?.modo === 'PDF_TEXTO' ? 'PDF_TEXTO' : texto ? 'TEXTO' : 'SEM_TEXTO'
+  const modo = d.campos && Object.keys(d.campos).length && !texto ? 'CAMPOS' : lido?.modo === 'PDF_TEXTO' ? 'PDF_TEXTO' : lido?.modo === 'OCR' ? 'OCR' : texto ? 'TEXTO' : 'SEM_TEXTO'
   const preenchidos = Object.keys(campos).length
   const chave = campos.numeroDocumento && campos.instituicao ? hmacCurto(`dip:${normNome(campos.instituicao)}:${String(campos.numeroDocumento).replace(/\W/g, '').toUpperCase()}`, tenantId, 40) : null
   return {
@@ -60,7 +60,7 @@ export function prepararDocumento(tenantId: string, d: DocumentoEntrada) {
     data: {
       tenantId, tipo: d.tipo, arquivoNome: d.arquivo?.nome?.slice(0, 200) ?? null, mime: lido?.mime ?? d.arquivo?.mime ?? null, tamanho: lido?.tamanho ?? null, hashArquivo: lido?.hash ?? null, chaveDup: chave,
       dadosCif: cifrar(JSON.stringify(campos)), camposResumo: resumoCampos(d.tipo, campos) as any, metadados: metadados as any, checklist: montarChecklist(d.tipo, campos, metadados) as any,
-      confianca: modo === 'CAMPOS' ? 0.95 : modo === 'SEM_TEXTO' ? 0.2 : Math.min(0.95, 0.5 + preenchidos * 0.04), modoExtracao: modo,
+      confianca: modo === 'CAMPOS' ? 0.95 : modo === 'SEM_TEXTO' ? 0.2 : modo === 'OCR' ? Math.min(0.75, 0.35 + preenchidos * 0.04) : Math.min(0.95, 0.5 + preenchidos * 0.04), modoExtracao: modo,
     },
   }
 }
@@ -70,7 +70,7 @@ export async function criarCaso(tenantId: string, ator: Ator, n: NovoCaso) {
   const cfg = await getConfig(tenantId)
   if (!n.documentos.length) fail(400, 'Informe ao menos um documento.')
   if (n.documentos.length > 15) fail(400, 'No máximo 15 documentos por caso.')
-  const prep = n.documentos.map((d) => prepararDocumento(tenantId, d))
+  const prep = await Promise.all(n.documentos.map((d) => prepararDocumento(tenantId, d)))
   const cpfPrincipal = prep.map((p) => p.campos.cpf).find(Boolean)
   const nomePrincipal = prep.map((p) => p.campos.nome).find(Boolean)
   const agora = new Date()
@@ -94,7 +94,7 @@ export async function adicionarDocumento(tenantId: string, casoId: string, ator:
   const caso = await prisma.adcCaso.findFirst({ where: { id: casoId, tenantId } })
   if (!caso) fail(404, 'Caso não encontrado.')
   if (caso.dadosApagadosEm) fail(409, 'Os dados deste caso já foram apagados pela política de retenção.')
-  const p = prepararDocumento(tenantId, d)
+  const p = await prepararDocumento(tenantId, d)
   const doc = await prisma.adcDocumento.create({ data: { ...p.data, casoId } })
   await evento(tenantId, casoId, 'DOCUMENTO_ADICIONADO', { usuarioId: ator.id, texto: `Documento ${d.tipo} adicionado.` })
   return doc
@@ -182,7 +182,8 @@ export async function analisarCaso(tenantId: string, casoId: string, ator: Ator,
   // 1) regras por documento
   for (const x of docs) {
     for (const a of avaliarDocumento(x.d.tipo, x.campos, x.meta, {})) achados.push({ ...a, documentoIdx: x.idx })
-    if (x.d.modoExtracao === 'SEM_TEXTO' && !Object.keys(x.campos).length) achados.push({ regra: 'EXTRACAO_VAZIA', categoria: 'CONFORMIDADE', gravidade: 'MEDIA', documentoIdx: x.idx, titulo: 'Não foi possível extrair campos do arquivo', explicacao: 'O arquivo não tem texto legível pelo extrator (imagem/PDF digitalizado). O OCR não está incluído nesta versão: informe o texto ou os campos manualmente na tela do caso.', sugestao: 'Digitar os campos principais para que as conferências possam ser feitas.' })
+    if (x.d.modoExtracao === 'SEM_TEXTO' && !Object.keys(x.campos).length) achados.push({ regra: 'EXTRACAO_VAZIA', categoria: 'CONFORMIDADE', gravidade: 'MEDIA', documentoIdx: x.idx, titulo: 'Não foi possível extrair campos do arquivo', explicacao: 'O OCR não conseguiu ler texto nesta imagem (foto borrada/escura) ou o arquivo é um PDF digitalizado sem camada de texto — nesse caso, envie como foto (JPEG/PNG) em vez de PDF.', sugestao: 'Reenviar uma foto mais nítida, ou digitar os campos principais para que as conferências possam ser feitas.' })
+    else if (x.d.modoExtracao === 'OCR' && Object.keys(x.campos).length) achados.push({ regra: 'OCR_CONFERIR', categoria: 'CONFORMIDADE', gravidade: 'BAIXA', documentoIdx: x.idx, titulo: 'Campos lidos por OCR de foto/scan', explicacao: 'Os campos deste documento vieram de reconhecimento automático de texto (OCR) numa imagem, que pode conter erros de leitura.', sugestao: 'Confira os campos extraídos antes de decidir o caso.' })
   }
 
   // 2) conflitos entre documentos e com o cadastro
