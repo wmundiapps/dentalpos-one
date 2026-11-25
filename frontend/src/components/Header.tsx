@@ -11,8 +11,18 @@ import {
   TextField,
   Toolbar,
   Tooltip,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
   Typography,
 } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import { openAlerts } from "./alerts/AlertsMenu";
+import { useCriticalAlerts } from "../hooks/useCriticalAlerts";
+import { usePendingCount } from "../services/PendingAlertsApi";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
@@ -51,6 +61,12 @@ export default function Header() {
   // Logo salva no cadastro da clínica (sessão); o localStorage antigo fica como reserva.
   const clinicLogo = (identityTick >= 0 && (readSessionUser()?.clinic?.logo || localStorage.getItem("dentalpos.clinicLogo"))) || "";
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
+  const { alerts: criticalAlerts } = useCriticalAlerts();
+  const pendingCount = usePendingCount(location.pathname);
+  const alertTotal = criticalAlerts.length + pendingCount;
+  const alertError = pendingCount > 0 || criticalAlerts.some((a) => a.severity === "error");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
@@ -125,19 +141,22 @@ export default function Header() {
         zIndex: 1200,
       }}
     >
-      <Toolbar sx={{ gap: { xs: 1, md: 2 }, minHeight: 72 }}>
+      <Toolbar sx={{ gap: { xs: 0.5, md: 2 }, minHeight: { xs: 56, md: 72 }, flexWrap: { xs: "wrap", md: "nowrap" }, px: { xs: 1, md: 3 } }}>
+        <IconButton aria-label="Abrir menu" onClick={() => window.dispatchEvent(new Event("dentalpos:open-menu"))} sx={{ display: { xs: "inline-flex", md: "none" }, flexShrink: 0 }}>
+          <MenuIcon />
+        </IconButton>
         {location.pathname !== "/" && location.pathname !== "/dashboard" && (
           <Tooltip title="Voltar">
             <IconButton
               aria-label="Voltar"
               onClick={() => { if ((window.history.state?.idx ?? 0) > 0) navigate(-1); else navigate("/"); }}
-              sx={{ border: "1px solid", borderColor: "divider", flexShrink: 0 }}
+              sx={{ border: "1px solid", borderColor: "divider", flexShrink: 0, display: { xs: "none", md: "inline-flex" } }}
             >
               <ArrowBackIcon />
             </IconButton>
           </Tooltip>
         )}
-        <Box component="img" src={`${import.meta.env.BASE_URL}brand/logo-leao.png`} alt="CompletoDonto" sx={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)" }} />
+        <Box component="img" src={`${import.meta.env.BASE_URL}brand/logo-leao.png`} alt="CompletoDonto" sx={{ width: { xs: 34, md: 44 }, height: { xs: 34, md: 44 }, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)" }} />
         <Box sx={{ display: { xs: "none", lg: "block" } }}>
           <Typography variant="h6" sx={{ fontWeight: 700, color: "primary.main", lineHeight: 1.2, whiteSpace: "nowrap" }}>
             <BrandName />
@@ -147,7 +166,7 @@ export default function Header() {
           </Typography>
         </Box>
 
-        <Box sx={{ position: "relative", width: { xs: "100%", sm: 360, md: 440 }, maxWidth: 520 }}>
+        <Box sx={{ position: "relative", width: { xs: "100%", sm: 360, md: 440 }, maxWidth: 520, display: { xs: searchOpen ? "block" : "none", md: "block" }, order: { xs: 10, md: 0 } }}>
           <TextField
             fullWidth
             size="small"
@@ -212,7 +231,22 @@ export default function Header() {
 
         <Box sx={{ flexGrow: 1 }} />
 
+        <IconButton aria-label="Pesquisar módulos" onClick={() => setSearchOpen((v) => !v)} sx={{ display: { xs: "inline-flex", md: "none" } }}><SearchIcon /></IconButton>
+        <Tooltip title={alertTotal ? `${alertTotal} alerta(s) e pendência(s)` : "Alertas críticos"}>
+          <IconButton aria-label="Alertas críticos" onClick={() => openAlerts()} sx={{ color: alertTotal ? (alertError ? "error.main" : "warning.main") : "text.secondary" }}>
+            <Badge badgeContent={alertTotal} color={alertError ? "error" : "warning"} max={99}>{alertTotal ? <NotificationsActiveIcon /> : <NotificationsNoneIcon />}</Badge>
+          </IconButton>
+        </Tooltip>
+        <IconButton aria-label="Mais opções" onClick={(e) => setMoreAnchor(e.currentTarget)} sx={{ display: { xs: "inline-flex", md: "none" } }}><MoreVertIcon /></IconButton>
+        <Menu anchorEl={moreAnchor} open={Boolean(moreAnchor)} onClose={() => setMoreAnchor(null)}>
+          <MenuItem onClick={() => { setMoreAnchor(null); window.print(); }}><ListItemIcon><PrintOutlinedIcon fontSize="small" /></ListItemIcon><ListItemText>Imprimir esta tela</ListItemText></MenuItem>
+          <MenuItem onClick={() => { setMoreAnchor(null); setFeedbackOpen(true); }}><ListItemIcon><FeedbackOutlinedIcon fontSize="small" /></ListItemIcon><ListItemText>Relatar problema ou sugestão</ListItemText></MenuItem>
+          <MenuItem onClick={() => { setMoreAnchor(null); toggleMode(); }}><ListItemIcon>{mode === "light" ? <DarkModeOutlinedIcon fontSize="small" /> : <LightModeOutlinedIcon fontSize="small" />}</ListItemIcon><ListItemText>{mode === "light" ? "Modo escuro" : "Modo claro"}</ListItemText></MenuItem>
+          {!demo?.isDemo ? <MenuItem onClick={() => { setMoreAnchor(null); navigate("/notificacoes"); }}><ListItemIcon><Badge badgeContent={unreadCount} color="error"><NotificationsNoneIcon fontSize="small" /></Badge></ListItemIcon><ListItemText>Notificações</ListItemText></MenuItem> : null}
+          <MenuItem onClick={() => { setMoreAnchor(null); clearClientSession(); window.location.href = appRootUrl(); }}><ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon><ListItemText>Sair com segurança</ListItemText></MenuItem>
+        </Menu>
 
+        <Box sx={{ display: { xs: "none", md: "contents" } }}>
         <Tooltip title={"Imprimir esta tela (ou salvar como PDF)"}>
           <IconButton onClick={() => window.print()}>
             <PrintOutlinedIcon />
@@ -264,6 +298,7 @@ export default function Header() {
         <Tooltip title={sessionUser ? `${sessionUser.firstName} ${sessionUser.lastName}` : "Perfil do usuário"}>
           <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>{initials}</Avatar>
         </Tooltip>
+        </Box>
       </Toolbar>
     </AppBar>
   );

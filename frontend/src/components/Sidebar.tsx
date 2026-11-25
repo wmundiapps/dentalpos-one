@@ -1,7 +1,7 @@
 import { isWmundiStaff } from "./WmundiStaffOnly";
 import {
   Avatar, Box, Collapse, Divider, IconButton, List, ListItemButton, ListItemIcon,
-  ListItemText, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar, Alert
+  ListItemText, Tooltip, Typography, Drawer, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar, Alert
 } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -12,6 +12,7 @@ import { fetchManagerAccess, openManagerReset, type ManagerAccess } from "./Mana
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
 import AlertsMenu from "./alerts/AlertsMenu";
+import { useAgendaLegend } from "../utils/agendaLegend";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
@@ -48,11 +49,17 @@ export default function Sidebar(){
   const demo=readDemoAccess();
   const sessionUser=readSessionUser();
   const isDesign=location.pathname==="/design"||location.pathname.startsWith("/design/");
-  const [collapsed,setCollapsed]=useState(()=>{
+  const isMobile=useMediaQuery("(max-width:899.95px)");
+  const [mobileOpen,setMobileOpen]=useState(false);
+  const legend=useAgendaLegend();
+  useEffect(()=>{const on=()=>setMobileOpen(true);window.addEventListener("dentalpos:open-menu",on);return()=>window.removeEventListener("dentalpos:open-menu",on)},[]);
+  useEffect(()=>{setMobileOpen(false)},[location.pathname,location.search]);
+  const [collapsedState,setCollapsed]=useState(()=>{
     if(isDesign)return true;
     const saved=localStorage.getItem(COLLAPSED_KEY);
     return saved===null ? true : saved==="1"; // compacto por padrão
   });
+  const collapsed=!isMobile&&collapsedState;
   const [showInDevelopment,setShowInDevelopment]=useState(false);
   const [managerMsg,setManagerMsg]=useState<{type:"success"|"error";text:string}|null>(null);
 
@@ -95,7 +102,7 @@ export default function Sidebar(){
   });
 
   useEffect(()=>{if(isDesign)setCollapsed(true)},[isDesign]);
-  useEffect(()=>{localStorage.setItem(COLLAPSED_KEY,collapsed?"1":"0")},[collapsed]);
+  useEffect(()=>{localStorage.setItem(COLLAPSED_KEY,collapsedState?"1":"0")},[collapsedState]);
   useEffect(()=>{
     if(activeGroup)setOpenGroups({[activeGroup]:true}); // somente um grupo aberto
   },[activeGroup]);
@@ -103,7 +110,7 @@ export default function Sidebar(){
 
   const [menuOpen,setMenuOpen]=useState(()=>{try{return localStorage.getItem("dentalpos.menu.open")==="1"}catch{return false}});
   useEffect(()=>{try{localStorage.setItem("dentalpos.menu.open",menuOpen?"1":"0")}catch{/* sem armazenamento */}},[menuOpen]);
-  const sidebarWidth=collapsed?58:224;
+  const sidebarWidth=collapsed?58:isMobile?300:224;
   const initials=`${sessionUser?.firstName?.[0]||""}${sessionUser?.lastName?.[0]||""}`.toUpperCase()||"DP";
   const displayName=[sessionUser?.firstName,sessionUser?.lastName].filter(Boolean).join(" ")||"Usuário";
   const roleLabel=demo?.isDemo?"Demo / Administrador":sessionUser?.role||"Usuário";
@@ -143,12 +150,12 @@ export default function Sidebar(){
 
   const daysRemaining=demo?.daysRemaining??0;
 
-  return <Box component="aside" sx={{
+  const content=<Box component="aside" sx={{
     width:sidebarWidth,minWidth:sidebarWidth,height:"100vh",bgcolor:"#0F172A",color:"#fff",
-    display:"flex",flexDirection:"column",position:"sticky",top:0,overflowY:"auto",overflowX:"visible",
+    display:"flex",flexDirection:"column",position:isMobile?"relative":"sticky",top:0,overflowY:"auto",overflowX:"visible",
     transition:"width .2s ease,min-width .2s ease",flexShrink:0
   }}>
-    <Tooltip title={collapsed?"Expandir menu":"Recolher menu"} placement="right">
+    {!isMobile&&<Tooltip title={collapsed?"Expandir menu":"Recolher menu"} placement="right">
       <IconButton onClick={()=>setCollapsed(v=>!v)} size="small" sx={{
         position:"fixed",left:sidebarWidth-13,top:72,zIndex:1400,width:26,height:42,
         borderRadius:"0 10px 10px 0",bgcolor:"#0F172A",color:"#fff",border:"1px solid #334155",
@@ -156,7 +163,7 @@ export default function Sidebar(){
       }}>
         {collapsed?<MenuIcon fontSize="small"/>:<MenuOpenIcon fontSize="small"/>}
       </IconButton>
-    </Tooltip>
+    </Tooltip>}
 
     <Box sx={{px:collapsed?.5:1.5,pt:1.2,pb:1,textAlign:"center"}}>
       <Avatar sx={{width:collapsed?34:48,height:collapsed?34:48,mx:"auto",mb:collapsed?0:.8,bgcolor:"primary.main",fontSize:14}}>
@@ -170,14 +177,21 @@ export default function Sidebar(){
     <Divider sx={{borderColor:"#334155"}}/>
 
     {/* Menu em hambúrguer: a lista de grupos só aparece ao tocar. Logo abaixo ficam os alertas críticos. */}
-    {!collapsed&&<ListItemButton onClick={()=>setMenuOpen(v=>!v)} sx={{flexGrow:0,flexShrink:0,mx:1,mt:.8,borderRadius:2,minHeight:40,color:"#fff",bgcolor:"#1E293B","&:hover":{bgcolor:"#273449"}}}>
+    {!collapsed&&!isMobile&&<ListItemButton onClick={()=>setMenuOpen(v=>!v)} sx={{flexGrow:0,flexShrink:0,mx:1,mt:.8,borderRadius:2,minHeight:40,color:"#fff",bgcolor:"#1E293B","&:hover":{bgcolor:"#273449"}}}>
       <ListItemIcon sx={{color:"inherit",minWidth:34}}><MenuIcon fontSize="small"/></ListItemIcon>
       <ListItemText primary={<Typography component="span" sx={{fontWeight:800,fontSize:13}}>Menu</Typography>}/>
       {menuOpen?<ExpandLessIcon fontSize="small"/>:<ExpandMoreIcon fontSize="small"/>}
     </ListItemButton>}
     <AlertsMenu collapsed={collapsed}/>
+    {!collapsed&&legend.length>0&&location.pathname.startsWith("/agenda")&&<Box sx={{mx:1,mb:.8,px:1.2,py:1,borderRadius:2,bgcolor:"#1E293B",border:"1px solid #334155"}}>
+      <Typography sx={{fontSize:11,fontWeight:800,color:"#94A3B8",mb:.6,letterSpacing:.4}}>DENTISTAS DA AGENDA</Typography>
+      {legend.map(l=><Box key={l.name} sx={{display:"flex",alignItems:"center",gap:.9,py:.25}}>
+        <Box sx={{width:12,height:12,borderRadius:.5,bgcolor:l.color,flexShrink:0}}/>
+        <Typography sx={{fontSize:12.5,fontWeight:600}}>{l.name}</Typography>
+      </Box>)}
+    </Box>}
 
-    {(collapsed||menuOpen)&&<List sx={{mt:.5,px:collapsed?.4:.7}}>
+    {(collapsed||menuOpen||isMobile)&&<List sx={{mt:.5,px:collapsed?.4:.7}}>
       {visibleGroups.map(group=>{
         const selected=group.items.some(i=>pathMatches(i.path,location.pathname,location.search));
         const open=Boolean(openGroups[group.label]);
@@ -293,5 +307,8 @@ export default function Sidebar(){
         <Button onClick={()=>setShowInDevelopment(false)}>Voltar</Button>
       </DialogActions>
     </Dialog>
-  </Box>
+  </Box>;
+
+  if(isMobile)return <Drawer anchor="left" open={mobileOpen} onClose={()=>setMobileOpen(false)} slotProps={{paper:{sx:{width:300,maxWidth:"88vw",bgcolor:"#0F172A"}}}}>{content}</Drawer>;
+  return content;
 }
