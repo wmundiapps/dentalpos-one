@@ -1620,6 +1620,13 @@ export default function Agenda() {
                   procedure={edit.procedure}
                   onChange={(minutes) => setEdit((current) => (current ? { ...current, durationMinutes: minutes } : current))}
                 />
+                <Box sx={{ gridColumn: { md: "1/-1" }, display: "grid", gap: 1.5 }}>
+                  <ProcedurePicker label="Procedimento (editar)" value={edit.procedure} onChange={(name) => setEdit((current) => (current ? { ...current, procedure: name } : current))} />
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr auto" }, gap: 1.5, alignItems: "center" }}>
+                    <ProcedurePicker label="Próximo procedimento" value={edit.nextProcedure} onChange={(name) => setEdit((current) => (current ? { ...current, nextProcedure: name } : current))} />
+                    <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { const d = new Date(`${edit.dateISO}T12:00:00`); d.setDate(d.getDate() + 7); scheduleNextReturn(edit, `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`); }}>Agendar próximo atendimento</Button>
+                  </Box>
+                </Box>
                 <TextField
                   select
                   label="Profissional (trocar dentista)"
