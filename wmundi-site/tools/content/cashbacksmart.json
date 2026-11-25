@@ -1,51 +1,187 @@
 {
-  "slug": "cashbacksmart",
-  "nome": "Cashbacksmart",
-  "cat": "neg",
-  "tagline": "Rede de cashback multiempresa: o cliente acumula em uma loja e usa o saldo em outras da mesma rede.",
-  "persona": "Rede Exemplo Bairro Premiado (empresa FICTÍCIA) com comércios parceiros de uma mesma região",
-  "kpis": [
-    {"l":"Empresas na rede","v":"24","d":"comércios parceiros"},
-    {"l":"Clientes ativos","v":"3.480","d":"com saldo ou compra no mês"},
-    {"l":"Cashback emitido","v":"R$ 18.450,00","d":"no mês, modelo ilustrativo"},
-    {"l":"Taxa de resgate","v":"42%","d":"do cashback emitido"}
+ "slug": "cashbacksmart",
+ "nome": "Cashbacksmart",
+ "cat": "neg",
+ "tagline": "Rede de cashback multiempresa: o cliente acumula em uma loja e usa o saldo em outras da mesma rede.",
+ "persona": "Rede Exemplo Bairro Premiado (empresa FICTÍCIA) com comércios parceiros de uma mesma região",
+ "kpis": [
+  {
+   "l": "Empresas na rede",
+   "v": "24",
+   "d": "comércios parceiros"
+  },
+  {
+   "l": "Clientes ativos",
+   "v": "3.480",
+   "d": "com saldo ou compra no mês"
+  },
+  {
+   "l": "Cashback emitido",
+   "v": "R$ 18.270,00",
+   "d": "no mês, modelo ilustrativo"
+  },
+  {
+   "l": "Taxa de resgate",
+   "v": "42%",
+   "d": "do cashback emitido"
+  }
+ ],
+ "table": {
+  "title": "Últimas movimentações",
+  "cols": [
+   "Cliente",
+   "Empresa parceira",
+   "Compra",
+   "Cashback",
+   "Status"
   ],
-  "table": {
-    "title": "Últimas movimentações",
-    "cols": ["Cliente","Empresa parceira","Compra","Cashback","Status"],
-    "rows": [
-      ["Cliente Exemplo 01","Padaria Exemplo","R$ 48,00","R$ 2,40","ok:Creditado"],
-      ["Cliente Exemplo 02","Farmácia Exemplo","R$ 135,00","R$ 6,75","ok:Creditado"],
-      ["Cliente Exemplo 03","Pet Shop Exemplo","R$ 210,00","R$ 12,60","warn:Em carência"],
-      ["Cliente Exemplo 04","Mercado Exemplo","R$ 320,00","R$ 9,60","ok:Creditado"],
-      ["Cliente Exemplo 05","Restaurante Exemplo","R$ 92,00","R$ 0,00","info:Resgate de R$ 15"],
-      ["Cliente Exemplo 06","Papelaria Exemplo","R$ 64,00","R$ 3,20","bad:Estornado"]
-    ]
-  },
-  "chart": {
-    "title": "Cashback emitido por mês (R$)",
-    "labels": ["Jun","Jul","Ago","Set","Out","Nov"],
-    "values": [8200,10400,12900,14800,16700,18450]
-  },
-  "sim": {
-    "title": "Simulador: cashback da rede",
-    "intro": "Mude clientes, frequência, ticket e percentual de cashback para estimar o saldo emitido e o resgatado em um cenário ilustrativo.",
-    "inputs": [
-      {"id":"cli","label":"Clientes ativos","min":200,"max":10000,"step":100,"val":3480,"unit":""},
-      {"id":"freq","label":"Compras por cliente no mês","min":1,"max":8,"step":1,"val":2,"unit":""},
-      {"id":"ticket","label":"Ticket médio","min":20,"max":300,"step":5,"val":75,"unit":"R$"},
-      {"id":"pct","label":"Cashback concedido","min":1,"max":10,"step":1,"val":5,"unit":"%"}
-    ],
-    "outputs": [
-      {"label":"Vendas na rede no mês","expr":"cli*freq*ticket","fmt":"brl"},
-      {"label":"Cashback emitido","expr":"cli*freq*ticket*pct/100","fmt":"brl"},
-      {"label":"Cashback resgatado (42%)","expr":"cli*freq*ticket*pct/100*0.42","fmt":"brl"}
-    ]
-  },
-  "fluxo": ["O cliente compra em uma empresa parceira e se identifica","O cashback é calculado pela regra da empresa e creditado após a carência","O saldo pode ser usado em qualquer empresa da rede","A empresa acompanha vendas, saldo emitido e resgates no painel"],
-  "recursos": ["Carteira única de cashback","Regras por empresa e por categoria","Carência e validade do saldo","Resgate no caixa por código","Painel por empresa parceira","Conciliação entre empresas da rede","Campanhas de cashback em dobro","Relatórios de emissão e resgate"],
-  "faq": [
-    {"q":"O saldo vale em todas as empresas?","a":"Neste modelo ilustrativo, sim, dentro da rede. As regras de uso e de acerto entre empresas são definidas em contrato real."},
-    {"q":"Os percentuais mostrados são garantidos?","a":"Não. Todos os números são fictícios e servem apenas para demonstrar o funcionamento."}
+  "rows": [
+   [
+    "Cliente Exemplo 01",
+    "Padaria Exemplo",
+    "R$ 48,00",
+    "R$ 2,40",
+    "ok:Creditado"
+   ],
+   [
+    "Cliente Exemplo 02",
+    "Farmácia Exemplo",
+    "R$ 135,00",
+    "R$ 6,75",
+    "ok:Creditado"
+   ],
+   [
+    "Cliente Exemplo 03",
+    "Pet Shop Exemplo",
+    "R$ 210,00",
+    "R$ 12,60",
+    "warn:Em carência"
+   ],
+   [
+    "Cliente Exemplo 04",
+    "Mercado Exemplo",
+    "R$ 320,00",
+    "R$ 9,60",
+    "ok:Creditado"
+   ],
+   [
+    "Cliente Exemplo 05",
+    "Restaurante Exemplo",
+    "R$ 92,00",
+    "R$ 0,00",
+    "info:Resgate de R$ 15"
+   ],
+   [
+    "Cliente Exemplo 06",
+    "Papelaria Exemplo",
+    "R$ 64,00",
+    "R$ 3,20",
+    "bad:Estornado"
+   ]
   ]
+ },
+ "chart": {
+  "title": "Cashback emitido por mês (R$)",
+  "labels": [
+   "Jun",
+   "Jul",
+   "Ago",
+   "Set",
+   "Out",
+   "Nov"
+  ],
+  "values": [
+   8200,
+   10400,
+   12900,
+   14800,
+   16700,
+   18270
+  ]
+ },
+ "sim": {
+  "title": "Simulador: cashback da rede",
+  "intro": "Mude clientes, frequência, ticket e percentual de cashback para estimar o saldo emitido e o resgatado em um cenário ilustrativo.",
+  "inputs": [
+   {
+    "id": "cli",
+    "label": "Clientes ativos",
+    "min": 200,
+    "max": 10000,
+    "step": 100,
+    "val": 3480,
+    "unit": ""
+   },
+   {
+    "id": "freq",
+    "label": "Compras por cliente no mês",
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "val": 2,
+    "unit": ""
+   },
+   {
+    "id": "ticket",
+    "label": "Ticket médio",
+    "min": 20,
+    "max": 300,
+    "step": 5,
+    "val": 75,
+    "unit": "R$"
+   },
+   {
+    "id": "pct",
+    "label": "Cashback concedido",
+    "min": 1,
+    "max": 10,
+    "step": 0.5,
+    "val": 3.5,
+    "unit": "%"
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Vendas na rede no mês",
+    "expr": "cli*freq*ticket",
+    "fmt": "brl"
+   },
+   {
+    "label": "Cashback emitido",
+    "expr": "cli*freq*ticket*pct/100",
+    "fmt": "brl"
+   },
+   {
+    "label": "Cashback resgatado (42%)",
+    "expr": "cli*freq*ticket*pct/100*0.42",
+    "fmt": "brl"
+   }
+  ]
+ },
+ "fluxo": [
+  "O cliente compra em uma empresa parceira e se identifica",
+  "O cashback é calculado pela regra da empresa e creditado após a carência",
+  "O saldo pode ser usado em qualquer empresa da rede",
+  "A empresa acompanha vendas, saldo emitido e resgates no painel"
+ ],
+ "recursos": [
+  "Carteira única de cashback",
+  "Regras por empresa e por categoria",
+  "Carência e validade do saldo",
+  "Resgate no caixa por código",
+  "Painel por empresa parceira",
+  "Conciliação entre empresas da rede",
+  "Campanhas de cashback em dobro",
+  "Relatórios de emissão e resgate"
+ ],
+ "faq": [
+  {
+   "q": "O saldo vale em todas as empresas?",
+   "a": "Neste modelo ilustrativo, sim, dentro da rede. As regras de uso e de acerto entre empresas são definidas em contrato real."
+  },
+  {
+   "q": "Os percentuais mostrados são garantidos?",
+   "a": "Não. Todos os números são fictícios e servem apenas para demonstrar o funcionamento."
+  }
+ ]
 }

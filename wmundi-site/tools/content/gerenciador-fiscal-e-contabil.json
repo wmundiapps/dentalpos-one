@@ -146,7 +146,8 @@
     "expr": "(rec-desp-rec*aliq/100)/rec*100",
     "fmt": "dec1"
    }
-  ]
+  ],
+  "note": "Estimativa ilustrativa com números fictícios. Não é cálculo tributário nem orientação contábil."
  },
  "fluxo": [
   "Notas de entrada e saída são importadas e classificadas",

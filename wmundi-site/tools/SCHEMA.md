@@ -12,7 +12,7 @@
   "sim": {
     "title": "Simulador: ...",
     "intro": "uma frase explicando o que o visitante pode mexer",
-    "inputs": [ {"id":"pac","label":"Pacientes por mês","min":50,"max":1000,"step":10,"val":300,"unit":""} ],   // 2 a 4 sliders; id só letras/números, sem espaço
+    "inputs": [ {"id":"pac","label":"Pacientes por mês","min":50,"max":1000,"step":10,"val":300,"unit":""} ],   // 2 a 5 sliders; id só letras/números, sem espaço
     "outputs": [ {"label":"Receita estimada","expr":"pac*ticket*0.9","fmt":"brl"} ]   // 2 a 4 resultados; expr é expressão JavaScript usando os ids dos inputs (só + - * / ( ) Math.min/max/round/ceil/floor); fmt: brl | int | pct | dec1 | min
   },
   "fluxo": ["Passo 1 do uso", "Passo 2", "Passo 3", "Passo 4"],   // 4 passos curtos
@@ -27,3 +27,4 @@
 - Português do Brasil, com acentos. Sem HTML (texto puro). Nada de emojis.
 - Os números das tabelas, KPIs e gráfico devem ser coerentes entre si e plausíveis.
 - Conferir que cada expr usa apenas ids definidos em inputs e produz números sensatos nos valores padrão.
+- Campo opcional "note" dentro de "sim": ressalva própria do simulador (substitui a nota padrão).

@@ -1,188 +1,189 @@
 {
-  "slug": "agentes-de-ia",
-  "nome": "Agentes de IA",
-  "cat": "mod",
-  "tagline": "Atendimento automático por texto e voz no WhatsApp, Instagram e site, 24 horas por dia.",
-  "persona": "Clínica Exemplo Aurora (empresa FICTÍCIA), recepção com 2 pessoas",
-  "kpis": [
-    {
-      "l": "Conversas atendidas",
-      "v": "1.846",
-      "d": "no mês"
-    },
-    {
-      "l": "Resolvidas sem humano",
-      "v": "71%",
-      "d": "1.311 conversas"
-    },
-    {
-      "l": "Primeira resposta",
-      "v": "8 s",
-      "d": "média, 24 horas"
-    },
-    {
-      "l": "Agendamentos gerados",
-      "v": "214",
-      "d": "pelo agente"
-    }
-  ],
-  "table": {
-    "title": "Últimas conversas (dados fictícios)",
-    "cols": [
-      "Canal",
-      "Contato",
-      "Assunto",
-      "Status"
-    ],
-    "rows": [
-      [
-        "WhatsApp",
-        "Cliente Exemplo 01",
-        "Horário de funcionamento",
-        "ok:Resolvida"
-      ],
-      [
-        "Instagram",
-        "Cliente Exemplo 02",
-        "Pedido de orçamento",
-        "warn:Aguardando cliente"
-      ],
-      [
-        "Site",
-        "Cliente Exemplo 03",
-        "Marcar consulta",
-        "ok:Agendada"
-      ],
-      [
-        "WhatsApp",
-        "Cliente Exemplo 04",
-        "Reclamação de atendimento",
-        "bad:Transferida para humano"
-      ],
-      [
-        "WhatsApp",
-        "Cliente Exemplo 05",
-        "Segunda via de comprovante",
-        "ok:Resolvida"
-      ],
-      [
-        "Voz",
-        "Cliente Exemplo 06",
-        "Remarcar horário",
-        "info:Em andamento"
-      ],
-      [
-        "Instagram",
-        "Cliente Exemplo 07",
-        "Dúvida sobre serviços",
-        "ok:Resolvida"
-      ]
-    ]
+ "slug": "agentes-de-ia",
+ "nome": "Agentes de IA",
+ "cat": "mod",
+ "tagline": "Atendimento automático por texto e voz no WhatsApp, Instagram e site, 24 horas por dia.",
+ "persona": "Clínica Exemplo Aurora (empresa FICTÍCIA), recepção com 2 pessoas",
+ "kpis": [
+  {
+   "l": "Conversas atendidas",
+   "v": "1.846",
+   "d": "no mês"
   },
-  "chart": {
-    "title": "Conversas atendidas por dia da semana",
-    "labels": [
-      "Seg",
-      "Ter",
-      "Qua",
-      "Qui",
-      "Sex",
-      "Sáb",
-      "Dom"
-    ],
-    "values": [
-      348,
-      321,
-      334,
-      312,
-      356,
-      118,
-      57
-    ]
+  {
+   "l": "Resolvidas sem humano",
+   "v": "71%",
+   "d": "1.311 conversas"
   },
-  "sim": {
-    "title": "Simulador: atendimento automático",
-    "intro": "Mude o volume de conversas e a parcela automática para ver um exemplo de horas liberadas.",
-    "inputs": [
-      {
-        "id": "conv",
-        "label": "Conversas por mês",
-        "min": 200,
-        "max": 5000,
-        "step": 100,
-        "val": 1800,
-        "unit": ""
-      },
-      {
-        "id": "auto",
-        "label": "Resolvidas pelo agente",
-        "min": 20,
-        "max": 90,
-        "step": 1,
-        "val": 70,
-        "unit": "%"
-      },
-      {
-        "id": "minutos",
-        "label": "Minutos por atendimento humano",
-        "min": 2,
-        "max": 15,
-        "step": 1,
-        "val": 6,
-        "unit": "min"
-      },
-      {
-        "id": "hora",
-        "label": "Custo da hora de atendimento (R$)",
-        "min": 10,
-        "max": 80,
-        "step": 1,
-        "val": 25,
-        "unit": ""
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Conversas resolvidas pelo agente",
-        "expr": "Math.round(conv*auto/100)",
-        "fmt": "int"
-      },
-      {
-        "label": "Horas de atendimento liberadas (exemplo)",
-        "expr": "conv*auto/100*minutos/60",
-        "fmt": "dec1"
-      },
-      {
-        "label": "Custo de atendimento evitado (exemplo)",
-        "expr": "conv*auto/100*minutos/60*hora",
-        "fmt": "brl"
-      }
-    ]
+  {
+   "l": "Primeira resposta",
+   "v": "8 s",
+   "d": "média, 24 horas"
   },
-  "fluxo": [
-    "Cadastre as informações e regras do negócio",
-    "Conecte WhatsApp, Instagram e site",
-    "O agente responde por texto ou voz, 24 horas",
-    "Casos complexos seguem para a equipe com o histórico"
+  {
+   "l": "Agendamentos gerados",
+   "v": "214",
+   "d": "pelo agente"
+  }
+ ],
+ "table": {
+  "title": "Últimas conversas (dados fictícios)",
+  "cols": [
+   "Canal",
+   "Contato",
+   "Assunto",
+   "Status"
   ],
-  "recursos": [
-    "Atendimento por texto e voz",
-    "WhatsApp, Instagram e site",
-    "Respostas baseadas nas informações da empresa",
-    "Agendamento e coleta de dados",
-    "Transferência para atendente humano",
-    "Histórico unificado de conversas",
-    "Horários e regras por canal",
-    "Relatórios de atendimento"
-  ],
-  "faq": [
-    {
-      "q": "O agente substitui a equipe?",
-      "a": "Neste modelo ilustrativo, ele cuida das dúvidas frequentes e passa os casos complexos para pessoas."
-    },
-    {
-      "q": "As conversas mostradas são reais?",
-      "a": "Não. Contatos, assuntos e números são fictícios e servem apenas como demonstração."
-    }
+  "rows": [
+   [
+    "WhatsApp",
+    "Cliente Exemplo 01",
+    "Horário de funcionamento",
+    "ok:Resolvida"
+   ],
+   [
+    "Instagram",
+    "Cliente Exemplo 02",
+    "Pedido de orçamento",
+    "warn:Aguardando cliente"
+   ],
+   [
+    "Site",
+    "Cliente Exemplo 03",
+    "Marcar consulta",
+    "ok:Agendada"
+   ],
+   [
+    "WhatsApp",
+    "Cliente Exemplo 04",
+    "Reclamação de atendimento",
+    "bad:Transferida para humano"
+   ],
+   [
+    "WhatsApp",
+    "Cliente Exemplo 05",
+    "Segunda via de comprovante",
+    "ok:Resolvida"
+   ],
+   [
+    "Voz",
+    "Cliente Exemplo 06",
+    "Remarcar horário",
+    "info:Em andamento"
+   ],
+   [
+    "Instagram",
+    "Cliente Exemplo 07",
+    "Dúvida sobre serviços",
+    "ok:Resolvida"
+   ]
   ]
+ },
+ "chart": {
+  "title": "Conversas atendidas por dia da semana",
+  "labels": [
+   "Seg",
+   "Ter",
+   "Qua",
+   "Qui",
+   "Sex",
+   "Sáb",
+   "Dom"
+  ],
+  "values": [
+   348,
+   321,
+   334,
+   312,
+   356,
+   118,
+   57
+  ]
+ },
+ "sim": {
+  "title": "Simulador: atendimento automático",
+  "intro": "Mude o volume de conversas e a parcela automática para ver um exemplo de horas liberadas.",
+  "inputs": [
+   {
+    "id": "conv",
+    "label": "Conversas por mês",
+    "min": 200,
+    "max": 5000,
+    "step": 100,
+    "val": 1800,
+    "unit": ""
+   },
+   {
+    "id": "auto",
+    "label": "Resolvidas pelo agente",
+    "min": 20,
+    "max": 90,
+    "step": 1,
+    "val": 70,
+    "unit": "%"
+   },
+   {
+    "id": "minutos",
+    "label": "Minutos por atendimento humano",
+    "min": 2,
+    "max": 15,
+    "step": 1,
+    "val": 6,
+    "unit": "min"
+   },
+   {
+    "id": "hora",
+    "label": "Custo da hora de atendimento (R$)",
+    "min": 10,
+    "max": 80,
+    "step": 1,
+    "val": 25,
+    "unit": ""
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Conversas resolvidas pelo agente",
+    "expr": "Math.round(conv*auto/100)",
+    "fmt": "int"
+   },
+   {
+    "label": "Horas de atendimento liberadas (exemplo)",
+    "expr": "conv*auto/100*minutos/60",
+    "fmt": "dec1"
+   },
+   {
+    "label": "Custo de atendimento evitado (exemplo)",
+    "expr": "conv*auto/100*minutos/60*hora",
+    "fmt": "brl"
+   }
+  ],
+  "note": "Custo evitado ilustrativo com números fictícios. Não representa promessa de resultado."
+ },
+ "fluxo": [
+  "Cadastre as informações e regras do negócio",
+  "Conecte WhatsApp, Instagram e site",
+  "O agente responde por texto ou voz, 24 horas",
+  "Casos complexos seguem para a equipe com o histórico"
+ ],
+ "recursos": [
+  "Atendimento por texto e voz",
+  "WhatsApp, Instagram e site",
+  "Respostas baseadas nas informações da empresa",
+  "Agendamento e coleta de dados",
+  "Transferência para atendente humano",
+  "Histórico unificado de conversas",
+  "Horários e regras por canal",
+  "Relatórios de atendimento"
+ ],
+ "faq": [
+  {
+   "q": "O agente substitui a equipe?",
+   "a": "Neste modelo ilustrativo, ele cuida das dúvidas frequentes e passa os casos complexos para pessoas."
+  },
+  {
+   "q": "As conversas mostradas são reais?",
+   "a": "Não. Contatos, assuntos e números são fictícios e servem apenas como demonstração."
+  }
+ ]
 }

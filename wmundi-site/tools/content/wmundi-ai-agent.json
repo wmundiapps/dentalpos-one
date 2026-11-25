@@ -1,66 +1,191 @@
 {
-  "slug": "wmundi-ai-agent",
-  "nome": "WMundi AI Agent",
-  "cat": "mkt",
-  "tagline": "Agente de IA por texto e por voz que atende, qualifica e ajuda a vender, em qualquer horário.",
-  "persona": "Loja 'Casa Exemplo Móveis' — empresa FICTÍCIA, com atendimento por chat e telefone",
-  "kpis": [
-    {"l": "Conversas atendidas", "v": "1.284", "d": "no mês, texto e voz"},
-    {"l": "Resolvidas pelo agente", "v": "78%", "d": "sem passar para humano"},
-    {"l": "Tempo médio de resposta", "v": "4 s", "d": "texto; voz em tempo real"},
-    {"l": "Leads qualificados", "v": "212", "d": "enviados ao time comercial"}
-  ],
-  "table": {
-    "title": "Conversas recentes (dados fictícios)",
-    "cols": ["Canal", "Contato", "Assunto", "Status"],
-    "rows": [
-      ["Chat do site", "Cliente Exemplo 01", "Prazo de entrega de sofá", "ok:Resolvida"],
-      ["Voz", "Cliente Exemplo 02", "Orçamento de cozinha planejada", "info:Lead qualificado"],
-      ["WhatsApp", "Maria Modelo", "Segunda via de boleto", "ok:Resolvida"],
-      ["Chat do site", "Cliente Exemplo 03", "Troca de produto", "warn:Com atendente"],
-      ["Voz", "João Modelo", "Condições de pagamento", "ok:Resolvida"],
-      ["WhatsApp", "Cliente Exemplo 04", "Reclamação de atraso", "bad:Escalada"],
-      ["Chat do site", "Cliente Exemplo 05", "Medidas de guarda-roupa", "info:Novo lead"]
-    ]
+ "slug": "wmundi-ai-agent",
+ "nome": "WMundi AI Agent",
+ "cat": "mkt",
+ "tagline": "Agente de IA por texto e por voz que atende, qualifica e ajuda a vender, em qualquer horário.",
+ "persona": "Loja 'Casa Exemplo Móveis' — empresa FICTÍCIA, com atendimento por chat e telefone",
+ "kpis": [
+  {
+   "l": "Conversas atendidas",
+   "v": "1.284",
+   "d": "no mês, texto e voz"
   },
-  "chart": {
-    "title": "Conversas atendidas por mês",
-    "labels": ["Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out"],
-    "values": [620, 710, 805, 930, 1010, 1120, 1195, 1284]
+  {
+   "l": "Resolvidas pelo agente",
+   "v": "78%",
+   "d": "sem passar para humano"
   },
-  "sim": {
-    "title": "Simulador: carga de atendimento que o agente absorve",
-    "intro": "Ajuste o volume de conversas, a parcela resolvida pelo agente e o custo da hora de atendimento para ver uma estimativa ilustrativa.",
-    "inputs": [
-      {"id": "conv", "label": "Conversas por mês", "min": 200, "max": 5000, "step": 50, "val": 1200, "unit": ""},
-      {"id": "res", "label": "Resolvidas pelo agente (%)", "min": 30, "max": 95, "step": 1, "val": 75, "unit": "%"},
-      {"id": "tmin", "label": "Minutos por atendimento humano", "min": 2, "max": 20, "step": 1, "val": 6, "unit": "min"},
-      {"id": "chora", "label": "Custo da hora de atendimento", "min": 10, "max": 60, "step": 1, "val": 25, "unit": "R$"}
-    ],
-    "outputs": [
-      {"label": "Atendimentos resolvidos pelo agente", "expr": "conv*res/100", "fmt": "int"},
-      {"label": "Horas humanas liberadas por mês", "expr": "conv*res/100*tmin/60", "fmt": "dec1"},
-      {"label": "Custo de atendimento evitado (ilustrativo)", "expr": "conv*res/100*tmin/60*chora", "fmt": "brl"}
-    ]
+  {
+   "l": "Tempo médio de resposta",
+   "v": "4 s",
+   "d": "texto; voz em tempo real"
   },
-  "fluxo": [
-    "O cliente escreve no chat ou liga para a empresa",
-    "O agente entende o pedido e responde com base nas informações cadastradas",
-    "Se for uma oportunidade, ele coleta os dados e qualifica o lead",
-    "Casos complexos seguem para um atendente com o histórico completo"
+  {
+   "l": "Leads qualificados",
+   "v": "212",
+   "d": "enviados ao time comercial"
+  }
+ ],
+ "table": {
+  "title": "Conversas recentes (dados fictícios)",
+  "cols": [
+   "Canal",
+   "Contato",
+   "Assunto",
+   "Status"
   ],
-  "recursos": [
-    "Atendimento por texto e por voz",
-    "Base de conhecimento da empresa",
-    "Qualificação automática de leads",
-    "Transferência para atendente humano",
-    "Histórico completo das conversas",
-    "Atendimento fora do horário comercial",
-    "Relatórios de volume e resolução",
-    "Respostas no tom de voz da marca"
-  ],
-  "faq": [
-    {"q": "O agente substitui a equipe de atendimento?", "a": "Neste modelo ilustrativo, ele absorve perguntas repetitivas e encaminha os casos mais complexos para as pessoas da equipe."},
-    {"q": "Posso treinar o agente com informações da minha empresa?", "a": "Sim, o modelo prevê uma base de conhecimento com produtos, regras e respostas padrão. Os detalhes são tratados sob consulta."}
+  "rows": [
+   [
+    "Chat do site",
+    "Cliente Exemplo 01",
+    "Prazo de entrega de sofá",
+    "ok:Resolvida"
+   ],
+   [
+    "Voz",
+    "Cliente Exemplo 02",
+    "Orçamento de cozinha planejada",
+    "info:Lead qualificado"
+   ],
+   [
+    "WhatsApp",
+    "Maria Modelo",
+    "Segunda via de boleto",
+    "ok:Resolvida"
+   ],
+   [
+    "Chat do site",
+    "Cliente Exemplo 03",
+    "Troca de produto",
+    "warn:Com atendente"
+   ],
+   [
+    "Voz",
+    "João Modelo",
+    "Condições de pagamento",
+    "ok:Resolvida"
+   ],
+   [
+    "WhatsApp",
+    "Cliente Exemplo 04",
+    "Reclamação de atraso",
+    "bad:Escalada"
+   ],
+   [
+    "Chat do site",
+    "Cliente Exemplo 05",
+    "Medidas de guarda-roupa",
+    "info:Novo lead"
+   ]
   ]
+ },
+ "chart": {
+  "title": "Conversas atendidas por mês",
+  "labels": [
+   "Mar",
+   "Abr",
+   "Mai",
+   "Jun",
+   "Jul",
+   "Ago",
+   "Set",
+   "Out"
+  ],
+  "values": [
+   620,
+   710,
+   805,
+   930,
+   1010,
+   1120,
+   1195,
+   1284
+  ]
+ },
+ "sim": {
+  "title": "Simulador: carga de atendimento que o agente absorve",
+  "intro": "Ajuste o volume de conversas, a parcela resolvida pelo agente e o custo da hora de atendimento para ver uma estimativa ilustrativa.",
+  "inputs": [
+   {
+    "id": "conv",
+    "label": "Conversas por mês",
+    "min": 200,
+    "max": 5000,
+    "step": 50,
+    "val": 1200,
+    "unit": ""
+   },
+   {
+    "id": "res",
+    "label": "Resolvidas pelo agente (%)",
+    "min": 30,
+    "max": 95,
+    "step": 1,
+    "val": 75,
+    "unit": "%"
+   },
+   {
+    "id": "tmin",
+    "label": "Minutos por atendimento humano",
+    "min": 2,
+    "max": 20,
+    "step": 1,
+    "val": 6,
+    "unit": "min"
+   },
+   {
+    "id": "chora",
+    "label": "Custo da hora de atendimento",
+    "min": 10,
+    "max": 60,
+    "step": 1,
+    "val": 25,
+    "unit": "R$"
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Atendimentos resolvidos pelo agente",
+    "expr": "conv*res/100",
+    "fmt": "int"
+   },
+   {
+    "label": "Horas humanas liberadas por mês",
+    "expr": "conv*res/100*tmin/60",
+    "fmt": "dec1"
+   },
+   {
+    "label": "Custo de atendimento evitado (ilustrativo)",
+    "expr": "conv*res/100*tmin/60*chora",
+    "fmt": "brl"
+   }
+  ],
+  "note": "Custo evitado ilustrativo com números fictícios. Não representa promessa de resultado."
+ },
+ "fluxo": [
+  "O cliente escreve no chat ou liga para a empresa",
+  "O agente entende o pedido e responde com base nas informações cadastradas",
+  "Se for uma oportunidade, ele coleta os dados e qualifica o lead",
+  "Casos complexos seguem para um atendente com o histórico completo"
+ ],
+ "recursos": [
+  "Atendimento por texto e por voz",
+  "Base de conhecimento da empresa",
+  "Qualificação automática de leads",
+  "Transferência para atendente humano",
+  "Histórico completo das conversas",
+  "Atendimento fora do horário comercial",
+  "Relatórios de volume e resolução",
+  "Respostas no tom de voz da marca"
+ ],
+ "faq": [
+  {
+   "q": "O agente substitui a equipe de atendimento?",
+   "a": "Neste modelo ilustrativo, ele absorve perguntas repetitivas e encaminha os casos mais complexos para as pessoas da equipe."
+  },
+  {
+   "q": "Posso treinar o agente com informações da minha empresa?",
+   "a": "Sim, o modelo prevê uma base de conhecimento com produtos, regras e respostas padrão. Os detalhes são tratados sob consulta."
+  }
+ ]
 }

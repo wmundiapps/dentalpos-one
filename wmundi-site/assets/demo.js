@@ -9,16 +9,29 @@
   var box=document.getElementById("sim");if(!box)return;
   var cfg;try{cfg=JSON.parse(document.getElementById("sim-data").textContent)}catch(e){return}
   var ids=cfg.inputs.map(function(i){return i.id});
-  var safe=/^[\w\s+\-*\/().,%<>=?:&|!]*$/;
+  var FN=["min","max","round","ceil","floor","abs"];
+  /* só aceita números, ids dos sliders, operadores e Math.min/max/round/ceil/floor/abs: sem outros identificadores nem acesso a propriedades */
+  function ok(expr){
+    var re=/\s*(\d+\.?\d*|[A-Za-z_]\w*|[-+*\/(),%<>=?:&|!.])/y,m,prev="",prev2="",pos=0;
+    while(pos<expr.length){
+      re.lastIndex=pos;m=re.exec(expr);if(!m)return /^\s*$/.test(expr.slice(pos));
+      var t=m[1];pos=re.lastIndex;
+      if(/^[A-Za-z_]/.test(t)){
+        if(prev==="."){if(prev2!=="Math"||FN.indexOf(t)<0)return false}
+        else if(t!=="Math"&&ids.indexOf(t)<0)return false;
+      }else if(t==="."&&prev!=="Math"&&!/^\d+$/.test(prev))return false;
+      prev2=prev;prev=t;
+    }
+    return true;
+  }
   var fns=cfg.outputs.map(function(o){
-    if(!safe.test(o.expr))return function(){return NaN};
-    try{return new Function(ids.join(","),"var Math_=Math;with(Math){return ("+o.expr+")}")}catch(e){return function(){return NaN}}
+    if(!ok(o.expr))return function(){return NaN};
+    try{return new Function(ids.join(","),"return ("+o.expr+")")}catch(e){return function(){return NaN}}
   });
   function calc(){
     var vals=ids.map(function(id){return parseFloat(document.getElementById("in-"+id).value)});
     cfg.inputs.forEach(function(i,k){
-      var o=document.getElementById("ov-"+i.id);
-      o.textContent=vals[k].toLocaleString("pt-BR")+(i.unit?" "+i.unit:"");
+      document.getElementById("ov-"+i.id).textContent=vals[k].toLocaleString("pt-BR")+(i.unit?" "+i.unit:"");
     });
     cfg.outputs.forEach(function(o,k){
       var v=fns[k].apply(null,vals);

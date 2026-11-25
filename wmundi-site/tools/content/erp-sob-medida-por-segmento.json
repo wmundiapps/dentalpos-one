@@ -155,7 +155,8 @@
     "expr": "usuarios*horas*reducao/100*custoh",
     "fmt": "brl"
    }
-  ]
+  ],
+  "note": "Horas e valores são exemplos fictícios. O ganho real depende do seu negócio e é definido na proposta."
  },
  "fluxo": [
   "Levantamos os processos do seu segmento",

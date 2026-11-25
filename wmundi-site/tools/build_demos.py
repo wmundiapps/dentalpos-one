@@ -39,7 +39,7 @@ def page(p, c):
     bars = "".join(f'<div title="{E(l)}: {E(v)}"><span style="height:{max(2, round(v/mx*100))}%"></span><small>{E(l)}</small></div>' for l, v in zip(ch["labels"], ch["values"]))
     s = c["sim"]
     sl = "".join(f'<div class="sl"><label for="in-{i["id"]}"><span>{E(i["label"])}</span><output id="ov-{i["id"]}"></output></label><input type="range" id="in-{i["id"]}" min="{i["min"]}" max="{i["max"]}" step="{i["step"]}" value="{i["val"]}"></div>' for i in s["inputs"])
-    rs = "".join(f'<div><small>{E(o["label"])}</small><b id="out-{k}">—</b></div>' for k, o in enumerate(s["outputs"]))
+    rs = "".join(f'<div><small>{E(o["label"])}</small><b id="out-{k}" aria-live="polite">—</b></div>' for k, o in enumerate(s["outputs"]))
     steps = "".join(f"<li>{E(x)}</li>" for x in c["fluxo"])
     rec = "".join(f"<li>{E(x)}</li>" for x in c["recursos"])
     faq = "".join(f'<details class="q"><summary>{E(f["q"])}</summary><p>{E(f["a"])}</p></details>' for f in c["faq"])
@@ -57,15 +57,15 @@ def page(p, c):
 <div class="mock"><div class="mock-top"><i></i><i></i><i></i><span>{E(nome)} · painel de exemplo</span><span class="tag">FICTÍCIO</span></div>
 <div class="mock-body"><div class="kpis">{kp}</div>
 <div class="dgrid"><div class="box"><h3>{E(t["title"])}</h3><div class="tw"><table class="dt"><thead><tr>{th}</tr></thead><tbody>{tr}</tbody></table></div></div>
-<div class="box"><h3>{E(ch["title"])}</h3><div class="bars" role="img" aria-label="{E(ch["title"])} (dados fictícios)">{bars}</div></div></div></div></div></div></section>
+<div class="box"><h3>{E(ch["title"])}</h3><div class="bars" role="img" aria-label="{E(ch["title"])} (dados fictícios): de {E(ch["values"][0])} a {E(ch["values"][-1])}">{bars}</div></div></div></div></div></div></section>
 
 <section class="dsec" id="simulador"><div class="w"><div class="dsim" id="sim"><h2>{E(s["title"])}</h2><p class="lead">{E(s["intro"])}</p>
 <div class="dsim-g"><div>{sl}</div><div class="res">{rs}</div></div>
-<p class="simnote">Simulação ilustrativa com números fictícios. Não representa promessa de resultado nem proposta comercial.</p></div>
+<p class="simnote">{E(s.get("note") or "Simulação ilustrativa com números fictícios. Não representa promessa de resultado nem proposta comercial.")}</p></div>
 <script type="application/json" id="sim-data">{simdata}</script></div></section>
 
-<section class="dsec"><div class="w"><h2>Como seria o uso, passo a passo</h2><p class="lead">Fluxo de exemplo.</p><ol class="steps">{steps}</ol></div></section>
-<section class="dsec"><div class="w"><h2>Recursos de referência</h2><p class="lead">Lista ilustrativa. O escopo final consta na proposta.</p><ul class="rec">{rec}</ul></div></section>
+<section class="dsec"><div class="w"><h2>Como seria o uso, passo a passo</h2><p class="lead">Fluxo ilustrativo. O processo final é definido na proposta.</p><ol class="steps">{steps}</ol></div></section>
+<section class="dsec"><div class="w"><h2>Recursos de referência</h2><p class="lead">Funções ilustrativas, a confirmar com a equipe. O escopo final consta na proposta.</p><ul class="rec">{rec}</ul></div></section>
 <section class="dsec"><div class="w" style="max-width:820px"><h2>Perguntas rápidas</h2>{faq}</div></section>
 
 <section class="dsec" id="adquirir"><div class="w" style="max-width:860px"><div class="buy"><span class="real">Este pedido é real</span><h2>Gostou? Solicite o {E(nome)}</h2>
@@ -96,10 +96,22 @@ def gallery(have):
 <section class="dsec" id="lista"><div class="w"><div class="filters" role="group" aria-label="Filtrar por área">{flt}</div><div class="dcards">{"".join(cards)}</div></div></section></main>
 ''' + FOOTER + TAIL % '''<script>(function(){var b=document.querySelectorAll(".filters button");Array.prototype.forEach.call(b,function(x){x.addEventListener("click",function(){var c=x.getAttribute("data-c");Array.prototype.forEach.call(b,function(y){y.setAttribute("aria-pressed",y===x)});Array.prototype.forEach.call(document.querySelectorAll(".dc"),function(d){d.hidden=!(c==="todos"||d.getAttribute("data-cat")===c)})})})})();</script>'''
 
+def validate(slug, c):
+    s = c["sim"]; ids = [i["id"] for i in s["inputs"]]
+    assert 2 <= len(s["inputs"]) <= 5, slug
+    for i in s["inputs"]:
+        assert re.fullmatch(r"[A-Za-z][A-Za-z0-9]*", i["id"]), (slug, i["id"])
+        assert i["min"] <= i["val"] <= i["max"], (slug, i["id"])
+    for o in s["outputs"]:
+        assert o["fmt"] in ("brl", "int", "pct", "dec1", "min"), (slug, o["fmt"])
+        for w in re.findall(r"(?<![\w.])[A-Za-z_]\w*", o["expr"]):
+            assert w in ids or w == "Math", (slug, w)
+    assert len(c["tagline"]) <= 110, slug
 have = {}
 for p in prods:
     f = f'{ROOT}/tools/content/{p["slug"]}.json'
-    if os.path.exists(f): have[p["slug"]] = json.load(open(f, encoding="utf-8"))
+    if os.path.exists(f):
+        have[p["slug"]] = json.load(open(f, encoding="utf-8")); validate(p["slug"], have[p["slug"]])
 for p in prods:
     if p["slug"] in have:
         os.makedirs(f'{ROOT}/demos/{p["slug"]}', exist_ok=True)

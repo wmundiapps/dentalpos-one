@@ -51,7 +51,7 @@
     "Produto Modelo 027",
     "140 un",
     "150 un",
-    "warn:Próximo do mínimo"
+    "bad:Abaixo do mínimo"
    ],
    [
     "Produto Modelo 033",

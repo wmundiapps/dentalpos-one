@@ -1,186 +1,187 @@
 {
-  "slug": "cobrancahub",
-  "nome": "CobrançaHub",
-  "cat": "fin",
-  "tagline": "Régua de cobrança automática com IA: lembra, negocia e registra promessas de pagamento.",
-  "persona": "Distribuidora Exemplo Norte (empresa FICTÍCIA), time financeiro de 3 pessoas",
-  "kpis": [
-    {
-      "l": "Carteira em atraso",
-      "v": "R$ 184.300",
-      "d": "58 devedores em régua"
-    },
-    {
-      "l": "Recuperado no mês",
-      "v": "R$ 62.450",
-      "d": "33,9% da carteira"
-    },
-    {
-      "l": "Mensagens enviadas",
-      "v": "1.284",
-      "d": "WhatsApp, e-mail e SMS"
-    },
-    {
-      "l": "Promessas de pagamento",
-      "v": "41",
-      "d": "aguardando data combinada"
-    }
-  ],
-  "table": {
-    "title": "Carteira em cobrança (dados fictícios)",
-    "cols": [
-      "Cliente",
-      "Valor em aberto",
-      "Dias de atraso",
-      "Status"
-    ],
-    "rows": [
-      [
-        "Cliente Exemplo 01",
-        "R$ 4.820,00",
-        "3",
-        "info:Lembrete enviado"
-      ],
-      [
-        "Cliente Exemplo 02",
-        "R$ 12.300,00",
-        "18",
-        "warn:Negociando"
-      ],
-      [
-        "Cliente Exemplo 03",
-        "R$ 2.150,00",
-        "7",
-        "ok:Promessa para 28/11"
-      ],
-      [
-        "Cliente Exemplo 04",
-        "R$ 9.760,00",
-        "45",
-        "bad:Atrasado crítico"
-      ],
-      [
-        "Cliente Exemplo 05",
-        "R$ 6.480,00",
-        "12",
-        "warn:Aguardando resposta"
-      ],
-      [
-        "Cliente Exemplo 06",
-        "R$ 1.900,00",
-        "2",
-        "info:Lembrete enviado"
-      ],
-      [
-        "Cliente Exemplo 07",
-        "R$ 7.340,00",
-        "30",
-        "ok:Acordo fechado"
-      ]
-    ]
+ "slug": "cobrancahub",
+ "nome": "CobrançaHub",
+ "cat": "fin",
+ "tagline": "Régua de cobrança automática com IA: lembra, negocia e registra promessas de pagamento.",
+ "persona": "Distribuidora Exemplo Norte (empresa FICTÍCIA), time financeiro de 3 pessoas",
+ "kpis": [
+  {
+   "l": "Carteira em atraso",
+   "v": "R$ 184.300",
+   "d": "58 devedores em régua"
   },
-  "chart": {
-    "title": "Valor recuperado por mês (R$ mil)",
-    "labels": [
-      "Jun",
-      "Jul",
-      "Ago",
-      "Set",
-      "Out",
-      "Nov"
-    ],
-    "values": [
-      38,
-      44,
-      51,
-      47,
-      58,
-      62
-    ]
+  {
+   "l": "Recuperado no mês",
+   "v": "R$ 62.450",
+   "d": "33,9% da carteira"
   },
-  "sim": {
-    "title": "Simulador: cobrança automatizada",
-    "intro": "Ajuste a carteira, a taxa de recuperação e o volume de títulos para ver um exemplo ilustrativo de valores e horas.",
-    "inputs": [
-      {
-        "id": "carteira",
-        "label": "Carteira em atraso (R$)",
-        "min": 20000,
-        "max": 500000,
-        "step": 5000,
-        "val": 180000,
-        "unit": ""
-      },
-      {
-        "id": "taxa",
-        "label": "Taxa de recuperação",
-        "min": 10,
-        "max": 60,
-        "step": 1,
-        "val": 34,
-        "unit": "%"
-      },
-      {
-        "id": "titulos",
-        "label": "Títulos em atraso por mês",
-        "min": 20,
-        "max": 400,
-        "step": 10,
-        "val": 120,
-        "unit": ""
-      },
-      {
-        "id": "minutos",
-        "label": "Minutos de cobrança manual por título",
-        "min": 2,
-        "max": 20,
-        "step": 1,
-        "val": 8,
-        "unit": "min"
-      }
-    ],
-    "outputs": [
-      {
-        "label": "Valor recuperado (exemplo)",
-        "expr": "carteira*taxa/100",
-        "fmt": "brl"
-      },
-      {
-        "label": "Horas de trabalho manual evitadas (supondo 70% automatizado)",
-        "expr": "titulos*minutos*0.7/60",
-        "fmt": "dec1"
-      },
-      {
-        "label": "Mensagens automáticas por ciclo (3 por título)",
-        "expr": "titulos*3",
-        "fmt": "int"
-      }
-    ]
+  {
+   "l": "Mensagens enviadas",
+   "v": "1.284",
+   "d": "WhatsApp, e-mail e SMS"
   },
-  "fluxo": [
-    "Importe os títulos em atraso do seu financeiro",
-    "A régua envia lembretes por WhatsApp, e-mail ou SMS",
-    "A IA conversa, propõe acordo e registra a promessa",
-    "Acompanhe o painel e acione a equipe nos casos críticos"
+  {
+   "l": "Promessas de pagamento",
+   "v": "41",
+   "d": "aguardando data combinada"
+  }
+ ],
+ "table": {
+  "title": "Carteira em cobrança (dados fictícios)",
+  "cols": [
+   "Cliente",
+   "Valor em aberto",
+   "Dias de atraso",
+   "Status"
   ],
-  "recursos": [
-    "Régua de cobrança por faixa de atraso",
-    "Mensagens com IA em linguagem cordial",
-    "Registro de promessas de pagamento",
-    "Simulação de acordo e parcelamento",
-    "Painel de carteira e recuperação",
-    "Histórico completo por cliente",
-    "Pausa automática ao identificar pagamento",
-    "Relatórios para o financeiro"
-  ],
-  "faq": [
-    {
-      "q": "A cobrança é feita sem revisão humana?",
-      "a": "Neste modelo ilustrativo, a equipe define as regras e pode assumir qualquer conversa a qualquer momento."
-    },
-    {
-      "q": "Os dados desta tela são reais?",
-      "a": "Não. Todos os nomes, valores e resultados são fictícios e servem apenas como demonstração."
-    }
+  "rows": [
+   [
+    "Cliente Exemplo 01",
+    "R$ 4.820,00",
+    "3",
+    "info:Lembrete enviado"
+   ],
+   [
+    "Cliente Exemplo 02",
+    "R$ 12.300,00",
+    "18",
+    "warn:Negociando"
+   ],
+   [
+    "Cliente Exemplo 03",
+    "R$ 2.150,00",
+    "7",
+    "ok:Promessa para 28/11"
+   ],
+   [
+    "Cliente Exemplo 04",
+    "R$ 9.760,00",
+    "45",
+    "bad:Atrasado crítico"
+   ],
+   [
+    "Cliente Exemplo 05",
+    "R$ 6.480,00",
+    "12",
+    "warn:Aguardando resposta"
+   ],
+   [
+    "Cliente Exemplo 06",
+    "R$ 1.900,00",
+    "2",
+    "info:Lembrete enviado"
+   ],
+   [
+    "Cliente Exemplo 07",
+    "R$ 7.340,00",
+    "30",
+    "ok:Acordo fechado"
+   ]
   ]
+ },
+ "chart": {
+  "title": "Valor recuperado por mês (R$ mil)",
+  "labels": [
+   "Jun",
+   "Jul",
+   "Ago",
+   "Set",
+   "Out",
+   "Nov"
+  ],
+  "values": [
+   38,
+   44,
+   51,
+   47,
+   58,
+   62
+  ]
+ },
+ "sim": {
+  "title": "Simulador: cobrança automatizada",
+  "intro": "Ajuste a carteira, a taxa de recuperação e o volume de títulos para ver um exemplo ilustrativo de valores e horas.",
+  "inputs": [
+   {
+    "id": "carteira",
+    "label": "Carteira em atraso (R$)",
+    "min": 20000,
+    "max": 500000,
+    "step": 5000,
+    "val": 180000,
+    "unit": ""
+   },
+   {
+    "id": "taxa",
+    "label": "Taxa de recuperação",
+    "min": 10,
+    "max": 60,
+    "step": 1,
+    "val": 34,
+    "unit": "%"
+   },
+   {
+    "id": "titulos",
+    "label": "Títulos em atraso por mês",
+    "min": 20,
+    "max": 400,
+    "step": 10,
+    "val": 120,
+    "unit": ""
+   },
+   {
+    "id": "minutos",
+    "label": "Minutos de cobrança manual por título",
+    "min": 2,
+    "max": 20,
+    "step": 1,
+    "val": 8,
+    "unit": "min"
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Valor recuperado (exemplo)",
+    "expr": "carteira*taxa/100",
+    "fmt": "brl"
+   },
+   {
+    "label": "Horas de trabalho manual evitadas (supondo 70% automatizado)",
+    "expr": "titulos*minutos*0.7/60",
+    "fmt": "dec1"
+   },
+   {
+    "label": "Mensagens automáticas por ciclo (3 por título)",
+    "expr": "titulos*3",
+    "fmt": "int"
+   }
+  ],
+  "note": "Valor recuperado ilustrativo com números fictícios. Não representa promessa de resultado."
+ },
+ "fluxo": [
+  "Importe os títulos em atraso do seu financeiro",
+  "A régua envia lembretes por WhatsApp, e-mail ou SMS",
+  "A IA conversa, propõe acordo e registra a promessa",
+  "Acompanhe o painel e acione a equipe nos casos críticos"
+ ],
+ "recursos": [
+  "Régua de cobrança por faixa de atraso",
+  "Mensagens com IA em linguagem cordial",
+  "Registro de promessas de pagamento",
+  "Simulação de acordo e parcelamento",
+  "Painel de carteira e recuperação",
+  "Histórico completo por cliente",
+  "Pausa automática ao identificar pagamento",
+  "Relatórios para o financeiro"
+ ],
+ "faq": [
+  {
+   "q": "A cobrança é feita sem revisão humana?",
+   "a": "Neste modelo ilustrativo, a equipe define as regras e pode assumir qualquer conversa a qualquer momento."
+  },
+  {
+   "q": "Os dados desta tela são reais?",
+   "a": "Não. Todos os nomes, valores e resultados são fictícios e servem apenas como demonstração."
+  }
+ ]
 }
