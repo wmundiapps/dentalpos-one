@@ -6,7 +6,7 @@ import { Loadable, MiniTable, Section, StatusChip, fmtD, fmtDT, useAsync, usePol
 import { BASE, Card, Cards, get, money, pctTxt, post, rotuloNivel, corNivel, useAcao } from "./util";
 import { eduApi } from "../../../services/EduApi";
 
-const SUB = ["Resumo", "Alunos e cursos", "Cobrança", "Repasse", "Provas presenciais", "Estágios e matrículas", "Rematrícula", "ENADE", "Egressos"];
+const SUB = ["Resumo", "Alunos e cursos", "Cobrança", "Repasse", "Reconciliação", "Provas presenciais", "Estágios e matrículas", "Rematrícula", "ENADE", "Egressos"];
 
 /** Painel de um polo: KPIs e as áreas separadas por polo (alunos, cobrança, repasse, provas, estágios, rematrícula, ENADE, egressos). */
 export default function PoloDetalhe({ poloId, onTrocar }: { poloId: string; onTrocar: (id: string) => void }) {
@@ -26,11 +26,12 @@ export default function PoloDetalhe({ poloId, onTrocar }: { poloId: string; onTr
       {sub === 1 && <AlunosCursos poloId={poloId} />}
       {sub === 2 && <Cobranca poloId={poloId} />}
       {sub === 3 && <Repasse poloId={poloId} />}
-      {sub === 4 && <Provas poloId={poloId} />}
-      {sub === 5 && <EstagiosMatriculas poloId={poloId} />}
-      {sub === 6 && <Rematricula poloId={poloId} />}
-      {sub === 7 && <Enade poloId={poloId} />}
-      {sub === 8 && <Egressos poloId={poloId} />}
+      {sub === 4 && <Reconciliacao poloId={poloId} />}
+      {sub === 5 && <Provas poloId={poloId} />}
+      {sub === 6 && <EstagiosMatriculas poloId={poloId} />}
+      {sub === 7 && <Rematricula poloId={poloId} />}
+      {sub === 8 && <Enade poloId={poloId} />}
+      {sub === 9 && <Egressos poloId={poloId} />}
     </Box>
   );
 }
@@ -170,6 +171,99 @@ function Repasse({ poloId }: { poloId: string }) {
               ["", (x: any) => (x.status === "CALCULADO" ? <Button size="small" onClick={() => run(() => post(`/repasses/${x.id}/aprovar`), "Repasse aprovado.")}>Aprovar</Button> : x.status === "APROVADO" ? <Button size="small" color="success" onClick={() => run(() => post(`/repasses/${x.id}/pagar`), "Repasse marcado como pago.")}>Marcar pago</Button> : null)]]} />
         </Loadable>
       </Section>
+    </Box>
+  );
+}
+
+function Reconciliacao({ poloId }: { poloId: string }) {
+  const hoje = new Date();
+  const [comp, setComp] = useState(`${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`);
+  const rel = useAsync(() => get(`/polo/${poloId}/reconciliacao?competencia=${comp}`), [poloId, comp]);
+  const adto = useAsync(() => get(`/polo/${poloId}/adiantamentos`), [poloId]);
+  const est = useAsync(() => get(`/polo/${poloId}/estornos`), [poloId]);
+  const { run, ocupado, aviso } = useAcao(() => { rel.reload(); adto.reload(); est.reload(); });
+  const [novoAdto, setNovoAdto] = useState(false);
+  const [novoEst, setNovoEst] = useState(false);
+  const [fA, setFA] = useState<Record<string, string>>({});
+  const [fE, setFE] = useState<Record<string, string>>({});
+  const r = rel.data?.resumo;
+  return (
+    <Box>
+      {aviso}
+      <Section title="Reconciliação do mês" hint="Descontos, bolsas, juros/multa e desconto de boleto, estornos por desistência e o cronograma de adiantamento de aluguel — mesmo relatório para o financeiro e para o gestor/reitoria do polo." actions={
+        <TextField size="small" type="month" label="Competência" value={comp} onChange={(e) => setComp(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />}>
+        <Loadable loading={rel.loading} error={rel.error}>
+          {r && (
+            <>
+              <Cards>
+                <Card label="Descontos" value={money(r.descontos)} color="#2563eb" />
+                <Card label="Bolsas" value={money(r.bolsas)} color="#2563eb" />
+                <Card label="Juros/multa de atraso" value={money(r.jurosMulta)} color="#dc2626" />
+                <Card label="Desconto por antecipação" value={money(r.descontoAntecipacao)} color="#16a34a" />
+                <Card label="Estornos (desistência)" value={money(r.estornos)} color="#dc2626" />
+                <Card label="Repasse do mês" value={money(r.repasseDoMes)} hint={r.repasseStatus || "Não apurado"} color="#7c3aed" />
+                <Card label="Aluguel adiantado a devolver" value={money(r.adiantamentoAluguelDevido)} hint={`Já recebido: ${money(r.adiantamentoAluguelRecebido)}`} color="#ca8a04" />
+              </Cards>
+              <MiniTableLocal rows={rel.data.descontosBolsas} vazio="Sem descontos/bolsas no mês."
+                cols={[["Aluno", (x: any) => x.aluno], ["Desconto", (x: any) => money(x.descontoValor)], ["Motivo", (x: any) => x.descontoMotivo || "—"], ["Bolsa", (x: any) => money(x.bolsaValor)], ["Programa", (x: any) => x.programaNome || "—"]]} />
+              <Box sx={{ mt: 2 }}><MiniTableLocal rows={rel.data.correcoesBoleto} vazio="Sem correções de boleto no mês."
+                cols={[["Aluno", (x: any) => x.aluno], ["Juros", (x: any) => money(x.juros)], ["Multa", (x: any) => money(x.multa)], ["Desconto antecipação", (x: any) => money(x.desconto)], ["Data", (x: any) => fmtD(x.data)]]} /></Box>
+            </>
+          )}
+        </Loadable>
+      </Section>
+      <Section title="Adiantamento de aluguel" actions={<Button variant="contained" onClick={() => setNovoAdto(true)}>Novo adiantamento</Button>}>
+        <Loadable loading={adto.loading} error={adto.error}>
+          {(adto.data?.items || []).map((a: any) => (
+            <Box key={a.id} sx={{ mb: 2 }}>
+              <Typography sx={{ fontWeight: 700 }}>{money(a.valorTotal)} adiantado em {fmtD(a.dataInicio)} · {a.parcelasDevolucao}x · <StatusChip v={a.status} /></Typography>
+              <Typography variant="body2" color="text.secondary">Devolvido: {money(a.devolvido)} · Saldo: {money(a.saldo)}</Typography>
+              <MiniTableLocal rows={a.parcelas} vazio="Sem parcelas."
+                cols={[["Nº", (p: any) => p.numero], ["Vencimento", (p: any) => fmtD(p.vencimento)], ["Valor", (p: any) => money(p.valor)], ["Situação", (p: any) => p.pago ? "Pago" : "Pendente"],
+                  ["", (p: any) => !p.pago && <Button size="small" disabled={ocupado} onClick={() => run(() => post(`/adiantamentos/parcelas/${p.id}/pagar`), "Parcela de devolução registrada.")}>Marcar devolvida</Button>]]} />
+            </Box>
+          ))}
+          {!adto.data?.items?.length && <Typography color="text.secondary">Nenhum adiantamento de aluguel registrado para este polo.</Typography>}
+        </Loadable>
+      </Section>
+      <Section title="Estornos por desistência" actions={<Button variant="contained" onClick={() => setNovoEst(true)}>Novo estorno</Button>}>
+        <Loadable loading={est.loading} error={est.error}>
+          <MiniTableLocal rows={est.data?.items || []} vazio="Nenhum estorno registrado."
+            cols={[["Aluno", (x: any) => x.aluno], ["Valor", (x: any) => money(x.valor)], ["Motivo", (x: any) => x.motivo], ["Situação", (x: any) => <StatusChip v={x.status} />],
+              ["", (x: any) => (x.status === "PENDENTE" ? <Button size="small" onClick={() => run(() => post(`/estornos/${x.id}/aprovar`), "Estorno aprovado.")}>Aprovar</Button> : x.status === "APROVADO" ? <Button size="small" color="success" onClick={() => run(() => post(`/estornos/${x.id}/pagar`), "Estorno marcado como pago.")}>Marcar pago</Button> : null)]]} />
+        </Loadable>
+      </Section>
+      <Dialog open={novoAdto} onClose={() => setNovoAdto(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Novo adiantamento de aluguel</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "8px !important" }}>
+          <TextField size="small" type="number" label="Valor total adiantado (R$)" value={fA.valorTotal || ""} onChange={(e) => setFA({ ...fA, valorTotal: e.target.value })} />
+          <TextField size="small" type="number" label="Meses de aluguel adiantados" value={fA.mesesAdiantados || "3"} onChange={(e) => setFA({ ...fA, mesesAdiantados: e.target.value })} />
+          <TextField size="small" type="number" label="Em quantas parcelas o polo devolve" value={fA.parcelasDevolucao || ""} onChange={(e) => setFA({ ...fA, parcelasDevolucao: e.target.value })} helperText="Ex.: 12, 18, 24 ou 36 meses" />
+          <TextField size="small" type="date" label="Data do adiantamento" value={fA.dataInicio || ""} onChange={(e) => setFA({ ...fA, dataInicio: e.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+          <TextField size="small" label="Observação (opcional)" value={fA.observacao || ""} onChange={(e) => setFA({ ...fA, observacao: e.target.value })} multiline minRows={2} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNovoAdto(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={ocupado || !fA.valorTotal || !fA.parcelasDevolucao || !fA.dataInicio}
+            onClick={() => run(async () => { await post(`/polo/${poloId}/adiantamentos`, { valorTotal: Number(fA.valorTotal), mesesAdiantados: Number(fA.mesesAdiantados || 3), parcelasDevolucao: Number(fA.parcelasDevolucao), dataInicio: `${fA.dataInicio}T12:00:00`, observacao: fA.observacao || undefined }); setNovoAdto(false); setFA({}); }, "Adiantamento registrado com cronograma de devolução.")}>Registrar</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={novoEst} onClose={() => setNovoEst(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Novo estorno</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "8px !important" }}>
+          <TextField size="small" label="ID do aluno (studentId)" value={fE.studentId || ""} onChange={(e) => setFE({ ...fE, studentId: e.target.value })} helperText="Aluno precisa estar vinculado a este polo." />
+          <TextField size="small" type="number" label="Valor do estorno (R$)" value={fE.valor || ""} onChange={(e) => setFE({ ...fE, valor: e.target.value })} />
+          <TextField size="small" select label="Motivo" value={fE.motivo || "DESISTENCIA"} onChange={(e) => setFE({ ...fE, motivo: e.target.value })}>
+            <MenuItem value="DESISTENCIA">Desistência</MenuItem><MenuItem value="CANCELAMENTO">Cancelamento</MenuItem><MenuItem value="OUTRO">Outro</MenuItem>
+          </TextField>
+          <TextField size="small" label="Observação (opcional)" value={fE.observacao || ""} onChange={(e) => setFE({ ...fE, observacao: e.target.value })} multiline minRows={2} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNovoEst(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={ocupado || !fE.studentId || !fE.valor}
+            onClick={() => run(async () => { await post(`/polo/${poloId}/estornos`, { studentId: fE.studentId, valor: Number(fE.valor), motivo: fE.motivo || "DESISTENCIA", observacao: fE.observacao || undefined }); setNovoEst(false); setFE({}); }, "Estorno registrado.")}>Registrar</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

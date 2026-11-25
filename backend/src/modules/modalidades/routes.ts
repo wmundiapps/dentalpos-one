@@ -10,6 +10,7 @@ import { CHECKLIST_POLO_PADRAO } from './rules'
 import ofertas from './ofertas'
 import polos from './polos'
 import polosRede from './polos-rede'
+import polosReconciliacao from './polos-reconciliacao'
 import tutoria, { escalonarAtendimentosVencidos } from './tutoria'
 import engajamento, { varrerInatividade } from './engajamento'
 import praticas from './praticas'
@@ -21,6 +22,7 @@ const router = Router()
 router.use(ofertas)
 router.use(polos)
 router.use(polosRede)
+router.use(polosReconciliacao)
 router.use(tutoria)
 router.use('/engajamento', engajamento)
 router.use(praticas)

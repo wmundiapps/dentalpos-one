@@ -18437,6 +18437,63 @@ model PolRepasseConfig {
   @@index([tenantId])
 }
 
+// Adiantamento de aluguel: a instituição paga meses de aluguel adiantado ao polo, que devolve em parcelas mensais.
+// Aparece tanto no relatório do financeiro (quem recebe de volta) quanto no do gestor do polo (quem deve).
+model PolAdiantamento {
+  id                String   @id @default(uuid())
+  tenantId          String
+  poloId            String
+  valorTotal        Float
+  mesesAdiantados   Int      @default(3)
+  parcelasDevolucao Int               // em quantos meses o polo devolve (ex.: 12, 18, 24, 36)
+  dataInicio        DateTime
+  observacao        String?
+  status            String   @default("ATIVO")   // ATIVO | QUITADO | CANCELADO
+  criadoPorId       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  parcelas          PolAdiantamentoParcela[]
+
+  @@index([tenantId, poloId])
+}
+
+model PolAdiantamentoParcela {
+  id              String   @id @default(uuid())
+  tenantId        String
+  adiantamentoId  String
+  numero          Int
+  valor           Float
+  vencimento      DateTime
+  pago            Boolean  @default(false)
+  pagoEm          DateTime?
+
+  adiantamento    PolAdiantamento @relation(fields: [adiantamentoId], references: [id], onDelete: Cascade)
+
+  @@unique([adiantamentoId, numero])
+  @@index([tenantId, vencimento])
+}
+
+// Estorno por desistência/cancelamento de matrícula de aluno vinculado a um polo — entra na reconciliação do mês.
+model PolEstorno {
+  id            String   @id @default(uuid())
+  tenantId      String
+  poloId        String
+  studentId     String
+  receivableId  String?
+  valor         Float
+  motivo        String   @default("DESISTENCIA")   // DESISTENCIA | CANCELAMENTO | OUTRO
+  status        String   @default("PENDENTE")      // PENDENTE | APROVADO | PAGO
+  aprovadoPorId String?
+  pagoEm        DateTime?
+  observacao    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, poloId])
+  @@index([tenantId, studentId])
+}
+
 model PolRepasse {
   id             String   @id @default(uuid())
   tenantId       String
