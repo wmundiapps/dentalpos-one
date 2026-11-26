@@ -33,8 +33,10 @@ export default function SuggestionBox() {
     if (texto.trim().length < 3) { setErro("Descreva com detalhes o problema ou a melhoria."); return; }
     setBusy(true); setErro("");
     try {
+      const corpo = texto.trim();
+      const titulo = corpo.length > 120 ? `${corpo.slice(0, 117)}...` : corpo;
       await createPlatformFeedback({
-        type: "Sugestão", priority: "Média", title: "", description: texto.trim(),
+        type: "Sugestão", priority: "Média", title: titulo, description: corpo,
         module: telaAtual?.titulo, departamento: departamento === OUTRO ? undefined : departamento,
         pagePath: `${location.pathname}${location.search}`,
       } as any);
