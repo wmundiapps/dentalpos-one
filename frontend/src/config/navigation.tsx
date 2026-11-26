@@ -219,6 +219,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Salas e horários","/edu/academico/salas",<EventIcon/>),
       item("Programas de desenvolvimento","/edu/academico/desenvolvimento",<TrendingUpIcon/>),
       item("Pesquisa, extensão e ligas","/edu/academico/pesquisa-extensao",<BiotechIcon/>),
+      item("Criar acessos (aluno/professor/gestor)","/edu/academico/criar-acessos",<PersonAddAlt1Icon/>,["ADMIN","OWNER","RECTOR","COORDINATOR","SECRETARY"]),
     ])
   },
   {

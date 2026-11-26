@@ -1,10 +1,26 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
+import { AuthenticatedRequest } from '../academico/middleware'
 import { REGRAS_PADRAO, avaliarConformidade, Modalidade, DisciplinaCarga } from './rules'
 
 export const MANAGE = ['COORDINATOR', 'SECRETARY'] as const
 export const TEACH = ['COORDINATOR', 'SECRETARY', 'TEACHER'] as const
 export const ALL_STAFF = ['COORDINATOR', 'SECRETARY', 'TEACHER', 'SUPPORT', 'STAFF'] as const
+
+// Gestor de polo (role GESTOR_POLO): acesso só aos próprios polos (ModPolo.responsavelUserId), resolvido em
+// req.user.poloIds pelo eduContext. Reitor/diretor EAD (COORDINATOR)/Financeiro/ADMIN continuam vendo todos
+// os polos (SUPER_ROLES já tem bypass total em requireRole; COORDINATOR/FINANCE são checados nas rotas).
+export function escopoPolo(req: AuthenticatedRequest): Record<string, any> {
+  if (req.user?.role === 'GESTOR_POLO') return { id: { in: req.user.poloIds ?? [] } }
+  return {}
+}
+
+/** Lança 403 se o usuário for GESTOR_POLO e o polo informado não estiver entre os seus. Demais papéis passam livres (já filtrados pelo requireRole da rota). */
+export function assertPoloAcesso(req: AuthenticatedRequest, poloId: string) {
+  if (req.user?.role === 'GESTOR_POLO' && !(req.user.poloIds ?? []).includes(poloId)) {
+    throw Object.assign(new Error('Você não tem acesso a este polo.'), { status: 403 })
+  }
+}
 
 export async function getConfig(tenantId: string) {
   const c = await prisma.modConfig.findUnique({ where: { tenantId } })

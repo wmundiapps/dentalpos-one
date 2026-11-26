@@ -85,6 +85,37 @@ router.post('/credenciais/professor', requireRole('ADMIN', 'OWNER', 'RECTOR', 'C
   res.status(201).json({ userId: user.id, loginInicial: { loginAlt, senhaInicial: senha } })
 }))
 
+const gestorPoloSchema = z.object({
+  nomeCompleto: z.string().trim().min(3).max(200),
+  email: z.string().trim().email(),
+  dataNascimento: z.string().refine((s) => !isNaN(Date.parse(s)), 'Data de nascimento inválida.'),
+  poloIds: z.array(z.string().min(1)).min(1, 'Informe ao menos um polo.').max(50),
+})
+
+// Gestor de polo: mesmo esquema de login (usuário + nascimento) do professor, mas com acesso restrito aos polos
+// atribuídos (ModPolo.responsavelUserId) — ver escopoPolo/assertPoloAcesso em modules/modalidades/common.ts.
+router.post('/credenciais/gestor-polo', requireRole('ADMIN', 'OWNER', 'RECTOR', 'COORDINATOR'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = getTenantId(req)
+  const clinicId = req.user!.clinicId!
+  const d = gestorPoloSchema.parse(req.body)
+  const email = d.email.toLowerCase()
+  const dataNasc = new Date(d.dataNascimento)
+
+  if (await prisma.user.findUnique({ where: { clinicId_email: { clinicId, email } } })) return res.status(409).json({ error: 'Já existe um usuário com este e-mail nesta clínica.' })
+  const polos = await (prisma as any).modPolo.findMany({ where: { id: { in: d.poloIds }, tenantId }, select: { id: true } })
+  if (polos.length !== d.poloIds.length) return res.status(404).json({ error: 'Um ou mais polos informados não foram encontrados nesta instituição.' })
+
+  const senha = senhaInicialPorNascimento(dataNasc)
+  const loginAlt = await gerarLoginAlt(d.nomeCompleto)
+  const [firstName, lastName] = primeiroUltimoNome(d.nomeCompleto)
+  const user = await prisma.user.create({
+    data: { clinicId, tenantId, email, password: await hashPassword(senha), firstName, lastName, role: 'GESTOR_POLO', mustChangePassword: true, dataNascimento: dataNasc, loginAlt },
+  })
+  await (prisma as any).modPolo.updateMany({ where: { id: { in: d.poloIds }, tenantId }, data: { responsavelUserId: user.id } })
+  await writeAudit({ clinicId, tenantId, actorId: getUserId(req), module: 'academico', action: 'GESTOR_POLO_PROVISIONADO', entityType: 'User', entityId: user.id, summary: `Acesso criado para ${loginAlt} (${d.poloIds.length} polo(s)).`, ipAddress: req.ip })
+  res.status(201).json({ userId: user.id, poloIds: d.poloIds, loginInicial: { loginAlt, senhaInicial: senha } })
+}))
+
 // Reset de acesso pelo admin: usuário não conseguiu recuperar a própria senha (link de e-mail indisponível/perdido).
 // Gera senha temporária aleatória (não a data de nascimento) e força troca no próximo login.
 router.post('/credenciais/:userId/resetar', requireRole('ADMIN', 'OWNER', 'RECTOR', 'SECRETARY'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

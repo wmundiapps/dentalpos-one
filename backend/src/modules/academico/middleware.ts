@@ -28,6 +28,7 @@ export type AcademicRole =
   | 'ANALISTA_CONTABIL'
   | 'CLIENTE_CONTABIL'
   | 'HR'
+  | 'GESTOR_POLO'
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -38,6 +39,8 @@ export interface AuthenticatedRequest extends Request {
     role: AcademicRole
     studentId?: string
     teacherId?: string
+    /** Polos (ModPolo) sob gestão deste usuário quando role === 'GESTOR_POLO' (ver eduContext). */
+    poloIds?: string[]
   }
 }
 
@@ -95,6 +98,13 @@ export async function eduContext(req: AuthenticatedRequest, _res: Response, next
           select: { id: true },
         })
         if (s) req.user.studentId = s.id
+      }
+      if (req.user.role === 'GESTOR_POLO' && !req.user.poloIds) {
+        const polos = await (prisma as any).modPolo.findMany({
+          where: { tenantId: req.user.tenantId, responsavelUserId: req.user.id },
+          select: { id: true },
+        })
+        req.user.poloIds = polos.map((p: { id: string }) => p.id)
       }
     }
     next()

@@ -4,18 +4,23 @@ import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, asyncHandler, getTenantId, getUserId, requireRole } from '../academico/middleware'
 import { parseBody, dateISO } from '../core/crud'
 import { audit } from '../core/notify'
+import { assertPoloAcesso } from './common'
 import { competenciaValida, intervaloCompetencia, r2 } from './polos-logic'
 
 // Reconciliação financeira do polo: descontos/bolsas (TesRecebivelAjuste), correções de boleto — juros/multa por
 // atraso e desconto por antecipação (TesRecebimento), estornos por desistência (PolEstorno) e o cronograma de
 // adiantamento/devolução de aluguel (PolAdiantamento). Mesmo relatório para o financeiro e para o gestor/reitoria
 // do polo — montado em /api/edu/modalidades/polos-ead (mesmo BASE de polos-rede.ts).
+// GESTOR_POLO só acessa os próprios polos (assertPoloAcesso em poloOr404); demais papéis do FIN veem qualquer polo.
 const router = Router()
 const BASE = '/polos-ead'
-const FIN = ['COORDINATOR', 'SECRETARY', 'FINANCE'] as const
+const FIN = ['COORDINATOR', 'SECRETARY', 'FINANCE', 'GESTOR_POLO'] as const
+// Aprovação/pagamento efetivo (ações financeiras de fato, não só acompanhamento): sem GESTOR_POLO de propósito.
+const FIN_APROVA = ['COORDINATOR', 'SECRETARY', 'FINANCE'] as const
 const err = (status: number, message: string) => Object.assign(new Error(message), { status })
 
-async function poloOr404(tenantId: string, id: string) {
+async function poloOr404(req: AuthenticatedRequest, tenantId: string, id: string) {
+  assertPoloAcesso(req, id)
   const p = await prisma.modPolo.findFirst({ where: { id, tenantId } })
   if (!p) throw err(404, 'Polo não encontrado.')
   return p
@@ -41,7 +46,7 @@ const adiantamentoSchema = z.object({
 router.post(`${BASE}/polo/:id/adiantamentos`, requireRole(...FIN), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
   const poloId = String(req.params.id)
-  await poloOr404(tenantId, poloId)
+  await poloOr404(req, tenantId, poloId)
   const d = parseBody(adiantamentoSchema, req.body)
   const valorParcela = r2(d.valorTotal / d.parcelasDevolucao)
   const adto = await prisma.$transaction(async (tx) => {
@@ -61,12 +66,12 @@ router.post(`${BASE}/polo/:id/adiantamentos`, requireRole(...FIN), asyncHandler(
 router.get(`${BASE}/polo/:id/adiantamentos`, requireRole(...FIN), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
   const poloId = String(req.params.id)
-  await poloOr404(tenantId, poloId)
+  await poloOr404(req, tenantId, poloId)
   const itens = await prisma.polAdiantamento.findMany({ where: { tenantId, poloId }, orderBy: { dataInicio: 'desc' }, include: { parcelas: { orderBy: { numero: 'asc' } } } })
   res.json({ items: itens.map((a) => ({ ...a, devolvido: r2(a.parcelas.filter((p) => p.pago).reduce((s, p) => s + p.valor, 0)), saldo: r2(a.parcelas.filter((p) => !p.pago).reduce((s, p) => s + p.valor, 0)) })) })
 }))
 
-router.post(`${BASE}/adiantamentos/parcelas/:pid/pagar`, requireRole(...FIN), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post(`${BASE}/adiantamentos/parcelas/:pid/pagar`, requireRole(...FIN_APROVA), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
   const r = await prisma.polAdiantamentoParcela.findFirst({ where: { id: String(req.params.pid), tenantId } })
   if (!r) throw err(404, 'Parcela não encontrada.')
@@ -88,7 +93,7 @@ const estornoSchema = z.object({
 router.post(`${BASE}/polo/:id/estornos`, requireRole(...FIN), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
   const poloId = String(req.params.id)
-  await poloOr404(tenantId, poloId)
+  await poloOr404(req, tenantId, poloId)
   const d = parseBody(estornoSchema, req.body)
   const vinc = await prisma.modPoloAluno.findFirst({ where: { tenantId, poloId, studentId: d.studentId } })
   if (!vinc) throw err(404, 'Aluno não vinculado a este polo.')
@@ -100,14 +105,14 @@ router.post(`${BASE}/polo/:id/estornos`, requireRole(...FIN), asyncHandler(async
 router.get(`${BASE}/polo/:id/estornos`, requireRole(...FIN), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
   const poloId = String(req.params.id)
-  await poloOr404(tenantId, poloId)
+  await poloOr404(req, tenantId, poloId)
   const itens = await prisma.polEstorno.findMany({ where: { tenantId, poloId }, orderBy: { createdAt: 'desc' }, take: 300 })
   const nomes = await nomesAlunos(tenantId, itens.map((e) => e.studentId))
   res.json({ items: itens.map((e) => ({ ...e, aluno: nomes.get(e.studentId) ?? '—' })) })
 }))
 
 for (const [acao, status] of [['aprovar', 'APROVADO'], ['pagar', 'PAGO']] as const) {
-  router.post(`${BASE}/estornos/:id/${acao}`, requireRole(...FIN), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  router.post(`${BASE}/estornos/:id/${acao}`, requireRole(...FIN_APROVA), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req)
     const r = await prisma.polEstorno.findFirst({ where: { id: String(req.params.id), tenantId } })
     if (!r) throw err(404, 'Estorno não encontrado.')
@@ -121,7 +126,7 @@ for (const [acao, status] of [['aprovar', 'APROVADO'], ['pagar', 'PAGO']] as con
 router.get(`${BASE}/polo/:id/reconciliacao`, requireRole(...FIN), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
   const poloId = String(req.params.id)
-  await poloOr404(tenantId, poloId)
+  await poloOr404(req, tenantId, poloId)
   const competencia = String(req.query.competencia ?? '')
   if (!competenciaValida(competencia)) throw err(400, 'Informe competencia no formato AAAA-MM.')
   const { ini, fim } = intervaloCompetencia(competencia)

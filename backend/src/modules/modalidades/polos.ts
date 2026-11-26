@@ -5,7 +5,7 @@ import { AuthenticatedRequest, asyncHandler, getTenantId, getUserId, requireRole
 import { mountCrud, parseBody, dateISO } from '../core/crud'
 import { audit } from '../core/notify'
 import { scheduleReminder } from '../core/reminders'
-import { MANAGE, TEACH, comTrava } from './common'
+import { MANAGE, TEACH, comTrava, escopoPolo, assertPoloAcesso } from './common'
 import { CHECKLIST_POLO_PADRAO, ocupacaoPolo, resumoChecklist, relacaoAlunoTutor } from './rules'
 import { getConfig } from './common'
 
@@ -33,8 +33,8 @@ async function lembreteAto(tenantId: string, polo: any) {
 }
 
 mountCrud(router, {
-  model: 'modPolo', path: '/polos', read: [...TEACH, 'STUDENT'], write: [...MANAGE], create: poloSchema, search: ['nome', 'codigo', 'cidade'],
-  filters: ['statusCredenciamento', 'ativo', 'uf', 'cidade'], orderBy: { nome: 'asc' }, modulo: 'modalidades',
+  model: 'modPolo', path: '/polos', read: [...TEACH, 'STUDENT', 'GESTOR_POLO'], write: [...MANAGE], create: poloSchema, search: ['nome', 'codigo', 'cidade'],
+  filters: ['statusCredenciamento', 'ativo', 'uf', 'cidade'], orderBy: { nome: 'asc' }, modulo: 'modalidades', scope: escopoPolo,
   beforeUpdate: (d, _req, cur) => {
     // credenciamento só muda pelas rotas /credenciar e /suspender (exigem checklist e ato)
     if (d.statusCredenciamento !== undefined && d.statusCredenciamento !== cur.statusCredenciamento) throw Object.assign(new Error('Use /polos/:id/credenciar ou /polos/:id/suspender para alterar o credenciamento.'), { status: 422 })
@@ -146,7 +146,8 @@ router.delete('/polos/:id/alunos/:studentId', requireRole(...MANAGE), asyncHandl
   const r = await prisma.modPoloAluno.updateMany({ where: { tenantId: getTenantId(req), poloId: String(req.params.id), studentId: String(req.params.studentId) }, data: { ativo: false } })
   res.json({ desativados: r.count })
 }))
-router.get('/polos/:id/alunos', requireRole(...TEACH), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/polos/:id/alunos', requireRole(...TEACH, 'GESTOR_POLO'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  assertPoloAcesso(req, String(req.params.id))
   res.json(await prisma.modPoloAluno.findMany({ where: { tenantId: getTenantId(req), poloId: String(req.params.id), ativo: true }, take: 500 }))
 }))
 
@@ -177,14 +178,15 @@ async function indicadoresPolo(tenantId: string, poloId: string) {
     atoVencendo: polo.atoValidade ? polo.atoValidade.getTime() - Date.now() < 180 * 86_400_000 : false,
   }
 }
-router.get('/polos/:id/indicadores', requireRole(...TEACH), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/polos/:id/indicadores', requireRole(...TEACH, 'GESTOR_POLO'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  assertPoloAcesso(req, String(req.params.id))
   const r = await indicadoresPolo(getTenantId(req), String(req.params.id))
   if (!r) return res.status(404).json({ error: 'Polo não encontrado.' })
   res.json(r)
 }))
-router.get('/polos-indicadores', requireRole(...TEACH), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/polos-indicadores', requireRole(...TEACH, 'GESTOR_POLO'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
-  const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true }, select: { id: true } })
+  const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true, ...escopoPolo(req) }, select: { id: true } })
   const out: any[] = []
   for (const p of polos) { const r = await indicadoresPolo(tenantId, p.id); if (r) out.push(r) }
   res.json(out)
