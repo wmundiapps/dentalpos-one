@@ -35,6 +35,9 @@ npx tsx scripts/edu-guest-user.ts || true
 npx tsx scripts/edu-uninga-test-users.ts || true
 # Conta pessoal de administração do proprietário (acesso total, sem prazo)
 npx tsx scripts/edu-owner-user.ts || true
+# Aprova sozinho qualquer dispositivo novo dessa mesma conta (sem isso, um login de celular/navegador novo
+# ficaria esperando aprovação de um admin já aprovado — que, sendo a própria conta do proprietário, não existe ainda)
+npx tsx scripts/edu-owner-device-approve.ts || true
 # CLEAR_TENANT_DATA=dryrun|commit: limpa os dados fictícios do tenant (mantém Clinic e User). Rode uma vez e desligue a variável.
 if [ "$CLEAR_TENANT_DATA" = "dryrun" ]; then
   npx tsx scripts/edu-clear-tenant-data.ts --tenant="${DEMO_TENANT:-sua-instituicao}" || true

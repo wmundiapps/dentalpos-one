@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '../../lib/prisma'
 import { ipDaRequisicao, registrarEvento } from './eventos'
 import { notify } from '../core/notify'
+import { isOwnerAccount } from '../../lib/ownerAccount'
 
 // ============================================================
 // Reconhecimento de dispositivo. O frontend gera e guarda (localStorage) um identificador aleatório
@@ -50,13 +51,15 @@ async function avisarDonos(tenantId: string, mensagem: string, refId: string) {
  */
 export async function desafioDispositivo(
   req: Request,
-  user: { id: string; tenantId: string; role: string },
+  user: { id: string; tenantId: string; role: string; email?: string },
   fingerprint: unknown,
 ): Promise<Record<string, unknown> | null> {
   const fp = typeof fingerprint === 'string' ? fingerprint.trim().slice(0, 200) : ''
   if (!fp) return null
   const ip = ipDaRequisicao(req)
   const userAgent = req.get('user-agent') || null
+  // Conta do proprietário: nunca bloqueia em dispositivo novo (só avisa) — mesma exceção dada a ela em requireRole.
+  const semBloqueio = isOwnerAccount(user.email)
 
   try {
     const existente = await prisma.segDispositivo.findUnique({ where: { userId_fingerprint: { userId: user.id, fingerprint: fp } } })
@@ -71,13 +74,15 @@ export async function desafioDispositivo(
     }
 
     const registro = existente
-      ? await prisma.segDispositivo.update({ where: { id: existente.id }, data: { ip, ultimoAcessoEm: new Date() } })
-      : await prisma.segDispositivo.create({ data: { tenantId: user.tenantId, userId: user.id, fingerprint: fp, rotulo: rotuloDoAgente(userAgent), ip } })
+      ? await prisma.segDispositivo.update({ where: { id: existente.id }, data: { ip, ultimoAcessoEm: new Date(), ...(semBloqueio ? { aprovado: true, aprovadoEm: new Date() } : {}) } })
+      : await prisma.segDispositivo.create({ data: { tenantId: user.tenantId, userId: user.id, fingerprint: fp, rotulo: rotuloDoAgente(userAgent), ip, ...(semBloqueio ? { aprovado: true, aprovadoEm: new Date() } : {}) } })
 
     if (!existente) {
       await registrarEvento({ tenantId: user.tenantId, userId: user.id, tipo: 'dispositivo_novo_pendente', severidade: 'ATENCAO', ip, userAgent, detalhe: { dispositivoId: registro.id } })
-      await avisarDonos(user.tenantId, `Um login de dispositivo novo (${registro.rotulo || 'desconhecido'}, IP ${ip || 'desconhecido'}) está aguardando sua aprovação.`, registro.id)
+      await avisarDonos(user.tenantId, `Um login de dispositivo novo (${registro.rotulo || 'desconhecido'}, IP ${ip || 'desconhecido'}) ${semBloqueio ? 'acabou de acontecer' : 'está aguardando sua aprovação'}.`, registro.id)
     }
+
+    if (semBloqueio) return null
 
     return {
       deviceApprovalRequired: true,
