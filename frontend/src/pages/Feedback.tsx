@@ -70,7 +70,7 @@ export default function Feedback() {
             <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
               <Box>
                 <Typography sx={{ fontWeight: 800 }}>{r.title}</Typography>
-                <Typography variant="body2" color="text.secondary">{`${r.type} • ${r.module || "-"}`}</Typography>
+                <Typography variant="body2" color="text.secondary">{`${r.type} • ${r.module || "-"}${r.departamento ? ` • ${r.departamento}` : ""}`}</Typography>
               </Box>
               <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                 <Chip size="small" label={r.priority} color={priorityColor(r.priority)} />

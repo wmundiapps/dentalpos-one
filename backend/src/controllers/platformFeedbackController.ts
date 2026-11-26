@@ -15,7 +15,7 @@ async function audit(data: Parameters<typeof writeAudit>[0]) {
   try { await writeAudit(data) } catch (e) { console.error(e) }
 }
 
-async function notifyAdmin(row: { id: string; clinicId: string; type: string; title: string; description: string; priority: string; rating: number | null; userName: string | null; userEmail: string | null; pagePath: string | null; module: string | null }) {
+async function notifyAdmin(row: { id: string; clinicId: string; type: string; title: string; description: string; priority: string; rating: number | null; userName: string | null; userEmail: string | null; pagePath: string | null; module: string | null; departamento?: string | null }) {
   try {
     const apiKey = process.env.RESEND_API_KEY || ''
     if (!apiKey) { console.error('RESEND_API_KEY n\u00e3o configurada \u2014 aviso de feedback n\u00e3o enviado.'); return }
@@ -33,6 +33,7 @@ async function notifyAdmin(row: { id: string; clinicId: string; type: string; ti
       !isEvaluation ? `Prioridade: ${row.priority}` : null,
       !isEvaluation ? `T\u00edtulo: ${row.title}` : null,
       row.module ? `M\u00f3dulo: ${row.module}` : null,
+      row.departamento ? `Departamento: ${row.departamento}` : null,
       row.pagePath ? `Tela: ${row.pagePath}` : null,
       '',
       isEvaluation ? 'Sugest\u00e3o:' : 'Descri\u00e7\u00e3o:',
@@ -74,7 +75,7 @@ export async function create(req: AuthRequest, res: Response) {
     const userName = user ? (`${user.firstName} ${user.lastName}`.trim() || user.email) : email
     const row = await prisma.platformFeedback.create({ data: {
       clinicId, tenantId, userId, userName, userEmail: user?.email || email, type, title: title || 'Avalia\u00e7\u00e3o do sistema', description: description || '', priority, rating,
-      module: txt(b.module, 80) || null, pagePath: txt(b.pagePath, 300) || null, userAgent: txt(req.get('user-agent'), 300) || null,
+      module: txt(b.module, 80) || null, departamento: txt(b.departamento, 80) || null, pagePath: txt(b.pagePath, 300) || null, userAgent: txt(req.get('user-agent'), 300) || null,
     } })
     await audit({ clinicId, tenantId, actorId: userId, module: 'feedback', action: 'PLATFORM_FEEDBACK_CREATE', entityType: 'PlatformFeedback', entityId: row.id, afterData: row, summary: `${type}: ${title}` })
     await notifyAdmin(row)

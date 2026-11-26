@@ -53,6 +53,7 @@ import alertasRouter from './alertas/routes'
 import contabilRouter from './contabil/routes'
 import contabilCarteiraRouter from './contabil/carteira/routes'
 import { registrarIntegracaoFiscal } from './contabil/carteira/integracaoFiscal'
+import ajudaIaRouter from './ajuda-ia/routes'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
 const router = Router()
@@ -105,6 +106,7 @@ router.use('/contabil', contabilParte2Router)
 router.use('/acesso', acessoRouter)
 router.use('/mensagens', mensagensRouter)
 router.use('/acompanhamento', acompanhamentoRouter)
+router.use('/ajuda-ia', ajudaIaRouter)
 // Áreas internas da equipe: aluno e cliente do escritório contábil nunca entram (professor só no portal do colaborador e na CIPA).
 const bloquear = (...papeis: string[]) => (req: any, res: any, next: any) =>
   papeis.includes(String(req.user?.role || '').toUpperCase()) ? res.status(403).json({ error: 'Sem permissão para esta área.' }) : next()

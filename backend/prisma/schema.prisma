@@ -2101,6 +2101,7 @@ model PlatformFeedback {
   title       String
   description String
   module      String?
+  departamento String?
   pagePath    String?
   priority    String   @default("Média")
   rating      Int?
@@ -5598,6 +5599,34 @@ model AdmRematricula {
 
   @@unique([campanhaId, studentId])
   @@index([tenantId, campanhaId, status])
+}
+
+// ---- edu/ajuda-ia.prisma ----
+// ============================================================
+// EDUMASTER PRO — CENTRAL DE AJUDA COM IA (prefixo Aju)
+// Assistente de perguntas e respostas para a equipe tirar dúvidas de uso do
+// sistema (sem identificar o modelo/fornecedor de IA por trás na tela).
+// Modo demonstrativo: cota mensal por instituição; cada pergunta é registrada
+// com uma estimativa de custo para orçar a assinatura quando o contrato fechar.
+// ============================================================
+model AjuPergunta {
+  id               String   @id @default(uuid())
+  tenantId         String
+  clinicId         String?
+  userId           String
+  userName         String?
+  pagina           String?
+  modulo           String?
+  pergunta         String
+  resposta         String?
+  tokensEntradaEst Int?
+  tokensSaidaEst   Int?
+  custoEstimadoUsd Float?
+  status           String   @default("OK") // OK | LIMITE_ATINGIDO | ERRO
+  createdAt        DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([clinicId, createdAt])
 }
 
 // ---- edu/analise-docs.prisma ----
