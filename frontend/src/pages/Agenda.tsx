@@ -26,6 +26,7 @@ import AgendaMobileBar from "../components/agenda/AgendaMobileBar";
 import { professionalColorMap } from "../components/AgendaCalendarBoard";
 import { setAgendaLegend } from "../utils/agendaLegend";
 import AddIcon from "@mui/icons-material/Add";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MiniMonthCalendar from "../components/MiniMonthCalendar";
 import AgendaPrintDialog from "../components/AgendaPrintDialog";
 import LinkIcon from "@mui/icons-material/Link";
@@ -342,6 +343,8 @@ export default function Agenda() {
   const [edit, setEdit] = useState<IntegratedAppointment | null>(null);
   const [moveReq, setMoveReq] = useState<{ appointment: IntegratedAppointment; dateISO: string; time: string } | null>(null);
   const [moveReason, setMoveReason] = useState("");
+  const [editingProc, setEditingProc] = useState(false);
+  useEffect(() => { setEditingProc(false); }, [edit?.id]);
   const [compOpen, setCompOpen] = useState(false);
   const [compTitle, setCompTitle] = useState("");
   const [compDoctor, setCompDoctor] = useState("");
@@ -1603,7 +1606,14 @@ export default function Agenda() {
               <Typography><b>{edit.dateISO} às {edit.time}</b> • {edit.professionalName}</Typography>
               <Box sx={{ p: 1.5, borderRadius: 2, borderLeft: "6px solid", borderColor: "primary.main", bgcolor: "action.hover" }}>
                 <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: ".08em", color: "text.secondary" }}>O QUE O PACIENTE VAI FAZER NESTA CONSULTA</Typography>
-                <Typography sx={{ fontSize: { xs: 22, md: 26 }, fontWeight: 900, lineHeight: 1.2 }}>{edit.procedure || "Procedimento não informado"}</Typography>
+                <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1.5 }}>
+                  {editingProc ? (
+                    <Box sx={{ flex: 1, mt: 0.5 }}><ProcedurePicker label="Procedimento" value={edit.procedure} onChange={(name) => setEdit((current) => (current ? { ...current, procedure: name } : current))} /></Box>
+                  ) : (
+                    <Typography sx={{ fontSize: { xs: 22, md: 26 }, fontWeight: 900, lineHeight: 1.2 }}>{edit.procedure || "Procedimento não informado"}</Typography>
+                  )}
+                  <Button size="small" variant={editingProc ? "contained" : "outlined"} startIcon={editingProc ? undefined : <EditOutlinedIcon />} sx={{ whiteSpace: "nowrap", mt: 0.5 }} onClick={() => setEditingProc((v) => !v)}>{editingProc ? "Pronto" : "Editar"}</Button>
+                </Box>
               </Box>
               {edit.backendId && <AgendaMarkerPicker appointmentId={edit.backendId} defs={markerDefs} selected={markerLinks.get(edit.backendId) || []} onChange={(ids) => setMarkerLinks((cur) => new Map(cur).set(edit.backendId as string, ids))} onDefsChanged={() => void loadMarkerDefs()} />}
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
@@ -1621,7 +1631,6 @@ export default function Agenda() {
                   onChange={(minutes) => setEdit((current) => (current ? { ...current, durationMinutes: minutes } : current))}
                 />
                 <Box sx={{ gridColumn: { md: "1/-1" }, display: "grid", gap: 1.5 }}>
-                  <ProcedurePicker label="Procedimento (editar)" value={edit.procedure} onChange={(name) => setEdit((current) => (current ? { ...current, procedure: name } : current))} />
                   <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr auto" }, gap: 1.5, alignItems: "center" }}>
                     <ProcedurePicker label="Próximo procedimento" value={edit.nextProcedure} onChange={(name) => setEdit((current) => (current ? { ...current, nextProcedure: name } : current))} />
                     <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { const d = new Date(`${edit.dateISO}T12:00:00`); d.setDate(d.getDate() + 7); scheduleNextReturn(edit, `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`); }}>Agendar próximo atendimento</Button>
