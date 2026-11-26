@@ -23,10 +23,10 @@ async function notifyAdmin(row: { id: string; clinicId: string; type: string; ti
     const isEvaluation = row.type === 'Avalia\u00e7\u00e3o'
     const stars = row.rating ? `${'\u2605'.repeat(row.rating)}${'\u2606'.repeat(5 - row.rating)} (${row.rating}/5)` : null
     const content = [
-      isEvaluation ? 'Nova avalia\u00e7\u00e3o do sistema CompletoDonto:' : `Novo relato no CompletoDonto (${row.type}):`,
+      isEvaluation ? 'Nova avalia\u00e7\u00e3o do sistema:' : `Novo relato (${row.type}):`,
       '',
-      `Cl\u00ednica: ${clinic?.name || row.clinicId}`,
-      clinic?.phone ? `Telefone da cl\u00ednica: ${clinic.phone}` : null,
+      `Empresa: ${clinic?.name || row.clinicId}`,
+      clinic?.phone ? `Telefone da empresa: ${clinic.phone}` : null,
       `Usu\u00e1rio: ${row.userName || '-'}${row.userEmail ? ` <${row.userEmail}>` : ''}`,
       `Tipo: ${row.type}`,
       stars ? `Nota: ${stars}` : null,
@@ -39,14 +39,14 @@ async function notifyAdmin(row: { id: string; clinicId: string; type: string; ti
       isEvaluation ? 'Sugest\u00e3o:' : 'Descri\u00e7\u00e3o:',
       row.description || '(sem texto)',
       '',
-      'Ver todos: https://app.completodonto.com.br/sugestoes-problemas',
+      'Ver todos: https://app.dentalpos.com.br/sugestoes-problemas',
     ].filter((line): line is string => line !== null).join('\n')
     const subject = isEvaluation
-      ? `Avalia\u00e7\u00e3o ${row.rating}/5 \u2014 ${clinic?.name || 'cl\u00ednica'}`
-      : `${row.type} \u2014 ${row.title} \u2014 ${clinic?.name || 'cl\u00ednica'}`
+      ? `Avalia\u00e7\u00e3o ${row.rating}/5 \u2014 ${clinic?.name || 'empresa'}`
+      : `${row.type} \u2014 ${row.title} \u2014 ${clinic?.name || 'empresa'}`
     await dispatchRevah('EMAIL', ADMIN_EMAIL, content, {
       apiKey,
-      from: 'CompletoDonto <contato@dentalpos.com.br>',
+      from: 'WMundi feedback <contato@dentalpos.com.br>',
       subject,
     })
   } catch (error) {
