@@ -5,13 +5,12 @@ import {
   Badge,
   Box,
   ButtonBase,
+  Divider,
   IconButton,
-  InputAdornment,
   ListItemIcon,
+  ListItemText,
   Menu,
   MenuItem,
-  Paper,
-  TextField,
   Toolbar,
   Tooltip,
   Typography,
@@ -19,7 +18,7 @@ import {
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import SearchIcon from "@mui/icons-material/Search";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
@@ -27,23 +26,34 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import FeedbackDialog from "./FeedbackDialog";
-import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import BrandName from "./BrandName";
-import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
-import { rotaBloqueada, useModulosBloqueados } from "../edu/acesso/modulos";
 import { useAppTheme } from "../contexts/AppThemeContext";
-import InstitutionLogo from "../edu/InstitutionLogo";
-import MensagensBadge from "../edu/mensagens/MensagensBadge";
+import { useResumo } from "../edu/mensagens/resumo";
 import { notifications } from "../services/NotificationService";
 import { endSession } from "../security/sessionGuard";
-import {
-  pathAllowedForDemo,
-  readDemoAccess,
-  readSessionUser,
-} from "../services/DemoAccess";
+import { readDemoAccess, readSessionUser } from "../services/DemoAccess";
+
+function pathname(path: string) {
+  return path.split("?")[0] || "/";
+}
+
+/** Nome da funcionalidade mostrada no topo: o item (ou grupo) de menu cujo caminho bate com a rota atual. */
+function useTituloDaTela(): string {
+  const location = useLocation();
+  return useMemo(() => {
+    for (const group of navigationGroups) {
+      for (const item of group.items) {
+        if (pathname(item.path) === location.pathname) return item.label;
+      }
+    }
+    const grupo = navigationGroups.find((g) => g.items.some((it) => pathname(it.path) === location.pathname));
+    if (grupo) return grupo.label;
+    if (location.pathname === "/" || location.pathname === "/dashboard") return "Início";
+    return APP_NAME;
+  }, [location.pathname]);
+}
 
 export default function Header() {
   const navigate = useNavigate();
@@ -52,68 +62,21 @@ export default function Header() {
   const { mode, toggleMode } = useAppTheme();
   const demo = readDemoAccess();
   const sessionUser = readSessionUser();
-  const clinicLogo = localStorage.getItem("dentalpos.clinicLogo") || "";
   const eduPath = location.pathname === "/edu" || location.pathname.startsWith("/edu/");
-  const [search, setSearch] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
-  const searchRef = useRef<HTMLInputElement | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const titulo = useTituloDaTela();
 
   const unreadCount = notifications.filter((notification) => !notification.lida).length;
-
-  const modulosBloqueados = useModulosBloqueados();
-  const cargoLogado = String(sessionUser?.role || "").toUpperCase();
-  const searchableItems = useMemo(() => {
-    const entries = navigationGroups.flatMap((group) =>
-      group.items.map((item) => ({ ...item, group: group.label })),
-    ).filter((e) => (!e.roles || e.roles.includes(cargoLogado)) && !rotaBloqueada(e.path, modulosBloqueados));
-
-    if (!demo?.isDemo) return entries;
-
-    const seen = new Set<string>();
-    return entries.filter((entry) => {
-      if (entry.path === "/agendamento-online") return false;
-      const pathname = entry.path.split("?")[0] || "/";
-      if (!pathAllowedForDemo(pathname, demo)) return false;
-      if (seen.has(entry.path)) return false;
-      seen.add(entry.path);
-      return true;
-    });
-  }, [demo?.isDemo, demo?.modules.join("|"), modulosBloqueados, cargoLogado]);
-
-  const results = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("pt-BR");
-    if (!query) return [];
-
-    const unique = new Map<string, (typeof searchableItems)[number]>();
-    searchableItems.forEach((entry) => {
-      const haystack = `${entry.label} ${entry.group}`.toLocaleLowerCase("pt-BR");
-      if (haystack.includes(query)) unique.set(`${entry.label}-${entry.path}`, entry);
-    });
-    return Array.from(unique.values()).slice(0, 8);
-  }, [search, searchableItems]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const typing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
-      if (event.key === "/" && !typing) {
-        event.preventDefault();
-        searchRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
-
-  const goTo = (path: string) => {
-    setSearch("");
-    setSearchFocused(false);
-    navigate(path);
-  };
+  const podeVerMensagens = eduPath && !["STUDENT", "CLIENTE_CONTABIL"].includes(String(sessionUser?.role || "").toUpperCase());
+  const { resumo: resumoMsg } = useResumo();
+  const msgCount = podeVerMensagens ? (resumoMsg?.naoLidas ?? 0) + (resumoMsg?.pedidos.total ?? 0) : 0;
+  const totalAvisos = (demo?.isDemo ? 0 : unreadCount) + msgCount;
 
   const initials =
     `${sessionUser?.firstName?.[0] || ""}${sessionUser?.lastName?.[0] || ""}`.toUpperCase() || (EDU_ONLY ? "EM" : "DP");
+  const displayName = [sessionUser?.firstName, sessionUser?.lastName].filter(Boolean).join(" ") || "Usuário";
+  const openMenu = (event: React.MouseEvent<HTMLElement>) => setMenuAnchor(event.currentTarget);
+  const closeMenu = () => setMenuAnchor(null);
 
   return (
     <AppBar
@@ -130,174 +93,113 @@ export default function Header() {
         zIndex: 1200,
       }}
     >
-      <Toolbar sx={{ gap: { xs: 1, md: 2 }, minHeight: 72 }}>
-        <Tooltip title="Menu"><IconButton onClick={() => window.dispatchEvent(new Event("edu:toggle-menu"))} aria-label="Abrir ou fechar o menu" edge="start"><MenuIcon /></IconButton></Tooltip>
+      <Toolbar sx={{ gap: 1, minHeight: 64 }}>
+        <Tooltip title="Menu">
+          <IconButton onClick={() => window.dispatchEvent(new Event("edu:toggle-menu"))} aria-label="Abrir ou fechar o menu" edge="start">
+            <MenuIcon />
+          </IconButton>
+        </Tooltip>
+
         {location.pathname !== "/" && location.pathname !== "/dashboard" && (
           <Tooltip title="Voltar">
             <IconButton
               aria-label="Voltar"
+              size="small"
               onClick={() => { if ((window.history.state?.idx ?? 0) > 0) navigate(-1); else navigate("/"); }}
               sx={{ border: "1px solid", borderColor: "divider", flexShrink: 0 }}
             >
-              <ArrowBackIcon />
+              <ArrowBackIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         )}
+
         {EDU_ONLY ? (
-          <Box aria-label={APP_NAME} sx={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)", display: "grid", placeItems: "center", color: "#fff", fontWeight: 800, fontSize: 16, background: "linear-gradient(135deg,#0F5FDB,#6366F1)" }}>EM</Box>
+          <Box aria-label={APP_NAME} sx={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)", display: "grid", placeItems: "center", color: "#fff", fontWeight: 800, fontSize: 14, background: "linear-gradient(135deg,#0F5FDB,#6366F1)" }}>EM</Box>
         ) : (
-          <Box component="img" src={`${import.meta.env.BASE_URL}brand/logo-leao.png`} alt={APP_NAME} sx={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)" }} />
+          <Box component="img" src={`${import.meta.env.BASE_URL}brand/logo-leao.png`} alt={APP_NAME} sx={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)" }} />
         )}
-        <Box sx={{ display: { xs: "none", lg: "block" } }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: "primary.main", lineHeight: 1.2, whiteSpace: "nowrap" }}>
-            <BrandName />
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {demo?.isDemo ? "Modo Experience • versão temporária e gratuita" : appConfig.environment}
-          </Typography>
-        </Box>
 
-        <Box sx={{ position: "relative", display: { xs: "none", sm: "block" }, width: { xs: "100%", sm: 360, md: 440 }, maxWidth: 520, minWidth: 0, flexShrink: 1 }}>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Pesquisar módulos...  /"
-            value={search}
-            inputRef={searchRef}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
-            onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && results[0]) goTo(results[0].path);
-              if (event.key === "Escape") {
-                setSearch("");
-                searchRef.current?.blur();
-              }
-            }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+        <Typography noWrap sx={{ fontWeight: 800, fontSize: { xs: 14, sm: 17 }, flexGrow: 1, minWidth: 0 }}>
+          {titulo}
+        </Typography>
 
-          {searchFocused && search.trim() && (
-            <Paper
-              elevation={8}
-              sx={{
-                position: "absolute",
-                top: "calc(100% + 8px)",
-                left: 0,
-                right: 0,
-                zIndex: 1500,
-                overflow: "hidden",
-                border: "1px solid",
-                borderColor: "divider",
-              }}
-            >
-              {results.length ? (
-                results.map((entry) => (
-                  <ButtonBase
-                    key={`${entry.group}-${entry.label}-${entry.path}`}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => goTo(entry.path)}
-                    sx={{ width: "100%", display: "block", textAlign: "left", px: 2, py: 1.25, borderBottom: "1px solid", borderColor: "divider", "&:last-of-type": { borderBottom: 0 } }}
-                  >
-                    <Typography sx={{ fontWeight: 800 }}>{entry.label}</Typography>
-                    <Typography variant="caption" color="text.secondary">{entry.group}</Typography>
-                  </ButtonBase>
-                ))
-              ) : (
-                <Box sx={{ px: 2, py: 2 }}>
-                  <Typography variant="body2" color="text.secondary">Nenhum módulo encontrado.</Typography>
-                </Box>
-              )}
-            </Paper>
-          )}
-        </Box>
+        <Typography noWrap sx={{ display: { xs: "none", sm: "block" }, fontWeight: 600, fontSize: 13, color: "text.secondary", maxWidth: 160 }}>
+          {displayName}
+        </Typography>
 
-        <Box sx={{ flexGrow: 1 }} />
-
-        <Tooltip title={"Imprimir esta tela (ou salvar como PDF)"}>
-          <IconButton onClick={() => window.print()} sx={{ display: { xs: "none", sm: "inline-flex" } }}>
-            <PrintOutlinedIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title={"Relatar problema ou sugestão"}>
-          <IconButton onClick={() => setFeedbackOpen(true)} sx={{ color: "warning.main", display: { xs: "none", sm: "inline-flex" } }}>
-            <FeedbackOutlinedIcon />
-          </IconButton>
-        </Tooltip>
-        <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-        <Tooltip title={mode === "light" ? "Ativar modo escuro" : "Ativar modo claro"}>
-          <IconButton onClick={toggleMode} sx={{ display: { xs: "none", sm: "inline-flex" } }}>
-            {mode === "light" ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}
-          </IconButton>
-        </Tooltip>
-
-        {eduPath && !["STUDENT", "CLIENTE_CONTABIL"].includes(String(sessionUser?.role || "").toUpperCase()) ? <MensagensBadge /> : null}
-
-        {!demo?.isDemo ? (
-          <Tooltip title="Abrir notificações">
-            <IconButton onClick={() => navigate("/notificacoes")}>
-              <Badge badgeContent={unreadCount} color="error">
-                <NotificationsNoneIcon />
-              </Badge>
-            </IconButton>
-          </Tooltip>
-        ) : null}
-
-        <Tooltip title="Sair com segurança">
-          <IconButton
-            onClick={() => endSession()}
-          >
-            <LogoutIcon />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title={eduPath ? "Logomarca da instituição (altere em Identidade e logomarcas)" : clinicLogo ? "Logo da clínica" : "Espaço para a logo da sua clínica"}>
-          {eduPath ? (
-            <Box sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center", px: 1.5, py: 0.5, borderLeft: "1px solid", borderRight: "1px solid", borderColor: "divider", minWidth: 150 }}>
-              <InstitutionLogo variant="header" onPlaceholderClick={() => navigate("/edu/identidade")} />
-            </Box>
-          ) : clinicLogo ? (
-            <Box component="img" src={clinicLogo} alt="Logo da clinica" sx={{ height: 40, maxWidth: 120, objectFit: "contain", borderRadius: 1 }} />
-          ) : (
-            <Box sx={{ height: 40, px: 1.25, display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 0.75, border: "1px dashed", borderColor: "divider", borderRadius: 2, color: "text.secondary" }}>
-              <LocalHospitalOutlinedIcon fontSize="small" />
-              <Typography variant="caption" sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>{EDU_ONLY ? "Sua instituição" : "Sua clínica"}</Typography>
-            </Box>
-          )}
-        </Tooltip>
         <Tooltip title={sessionUser ? `${sessionUser.firstName} ${sessionUser.lastName}` : "Perfil do usuário"}>
-          <ButtonBase
-            aria-label="Menu do usuário"
-            aria-haspopup="menu"
-            onClick={(event) => setMenuAnchor(event.currentTarget)}
-            sx={{ borderRadius: "50%" }}
-          >
-            <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>{initials}</Avatar>
+          <ButtonBase aria-label="Perfil do usuário" aria-haspopup="menu" onClick={openMenu} sx={{ borderRadius: "50%" }}>
+            <Avatar sx={{ bgcolor: "primary.main", width: 36, height: 36, fontSize: 14 }}>{initials}</Avatar>
           </ButtonBase>
         </Tooltip>
-        <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-          <MenuItem
-            onClick={() => {
-              setMenuAnchor(null);
-              navigate("/seguranca");
-            }}
-          >
+
+        <Tooltip title="Opções da conta">
+          <IconButton aria-label="Opções da conta" aria-haspopup="menu" onClick={openMenu} edge="end">
+            <Badge badgeContent={totalAvisos} color="error" max={99}>
+              <MenuIcon />
+            </Badge>
+          </IconButton>
+        </Tooltip>
+
+        <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu} anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
+          <Box sx={{ px: 2, py: 1.25, minWidth: 220 }}>
+            <Typography sx={{ fontWeight: 800, fontSize: 14, lineHeight: 1.2 }}>{displayName}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {demo?.isDemo ? "Demo / Administrador" : sessionUser?.role || "Usuário"}
+            </Typography>
+          </Box>
+          <Divider />
+
+          {podeVerMensagens && (
+            <MenuItem onClick={() => { closeMenu(); navigate("/edu/mensagens"); }}>
+              <ListItemIcon>
+                <Badge badgeContent={msgCount} color={resumoMsg?.pedidos.total ? "error" : "primary"} max={99}>
+                  <ForumOutlinedIcon fontSize="small" />
+                </Badge>
+              </ListItemIcon>
+              <ListItemText>Mensageiro interno</ListItemText>
+            </MenuItem>
+          )}
+
+          {!demo?.isDemo && (
+            <MenuItem onClick={() => { closeMenu(); navigate("/notificacoes"); }}>
+              <ListItemIcon>
+                <Badge badgeContent={unreadCount} color="error" max={99}>
+                  <NotificationsNoneIcon fontSize="small" />
+                </Badge>
+              </ListItemIcon>
+              <ListItemText>Notificações</ListItemText>
+            </MenuItem>
+          )}
+
+          <MenuItem onClick={() => { closeMenu(); navigate("/seguranca"); }}>
             <ListItemIcon><SecurityOutlinedIcon fontSize="small" /></ListItemIcon>
-            Segurança da conta
+            <ListItemText>Segurança da conta</ListItemText>
           </MenuItem>
-          <MenuItem onClick={() => endSession()}>
+
+          <MenuItem onClick={() => { closeMenu(); window.print(); }}>
+            <ListItemIcon><PrintOutlinedIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Imprimir esta tela</ListItemText>
+          </MenuItem>
+
+          <MenuItem onClick={() => { closeMenu(); setFeedbackOpen(true); }}>
+            <ListItemIcon><FeedbackOutlinedIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Relatar problema ou sugestão</ListItemText>
+          </MenuItem>
+
+          <MenuItem onClick={() => { closeMenu(); toggleMode(); }}>
+            <ListItemIcon>{mode === "light" ? <DarkModeOutlinedIcon fontSize="small" /> : <LightModeOutlinedIcon fontSize="small" />}</ListItemIcon>
+            <ListItemText>{mode === "light" ? "Ativar modo escuro" : "Ativar modo claro"}</ListItemText>
+          </MenuItem>
+
+          <Divider />
+          <MenuItem onClick={() => { closeMenu(); endSession(); }}>
             <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-            Sair
+            <ListItemText>Sair</ListItemText>
           </MenuItem>
         </Menu>
+
+        <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       </Toolbar>
     </AppBar>
   );

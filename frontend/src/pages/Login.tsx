@@ -324,13 +324,21 @@ export default function Login() {
           backdropFilter: "blur(18px)",
         }}
       >
-        <Typography variant="overline" color="primary" sx={{ fontWeight: 900 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+          {EDU_ONLY ? (
+            <Box aria-label={MARCA_TOPO} sx={{ width: 72, height: 72, borderRadius: "50%", boxShadow: "0 4px 18px rgba(15,23,42,.28)", display: "grid", placeItems: "center", color: "#fff", fontWeight: 900, fontSize: 24, background: "linear-gradient(135deg,#0F5FDB,#6366F1)" }}>EM</Box>
+          ) : (
+            <Box component="img" src={`${import.meta.env.BASE_URL}brand/logo-leao.png`} alt={MARCA_TOPO} sx={{ width: 72, height: 72, borderRadius: "50%", boxShadow: "0 4px 18px rgba(15,23,42,.28)" }} />
+          )}
+        </Box>
+
+        <Typography variant="overline" color="primary" align="center" sx={{ fontWeight: 900, display: "block" }}>
           {MARCA_TOPO}
         </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 950 }}>
+        <Typography variant="h4" align="center" sx={{ fontWeight: 950 }}>
           Bem-vindo
         </Typography>
-        <Typography color="text.secondary" sx={{ mb: 3 }}>
+        <Typography color="text.secondary" align="center" sx={{ mb: 3 }}>
           {EDU_ONLY ? "Acesso seguro e individualizado da sua instituição." : "Acesso seguro e individualizado da sua clínica."}
         </Typography>
 

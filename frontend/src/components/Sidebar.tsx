@@ -1,12 +1,11 @@
 import { APP_NAME, EDU_ONLY } from "../config/appMode";
 import {
-  Avatar, Box, Collapse, Divider, IconButton, List, ListItemButton, ListItemIcon,
+  Avatar, Box, Collapse, Divider, Drawer, IconButton, List, ListItemButton, ListItemIcon,
   ListItemText, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button
 } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import MenuOpenIcon from "@mui/icons-material/MenuOpen";
-import MenuIcon from "@mui/icons-material/Menu";
+import CloseIcon from "@mui/icons-material/Close";
 import SchoolIcon from "@mui/icons-material/School";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -39,7 +38,6 @@ function cursosDoSetor(todos:CursoMenu[],tipo:string):CursoMenu[]{
   return todos.filter(c=>pos(c)&&ead(c));
 }
 const OPEN_GROUPS_KEY = "dentalpos.navigation.open-groups.v2";
-const COLLAPSED_KEY = "dentalpos.navigation.collapsed.v2";
 const AGENDAMENTO_ONLINE_PATH = "/agendamento-online";
 
 function pathMatches(target:string, pathname:string, search:string){
@@ -55,12 +53,9 @@ export default function Sidebar(){
   const location=useLocation();
   const demo=readDemoAccess();
   const sessionUser=readSessionUser();
-  const isDesign=location.pathname==="/design"||location.pathname.startsWith("/design/");
-  const [collapsed,setCollapsed]=useState(()=>{
-    if(isDesign)return true;
-    const saved=localStorage.getItem(COLLAPSED_KEY);
-    return saved===null ? true : saved==="1"; // compacto por padrão
-  });
+const isDesign=location.pathname==="/design"||location.pathname.startsWith("/design/");
+  // Menu lateral: escondido por padrão (tela limpa), abre como gaveta sobreposta ao clicar no hambúrguer do cabeçalho.
+  const [open,setOpen]=useState(false);
   const [showInDevelopment,setShowInDevelopment]=useState(false);
 
   // No EXPERIENCE, nenhum item deve desaparecer do menu — apenas deduplicado.
@@ -112,10 +107,9 @@ export default function Sidebar(){
     ]));
   },[]);
   useEffect(()=>{try{localStorage.setItem(OPEN_SETOR_KEY,setorAberto)}catch{}},[setorAberto]);
-  useEffect(()=>{if(isDesign)setCollapsed(true)},[isDesign]);
-  // Botão de menu (hambúrguer) do topo: abre/fecha o menu lateral.
-  useEffect(()=>{const h=()=>setCollapsed(v=>!v);window.addEventListener("edu:toggle-menu",h);return()=>window.removeEventListener("edu:toggle-menu",h)},[]);
-  useEffect(()=>{localStorage.setItem(COLLAPSED_KEY,collapsed?"1":"0")},[collapsed]);
+  // Botão de menu (hambúrguer) do cabeçalho: abre/fecha a gaveta do menu lateral.
+  useEffect(()=>{const h=()=>setOpen(v=>!v);window.addEventListener("edu:toggle-menu",h);return()=>window.removeEventListener("edu:toggle-menu",h)},[]);
+  useEffect(()=>{if(isDesign)setOpen(false)},[isDesign]);
   useEffect(()=>{
     if(activeGroup)setOpenGroups({[activeGroup]:true}); // somente um grupo aberto
     const g=visibleGroups.find(x=>x.label===activeGroup);
@@ -123,7 +117,7 @@ export default function Sidebar(){
   },[activeGroup,visibleGroups]);
   useEffect(()=>{localStorage.setItem(OPEN_GROUPS_KEY,JSON.stringify(openGroups))},[openGroups]);
 
-  const sidebarWidth=collapsed?58:224;
+  const sidebarWidth=264;
   const initials=`${sessionUser?.firstName?.[0]||""}${sessionUser?.lastName?.[0]||""}`.toUpperCase()||(EDU_ONLY?"EM":"DP");
   const displayName=[sessionUser?.firstName,sessionUser?.lastName].filter(Boolean).join(" ")||"Usuário";
   const roleLabel=demo?.isDemo?"Demo / Administrador":sessionUser?.role||"Usuário";
@@ -148,25 +142,9 @@ export default function Sidebar(){
     navigate(path);
   }
 
-  function handleGroupClick(group:typeof visibleGroups[number]){
-    const current=group.items.find(i=>pathMatches(i.path,location.pathname,location.search));
-    handleItemClick((current||group.items[0]).path);
-  }
-
   const renderGrupo=(group:typeof visibleGroups[number],plano?:boolean)=>{
         const selected=group.items.some(i=>pathMatches(i.path,location.pathname,location.search));
         const open=Boolean(openGroups[group.label]);
-
-        if(collapsed){
-          return <Tooltip key={group.label} title={group.label} placement="right" arrow>
-            <ListItemButton onClick={()=>handleGroupClick(group)} selected={selected} sx={{
-              mb:.3,minHeight:42,borderRadius:2,justifyContent:"center",px:.5,color:selected?"#fff":"#CBD5E1",
-              "&.Mui-selected":{bgcolor:"#1976D2"},"&:hover":{bgcolor:"#1E293B",color:"#fff"}
-            }}>
-              <ListItemIcon sx={{color:"inherit",minWidth:0,justifyContent:"center"}}>{group.icon}</ListItemIcon>
-            </ListItemButton>
-          </Tooltip>
-        }
 
         // Grupo com um único item (ex.: Laboratório) vira um botão direto, sem submenu.
         if(group.items.length===1){
@@ -215,34 +193,27 @@ export default function Sidebar(){
 
   const daysRemaining=demo?.daysRemaining??0;
 
-  return <Box component="aside" sx={{
-    width:sidebarWidth,minWidth:sidebarWidth,height:"100vh",bgcolor:"#0F172A",color:"#fff",
-    display:"flex",flexDirection:"column",position:"sticky",top:0,overflowY:"auto",overflowX:"visible",
-    transition:"width .2s ease,min-width .2s ease",flexShrink:0
+  return <Drawer variant="temporary" anchor="left" open={open} onClose={()=>setOpen(false)} slotProps={{
+    root:{keepMounted:true},
+    paper:{sx:{width:sidebarWidth,bgcolor:"#0F172A",color:"#fff",display:"flex",flexDirection:"column"}},
   }}>
-    <Tooltip title={collapsed?"Expandir menu":"Recolher menu"} placement="right">
-      <IconButton onClick={()=>setCollapsed(v=>!v)} size="small" sx={{
-        position:"fixed",left:sidebarWidth-13,top:72,zIndex:1400,width:26,height:42,
-        borderRadius:"0 10px 10px 0",bgcolor:"#0F172A",color:"#fff",border:"1px solid #334155",
-        transition:"left .2s ease","&:hover":{bgcolor:"primary.main"}
-      }}>
-        {collapsed?<MenuIcon fontSize="small"/>:<MenuOpenIcon fontSize="small"/>}
+    <Box sx={{display:"flex",justifyContent:"flex-end",px:1,pt:1}}>
+      <IconButton onClick={()=>setOpen(false)} size="small" sx={{color:"#94A3B8"}}>
+        <CloseIcon fontSize="small"/>
       </IconButton>
-    </Tooltip>
+    </Box>
 
-    <Box sx={{px:collapsed?.5:1.5,pt:1.2,pb:1,textAlign:"center"}}>
-      <Avatar sx={{width:collapsed?34:48,height:collapsed?34:48,mx:"auto",mb:collapsed?0:.8,bgcolor:"primary.main",fontSize:14}}>
+    <Box sx={{px:1.5,pt:.2,pb:1,textAlign:"center"}}>
+      <Avatar sx={{width:48,height:48,mx:"auto",mb:.8,bgcolor:"primary.main",fontSize:14}}>
         {initials}
       </Avatar>
-      {!collapsed&&<>
-        <Typography sx={{fontWeight:800,fontSize:14,lineHeight:1.2}}>{displayName}</Typography>
-        <Typography sx={{color:"#94A3B8",fontSize:11}}>{roleLabel}</Typography>
-      </>}
+      <Typography sx={{fontWeight:800,fontSize:14,lineHeight:1.2}}>{displayName}</Typography>
+      <Typography sx={{color:"#94A3B8",fontSize:11}}>{roleLabel}</Typography>
     </Box>
     <Divider sx={{borderColor:"#334155"}}/>
-    {EDU_ONLY&&<><AlertasMenu collapsed={collapsed} offsetLeft={sidebarWidth}/><Divider sx={{borderColor:"#334155"}}/></>}
+    {EDU_ONLY&&<><AlertasMenu collapsed={false} offsetLeft={sidebarWidth}/><Divider sx={{borderColor:"#334155"}}/></>}
 
-    <List sx={{mt:.5,px:collapsed?.4:.7}}>
+    <List sx={{mt:.5,px:.7,overflowY:"auto"}}>
       {!EDU_ONLY&&visibleGroups.map(g=>renderGrupo(g))}
       {EDU_ONLY&&SETORES.map(setor=>{
         const grupos=visibleGroups.filter(g=>g.setor===setor.nome);
@@ -250,13 +221,6 @@ export default function Sidebar(){
         if(!grupos.length&&!doSetor.length)return null;
         const aberto=setorAberto===setor.nome;
         const ativo=grupos.some(g=>g.items.some(i=>pathMatches(i.path,location.pathname,location.search)));
-        if(collapsed){
-          return <Tooltip key={setor.nome} title={setor.nome} placement="right" arrow>
-            <ListItemButton onClick={()=>{setCollapsed(false);setSetorAberto(setor.nome)}} selected={ativo} sx={{mb:.3,minHeight:42,borderRadius:2,justifyContent:"center",px:.5,color:ativo?"#fff":"#CBD5E1","&.Mui-selected":{bgcolor:"#1976D2"},"&:hover":{bgcolor:"#1E293B",color:"#fff"}}}>
-              <ListItemIcon sx={{color:"inherit",minWidth:0,justifyContent:"center"}}>{setor.icon}</ListItemIcon>
-            </ListItemButton>
-          </Tooltip>
-        }
         return <Box key={setor.nome} sx={{mb:.4}}>
           <ListItemButton onClick={()=>setSetorAberto(aberto?"":setor.nome)} sx={{borderRadius:2,minHeight:42,color:ativo?"#fff":"#E2E8F0",bgcolor:aberto?"rgba(25,118,210,.18)":"transparent","&:hover":{bgcolor:"#1E293B"}}}>
             <ListItemIcon sx={{color:"inherit",minWidth:34}}>{setor.icon}</ListItemIcon>
@@ -283,44 +247,28 @@ export default function Sidebar(){
     <Box sx={{flexGrow:1}}/>
 
     {demo?.isDemo ? (
-      collapsed ? (
-        <Tooltip title={`${daysRemaining} dia${daysRemaining===1?"":"s"} restante${daysRemaining===1?"":"s"} — Assinar ${APP_NAME}`} placement="right">
-          <IconButton
-            onClick={()=>window.open(demoSalesUrl(),"_blank")}
-            size="small"
-            sx={{
-              mx:"auto",mb:1.5,width:34,height:34,borderRadius:"50%",
-              bgcolor:"#1976D2",color:"#fff","&:hover":{bgcolor:"#1565C0"}
-            }}
-          >
-            <Typography sx={{fontSize:11,fontWeight:800}}>{daysRemaining}</Typography>
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <Box sx={{mx:1,mb:1.5,p:1.5,borderRadius:2,bgcolor:"#1E293B",border:"1px solid #334155"}}>
-          <Typography sx={{fontSize:10.5,color:"#94A3B8",fontWeight:800,letterSpacing:.4,mb:.4}}>
-            MODO EXPERIENCE
-          </Typography>
-          <Typography sx={{fontSize:13,fontWeight:800,mb:1}}>
-            {/* aviso */}{daysRemaining>0
-              ? `${daysRemaining} dia${daysRemaining===1?"":"s"} restante${daysRemaining===1?"":"s"}`
-              : "Período encerrado"}
-          </Typography>
-          <Button
-            fullWidth
-            size="small"
-            variant="contained"
-            href={demoSalesUrl()}
-            sx={{fontSize:12,fontWeight:800,textTransform:"none"}}
-          >
-            Assinar {APP_NAME}
-          </Button>
-        </Box>
-      )
+      <Box sx={{mx:1,mb:1.5,p:1.5,borderRadius:2,bgcolor:"#1E293B",border:"1px solid #334155"}}>
+        <Typography sx={{fontSize:10.5,color:"#94A3B8",fontWeight:800,letterSpacing:.4,mb:.4}}>
+          MODO EXPERIENCE
+        </Typography>
+        <Typography sx={{fontSize:13,fontWeight:800,mb:1}}>
+          {daysRemaining>0
+            ? `${daysRemaining} dia${daysRemaining===1?"":"s"} restante${daysRemaining===1?"":"s"}`
+            : "Período encerrado"}
+        </Typography>
+        <Button
+          fullWidth
+          size="small"
+          variant="contained"
+          href={demoSalesUrl()}
+          sx={{fontSize:12,fontWeight:800,textTransform:"none"}}
+        >
+          Assinar {APP_NAME}
+        </Button>
+      </Box>
     ) : (
       <Box sx={{py:1.2,textAlign:"center",color:"#64748B",whiteSpace:"nowrap"}}>
-        {collapsed?<Typography sx={{fontSize:9,fontWeight:800}}>{EDU_ONLY?"EM":"DP"}</Typography>:
-          <Typography sx={{fontSize:10.5}}><BrandName/> • {appConfig.version}</Typography>}
+        <Typography sx={{fontSize:10.5}}><BrandName/> • {appConfig.version}</Typography>
       </Box>
     )}
 
@@ -333,5 +281,5 @@ export default function Sidebar(){
         <Button onClick={()=>setShowInDevelopment(false)}>Voltar</Button>
       </DialogActions>
     </Dialog>
-  </Box>
+  </Drawer>
 }
