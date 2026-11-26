@@ -28,7 +28,7 @@ const PRIORITY: Record<string, string> = { URGENT: "Urgente", HIGH: "Alta", NORM
 const BUDGET_STATUS: Record<string, string> = { PENDING: "Pendente", APPROVED: "Aprovado", CANCELLED: "Cancelado", REJECTED: "Recusado", EXPIRED: "Vencido" };
 const PAYMENT_METHODS = ["PIX", "Cartão", "Boleto", "Transferência", "Dinheiro", "Promissória", "Cheque"];
 const EMPTY_ITEM = { procedure: "", tooth: "", region: "", phase: "1", priority: "NORMAL", specialty: "", professionalName: "", estimatedMinutes: 60, unitValue: "", laboratoryRequired: false, status: "PLANNED" };
-const EMPTY_TERMS = { discountPercent: "0", entryAmount: "", installments: "1", paymentMethod: "PIX", validDays: "30" };
+const EMPTY_TERMS = { discountPercent: "0", discountValue: "", entryAmount: "", installments: "1", paymentMethod: "PIX", validDays: "30" };
 const txt = (v: unknown) => (v === undefined || v === null ? "" : String(v));
 
 function buildContract(p: BackendPatient | undefined, b: BudgetExtra, list: TreatmentPlanItem[], professional: string) {
@@ -127,8 +127,14 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeItems, scope, chosenItems, budgetTotal]);
-  const discount = Math.min(100, Math.max(0, Number(terms.discountPercent.replace(",", ".")) || 0));
-  const finalTotal = Math.round(budgetTotal * (1 - discount / 100) * 100) / 100;
+  // Desconto em % ou em R$ (o que for digitado por último vale; o outro é calculado).
+  const [discMode, setDiscMode] = useState<"pct" | "val">("pct");
+  const discValueNum = Math.min(budgetTotal, Math.max(0, parseBRL(terms.discountValue) || 0));
+  const discount = discMode === "val"
+    ? (budgetTotal > 0 ? Math.round((discValueNum / budgetTotal) * 1000000) / 10000 : 0)
+    : Math.min(100, Math.max(0, Number(terms.discountPercent.replace(",", ".")) || 0));
+  const discountInMoney = discMode === "val" ? discValueNum : Math.round(budgetTotal * (discount / 100) * 100) / 100;
+  const finalTotal = Math.round((budgetTotal - discountInMoney) * 100) / 100;
   const entry = Math.min(finalTotal, parseBRL(terms.entryAmount) || 0);
   const installments = Math.max(1, Number(terms.installments) || 1);
   const installmentValue = Math.round(((finalTotal - entry) / installments) * 100) / 100;
@@ -205,7 +211,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
       optionsJson: { treatmentItemIds: chosenItems.map((i) => i.id), grossTotal: budgetTotal, versioned: true, scope, alternatives, limitedPlanAcknowledged: limited ? ack : undefined },
     });
     setBudgetOpen(false);
-    setTerms(EMPTY_TERMS);
+    setTerms(EMPTY_TERMS); setDiscMode("pct");
     setScope("FULL"); setPicked([]); setAck(false);
   }, "Orçamento gerado.");
 
@@ -465,7 +471,8 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
           <Typography>{`Soma dos procedimentos orçados: ${money(budgetTotal)}`}</Typography>
           {budgetTotal <= 0 && <Alert severity="warning">{"Informe o valor dos procedimentos para gerar o orçamento."}</Alert>}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-            <TextField label="Desconto (%)" value={terms.discountPercent} onChange={(e) => setTerms({ ...terms, discountPercent: e.target.value.replace(/[^\d.,]/g, "") })} slotProps={{ htmlInput: { inputMode: "decimal" } }} />
+            <TextField label="Desconto (%)" value={discMode === "pct" ? terms.discountPercent : (discount ? String(discount).replace(".", ",") : "")} onChange={(e) => { setDiscMode("pct"); setTerms({ ...terms, discountPercent: e.target.value.replace(/[^\d.,]/g, ""), discountValue: "" }); }} helperText={discMode === "pct" && discount > 0 ? `= ${money(discountInMoney)} de desconto` : undefined} slotProps={{ htmlInput: { inputMode: "decimal" } }} />
+            <TextField label="Desconto (R$)" placeholder="0,00" value={discMode === "val" ? terms.discountValue : (discountInMoney ? formatBRL(String(discountInMoney).replace(".", ",")) : "")} onChange={(e) => { setDiscMode("val"); setTerms({ ...terms, discountValue: e.target.value.replace(/[^\d.,]/g, ""), discountPercent: "0" }); }} onBlur={() => discMode === "val" && setTerms((t) => ({ ...t, discountValue: formatBRL(t.discountValue) }))} helperText={discMode === "val" && discount > 0 ? `= ${String(discount).replace(".", ",")}% do total` : "Use este campo se o desconto for um valor fechado"} slotProps={{ htmlInput: { inputMode: "decimal" } }} />
             <TextField label="Entrada (R$)" placeholder="0,00" value={terms.entryAmount} onChange={(e) => setTerms({ ...terms, entryAmount: e.target.value.replace(/[^\d.,]/g, "") })} onBlur={() => setTerms((t) => ({ ...t, entryAmount: formatBRL(t.entryAmount) }))} slotProps={{ htmlInput: { inputMode: "decimal" }, input: { startAdornment: <InputAdornment position="start">R$</InputAdornment> } }} />
             <TextField select label="Parcelas" value={terms.installments} onChange={(e) => setTerms({ ...terms, installments: e.target.value })}>
               {Array.from({ length: 24 }, (_, k) => String(k + 1)).map((n) => <MenuItem key={n} value={n}>{`${n}x`}</MenuItem>)}
