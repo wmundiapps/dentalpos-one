@@ -17,6 +17,8 @@ import { validarSenhaForte } from '../modules/seguranca/senha'
 import { registrarEvento, ipDaRequisicao } from '../modules/seguranca/eventos'
 import { bloqueioLogin, falhaLogin, sucessoLogin, desafioSegundoFator } from '../modules/seguranca/login'
 import { desafioDispositivo } from '../modules/seguranca/dispositivos'
+import { checkNewDevice, createSession } from '../services/securityService'
+import { issueLoginTicket, readLoginTicket, twoFactorEnabled, verifySecondFactor } from '../services/twoFactorService'
 
 function jwtSecret() {
   const secret = process.env.JWT_SECRET
@@ -36,7 +38,7 @@ export function generateToken(user: {
   tenantId: string
   role: string
   accessExpiresAt?: Date | null
-}) {
+}, sid?: string) {
   let expiresIn = (process.env.JWT_EXPIRES_IN || '8h') as SignOptions['expiresIn']
   // Acesso de convidado: a sessão nunca passa da data de expiração do acesso.
   if (user.accessExpiresAt) {
@@ -52,7 +54,8 @@ export function generateToken(user: {
       email: user.email,
       clinicId: user.clinicId,
       tenantId: user.tenantId,
-      role: user.role
+      role: user.role,
+      ...(sid ? { sid } : {})
     },
     jwtSecret(),
     { expiresIn }
@@ -110,7 +113,7 @@ export async function register(req: Request, res: Response) {
       clinicId: user.clinicId,
       tenantId: user.tenantId,
       role: user.role
-    })
+    }, await createSession({ id: user.id, clinicId: user.clinicId, tenantId: user.tenantId }, req))
 
     return res.status(201).json({
       message: 'Usuário criado com sucesso.',
@@ -161,6 +164,40 @@ export async function resolverIdentificador(req: Request, res: Response, next: N
     console.error(error)
     res.status(500).json({ error: 'Erro interno do servidor.' })
   }
+}
+
+// Abre a sessão pelo fluxo de 2FA mais antigo (ticket + /auth/login/2fa, usado pelas clínicas que já tinham
+// a verificação em duas etapas configurada antes da aprovação de dispositivo/2FA do EduMaster).
+async function finishLogin(req: Request, res: Response, user: any, demo: unknown) {
+  // O aviso de aparelho novo olha os logins anteriores, por isso vem antes de registrar este.
+  await checkNewDevice({ id: user.id, clinicId: user.clinicId, tenantId: user.tenantId }, req)
+  const sid = await createSession({ id: user.id, clinicId: user.clinicId, tenantId: user.tenantId }, req)
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    clinicId: user.clinicId,
+    tenantId: user.tenantId,
+    role: user.role
+  }, sid)
+
+  try {
+    await writeAudit({
+      clinicId: user.clinicId,
+      tenantId: user.tenantId,
+      actorId: user.id,
+      module: 'auth',
+      action: 'LOGIN',
+      entityType: 'User',
+      entityId: user.id,
+      summary: 'Login realizado com sucesso.',
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined
+    })
+  } catch (auditError) {
+    console.warn('Falha ao registrar auditoria de login:', auditError)
+  }
+
+  return res.json({ token, user: safeUser(user), demo })
 }
 
 export async function login(req: Request, res: Response) {
@@ -235,12 +272,21 @@ export async function login(req: Request, res: Response) {
     const desafio = await desafioSegundoFator(req, user)
     if (desafio) return res.json(desafio)
 
+    // Conta com a verificação em 2 etapas mais antiga (configurada em Configurações > Segurança): idem.
+    if (await twoFactorEnabled(user.id)) {
+      return res.json({ twoFactorRequired: true, ticket: issueLoginTicket(user.id) })
+    }
+
     // Dispositivo novo (fingerprint do navegador nunca visto para este usuário): aguarda aprovação do dono da conta.
     const desafioDisp = await desafioDispositivo(req, user, req.body?.fingerprint)
     if (desafioDisp) return res.json(desafioDisp)
 
+    // Aviso (não bloqueia) de aparelho/rede novos — cobre quem não usa a aprovação de dispositivo do EduMaster.
+    void checkNewDevice({ id: user.id, clinicId: user.clinicId, tenantId: user.tenantId }, req)
+
     await sucessoLogin(req, normalizedEmail)
-    return res.json(await concluirLogin(req, user, demo))
+    const sid = await createSession({ id: user.id, clinicId: user.clinicId, tenantId: user.tenantId }, req)
+    return res.json(await concluirLogin(req, user, demo, undefined, sid))
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro interno do servidor.' })
@@ -252,7 +298,8 @@ export async function concluirLogin(
   req: Request,
   user: { id: string; email: string; clinicId: string; tenantId: string; role: string; password?: unknown; accessExpiresAt?: Date | null },
   demo: unknown,
-  resumo = 'Login realizado com sucesso.'
+  resumo = 'Login realizado com sucesso.',
+  sid?: string
 ) {
   const token = generateToken({
     id: user.id,
@@ -261,7 +308,7 @@ export async function concluirLogin(
     tenantId: user.tenantId,
     role: user.role,
     accessExpiresAt: user.accessExpiresAt
-  })
+  }, sid)
 
   try {
     await writeAudit({
@@ -292,7 +339,7 @@ function hashResetToken(token: string) {
 }
 
 function passwordResetBaseUrl() {
-  const configured = String(process.env.PUBLIC_APP_URL || '').trim() || 'https://app.dentalpos.com.br'
+  const configured = String(process.env.PUBLIC_APP_URL || '').trim() || 'https://app.completodonto.com.br'
   return configured.endsWith('/') ? configured : `${configured}/`
 }
 
@@ -537,5 +584,40 @@ export async function resetPassword(req: Request, res: Response) {
   } catch (error) {
     console.error('Erro ao redefinir senha:', error)
     return res.status(500).json({ error: 'Não foi possível redefinir a senha.' })
+  }
+}
+
+
+// Segundo passo do login: bilhete da senha + código do aplicativo (ou código reserva).
+const secondFactorTries = new Map<string, { count: number; until: number }>()
+
+export async function login2fa(req: Request, res: Response) {
+  try {
+    const userId = readLoginTicket(String(req.body?.ticket || ''))
+    if (!userId) return res.status(401).json({ error: 'A confirmação expirou. Entre de novo com e-mail e senha.' })
+    const lock = secondFactorTries.get(userId)
+    if (lock && lock.until > Date.now()) return res.status(429).json({ error: 'Muitas tentativas. Aguarde alguns minutos.' })
+    const user = await prisma.user.findFirst({ where: { id: userId, isActive: true } })
+    if (!user) return res.status(401).json({ error: 'Usuário ou código inválidos.' })
+
+    const how = await verifySecondFactor(user.id, String(req.body?.code || ''))
+    if (!how) {
+      const f = secondFactorTries.get(userId) || { count: 0, until: 0 }
+      f.count += 1
+      if (f.count >= 5) { f.until = Date.now() + 10 * 60 * 1000; f.count = 0 }
+      secondFactorTries.set(userId, f)
+      return res.status(401).json({ error: 'Código não confere. Digite o código que aparece agora no aplicativo.' })
+    }
+    secondFactorTries.delete(userId)
+
+    const demo = await getDemoAccess(user.clinicId)
+    if (demo.isDemo && demo.phase === 'ENDED') {
+      return res.status(403).json({ code: 'DEMO_ENDED', error: 'A demonstração gratuita foi encerrada. Seus dados permanecem preservados. Solicite uma proposta para reativar o acesso.', demo })
+    }
+    if (how === 'backup') console.warn(`Login com código reserva de 2 etapas: usuário ${user.id}`)
+    return finishLogin(req, res, user, demo)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro interno do servidor.' })
   }
 }

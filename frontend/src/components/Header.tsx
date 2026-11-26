@@ -7,17 +7,22 @@ import {
   ButtonBase,
   Divider,
   IconButton,
+  InputAdornment,
   ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
+  Paper,
+  TextField,
   Toolbar,
   Tooltip,
   Typography,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -26,14 +31,19 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import FeedbackDialog from "./FeedbackDialog";
-import { useMemo, useState } from "react";
+import { openAlerts } from "./alerts/AlertsMenu";
+import { useCriticalAlerts } from "../hooks/useCriticalAlerts";
+import { useLabPendingCount } from "./LabReceiptNotices";
+import { usePendingCount } from "../services/PendingAlertsApi";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { navigationGroups } from "../config/navigation";
+import { itemAllowed, useMenuAccess } from "../config/menuAccess";
 import { useAppTheme } from "../contexts/AppThemeContext";
 import { useResumo } from "../edu/mensagens/resumo";
 import { notifications } from "../services/NotificationService";
 import { endSession } from "../security/sessionGuard";
-import { readDemoAccess, readSessionUser } from "../services/DemoAccess";
+import { pathAllowedForDemo, readDemoAccess, readSessionUser } from "../services/DemoAccess";
 
 function pathname(path: string) {
   return path.split("?")[0] || "/";
@@ -66,11 +76,73 @@ export default function Header() {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const titulo = useTituloDaTela();
 
-  const unreadCount = notifications.filter((notification) => !notification.lida).length;
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const menuAccess = useMenuAccess();
+
+  const labPending = useLabPendingCount();
+  const { alerts: criticalAlerts } = useCriticalAlerts();
+  const pendingCount = usePendingCount(location.pathname);
+  const alertTotal = criticalAlerts.length + pendingCount;
+  const alertError = pendingCount > 0 || criticalAlerts.some((a) => a.severity === "error");
+
+  const unreadCount = notifications.filter((notification) => !notification.lida).length + labPending;
   const podeVerMensagens = eduPath && !["STUDENT", "CLIENTE_CONTABIL"].includes(String(sessionUser?.role || "").toUpperCase());
   const { resumo: resumoMsg } = useResumo();
   const msgCount = podeVerMensagens ? (resumoMsg?.naoLidas ?? 0) + (resumoMsg?.pedidos.total ?? 0) : 0;
-  const totalAvisos = (demo?.isDemo ? 0 : unreadCount) + msgCount;
+  const totalAvisos = (demo?.isDemo ? 0 : unreadCount) + msgCount + alertTotal;
+
+  const searchableItems = useMemo(() => {
+    const entries = navigationGroups.flatMap((group) =>
+      group.items.filter((item) => itemAllowed(item, menuAccess)).map((item) => ({ ...item, group: group.label })),
+    );
+
+    if (!demo?.isDemo) return entries;
+
+    const seen = new Set<string>();
+    return entries.filter((entry) => {
+      if (entry.path === "/agendamento-online") return false;
+      const p = entry.path.split("?")[0] || "/";
+      if (!pathAllowedForDemo(p, demo)) return false;
+      if (seen.has(entry.path)) return false;
+      seen.add(entry.path);
+      return true;
+    });
+  }, [demo?.isDemo, demo?.modules.join("|"), menuAccess]);
+
+  const searchResults = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("pt-BR");
+    if (!query) return [];
+    const unique = new Map<string, (typeof searchableItems)[number]>();
+    searchableItems.forEach((entry) => {
+      const haystack = `${entry.label} ${entry.group}`.toLocaleLowerCase("pt-BR");
+      if (haystack.includes(query)) unique.set(`${entry.label}-${entry.path}`, entry);
+    });
+    return Array.from(unique.values()).slice(0, 8);
+  }, [search, searchableItems]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const typing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if (event.key === "/" && !typing) {
+        event.preventDefault();
+        setSearchOpen(true);
+        window.setTimeout(() => searchRef.current?.focus(), 0);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const goTo = (path: string) => {
+    setSearch("");
+    setSearchFocused(false);
+    setSearchOpen(false);
+    navigate(path);
+  };
 
   const initials =
     `${sessionUser?.firstName?.[0] || ""}${sessionUser?.lastName?.[0] || ""}`.toUpperCase() || (EDU_ONLY ? "EM" : "DP");
@@ -123,6 +195,58 @@ export default function Header() {
           {titulo}
         </Typography>
 
+        <Box sx={{ position: "relative" }}>
+          <Tooltip title="Pesquisar módulos (ou tecle /)">
+            <IconButton aria-label="Pesquisar módulos" onClick={() => { setSearchOpen((v) => !v); window.setTimeout(() => searchRef.current?.focus(), 0); }}>
+              <SearchIcon />
+            </IconButton>
+          </Tooltip>
+          {searchOpen && (
+            <Paper
+              elevation={8}
+              sx={{ position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 1500, width: { xs: "min(92vw,360px)", sm: 380 }, p: 1, borderRadius: 2 }}
+            >
+              <TextField
+                fullWidth
+                autoFocus
+                size="small"
+                placeholder="Pesquisar módulos...  /"
+                value={search}
+                inputRef={searchRef}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
+                onChange={(event) => setSearch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && searchResults[0]) goTo(searchResults[0].path);
+                  if (event.key === "Escape") { setSearch(""); setSearchOpen(false); }
+                }}
+                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> } }}
+              />
+              {searchFocused && search.trim() && (
+                <Box sx={{ mt: 1, maxHeight: 320, overflowY: "auto" }}>
+                  {searchResults.length ? (
+                    searchResults.map((entry) => (
+                      <ButtonBase
+                        key={`${entry.group}-${entry.label}-${entry.path}`}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => goTo(entry.path)}
+                        sx={{ width: "100%", display: "block", textAlign: "left", px: 1.5, py: 1, borderRadius: 1, "&:hover": { bgcolor: "action.hover" } }}
+                      >
+                        <Typography sx={{ fontWeight: 800, fontSize: 13.5 }}>{entry.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">{entry.group}</Typography>
+                      </ButtonBase>
+                    ))
+                  ) : (
+                    <Box sx={{ px: 1.5, py: 1.5 }}>
+                      <Typography variant="body2" color="text.secondary">Nenhum módulo encontrado.</Typography>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </Paper>
+          )}
+        </Box>
+
         <Typography noWrap sx={{ display: { xs: "none", sm: "block" }, fontWeight: 600, fontSize: 13, color: "text.secondary", maxWidth: 160 }}>
           {displayName}
         </Typography>
@@ -160,6 +284,15 @@ export default function Header() {
               <ListItemText>Mensageiro interno</ListItemText>
             </MenuItem>
           )}
+
+          <MenuItem onClick={() => { closeMenu(); openAlerts(); }}>
+            <ListItemIcon>
+              <Badge badgeContent={alertTotal} color={alertError ? "error" : "warning"} max={99}>
+                {alertTotal ? <NotificationsActiveIcon fontSize="small" /> : <NotificationsNoneIcon fontSize="small" />}
+              </Badge>
+            </ListItemIcon>
+            <ListItemText>Alertas críticos</ListItemText>
+          </MenuItem>
 
           {!demo?.isDemo && (
             <MenuItem onClick={() => { closeMenu(); navigate("/notificacoes"); }}>

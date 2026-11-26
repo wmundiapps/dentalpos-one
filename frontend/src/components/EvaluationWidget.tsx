@@ -5,6 +5,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CloseIcon from "@mui/icons-material/Close";
 import ThumbUpAltOutlinedIcon from "@mui/icons-material/ThumbUpAltOutlined";
 import { useLocation } from "react-router-dom";
+import HelpChat from "./HelpChat";
 import { createPlatformFeedback } from "../services/PlatformFeedbackApi";
 
 // Versão antiga escondia o botão por 24h ("Agora não"). Agora ele fica sempre visível.
@@ -65,7 +66,7 @@ export default function EvaluationWidget() {
   };
 
   return (
-    <Box sx={{ position: "fixed", right: { xs: 16, md: 24 }, bottom: { xs: 16, md: 24 }, zIndex: 1300 }}>
+    <Box sx={{ position: "fixed", right: { xs: 16, md: 24 }, bottom: { xs: 16, md: 24 }, zIndex: 1300, "@media print": { display: "none" } }}>
       <Collapse in={open} unmountOnExit>
         <Paper elevation={6} sx={{ width: 300, p: 2, borderRadius: 3, mb: 1.5 }}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
@@ -124,6 +125,7 @@ export default function EvaluationWidget() {
         </Paper>
       </Collapse>
 
+      <Box sx={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
       {!open && (
         <Tooltip title="Avaliar o sistema">
           <Paper
@@ -147,6 +149,8 @@ export default function EvaluationWidget() {
           </Paper>
         </Tooltip>
       )}
+      <HelpChat onOpen={() => setOpen(false)} />
+      </Box>
     </Box>
   );
 }

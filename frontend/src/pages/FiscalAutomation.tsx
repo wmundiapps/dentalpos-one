@@ -10,6 +10,8 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ScheduleSendIcon from "@mui/icons-material/ScheduleSend";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import PageHeader from "../components/PageHeader";
+import ReceitaSaudeLoteDialog from "../components/ReceitaSaudeLoteDialog";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { FiscalApi, type FiscalAlertRow, type FiscalDoc, type FiscalRuleData, type FiscalSendRow, type FiscalSummaryData } from "../services/FiscalApi";
 
 type Cor = "default" | "success" | "info" | "warning" | "error";
@@ -44,6 +46,7 @@ export default function FiscalAutomation() {
   const [doc, setDoc] = useState<FiscalDoc | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [rules, setRules] = useState<FiscalRuleData | null>(null);
+  const [lote, setLote] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -83,9 +86,10 @@ export default function FiscalAutomation() {
         <Button variant="contained" startIcon={<AddIcon />} disabled={busy} onClick={() => void run(() => FiscalApi.sync(), (r) => `${r.criados} novo(s) documento(s) criado(s) a partir de ${r.encontrados} pagamento(s) confirmado(s).`)}>Novo processamento</Button>
         <Button variant="outlined" startIcon={<CheckCircleIcon />} disabled={busy} onClick={() => void run(() => FiscalApi.process(), (r) => `Processado: ${r.importados} importado(s), ${r.liberados} liberado(s) para emiss\u00e3o, ${r.enviados} enviado(s). ${r.aguardandoEmissao} aguardando emiss\u00e3o.`)}>{"Processar pend\u00eancias"}</Button>
         <Button variant="outlined" startIcon={<ScheduleSendIcon />} disabled={busy} onClick={async () => { try { setRules(await FiscalApi.rules()); } catch (e) { setError(e instanceof Error ? e.message : "Erro."); } }}>{"Configurar regras de emiss\u00e3o"}</Button>
+        <Button variant="outlined" startIcon={<UploadFileIcon />} disabled={busy} onClick={() => setLote(true)}>{"Receita Sa\u00fade em lote"}</Button>
       </Box>
 
-      <Alert severity="warning" sx={{ mb: 3 }}>{"Receita Sa\u00fade n\u00e3o tem integra\u00e7\u00e3o p\u00fablica: lance no app da Receita e registre o protocolo aqui. NFS-e emitida fora do sistema tamb\u00e9m \u00e9 registrada aqui, com o n\u00famero da nota."}</Alert>
+      <Alert severity="warning" sx={{ mb: 3 }}>{"Receita Sa\u00fade: gere o arquivo em lote aqui e importe no Carn\u00ea-Le\u00e3o Web (ou lance no app da Receita) e registre o n\u00famero do recibo aqui. NFS-e emitida fora do sistema tamb\u00e9m \u00e9 registrada aqui, com o n\u00famero da nota."}</Alert>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
       {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
 
@@ -190,6 +194,8 @@ export default function FiscalAutomation() {
         )}
       </Dialog>
 
+      <ReceitaSaudeLoteDialog open={lote} onClose={() => setLote(false)} onDone={() => void load()} />
+
       <Dialog open={Boolean(rules)} onClose={() => { if (!busy) setRules(null); }} fullWidth maxWidth="sm">
         <DialogTitle>{"Regras de emiss\u00e3o"}</DialogTitle>
         {rules && (
@@ -205,6 +211,8 @@ export default function FiscalAutomation() {
               <MenuItem value="RECIBO">Recibo</MenuItem>
             </TextField>
             <TextField label="Canais de envio (EMAIL, WHATSAPP, SMS)" value={rules.sendChannels} onChange={(e) => setRules({ ...rules, sendChannels: e.target.value })} helperText={"Separe por v\u00edrgula. E-mail funciona mesmo sem canal configurado."} />
+            <TextField type="email" label="E-mail do contador (recebe c\u00f3pia de cada documento)" value={rules.accountantEmail || ""} onChange={(e) => setRules({ ...rules, accountantEmail: e.target.value })} />
+            <TextField type="email" label="E-mail do administrativo (recebe c\u00f3pia de cada documento)" value={rules.adminEmail || ""} onChange={(e) => setRules({ ...rules, adminEmail: e.target.value })} />
             <TextField label={"C\u00f3digo do servi\u00e7o (NFS-e)"} value={rules.serviceCode || ""} onChange={(e) => setRules({ ...rules, serviceCode: e.target.value })} />
             <TextField type="number" label={"Al\u00edquota de ISS (%)"} value={rules.issRate ?? ""} onChange={(e) => setRules({ ...rules, issRate: e.target.value === "" ? null : Number(e.target.value) })} />
           </DialogContent>

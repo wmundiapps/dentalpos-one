@@ -161,7 +161,7 @@ export default function MeshDiagnosticViewer({
         diagnosticError
       ) {
         console.error(
-          "DentalPos Diagnostic:",
+          "CompletoDonto Diagnostic:",
           diagnosticError
         );
 
@@ -203,7 +203,7 @@ export default function MeshDiagnosticViewer({
         /\.stl$/i,
         ""
       ) ??
-      "DentalPos";
+      "CompletoDonto";
 
     exportGeometryToSTL(
       processing.geometry,

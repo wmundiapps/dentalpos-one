@@ -13,7 +13,7 @@ import type {
 export const ceoSummary: CEOSummary = {
   greeting: "Boa tarde, Dr. Exemplo 1.",
   dateLabel: "02 de agosto de 2026",
-  clinicName: "DentalPos Clinical Group",
+  clinicName: "CompletoDonto Clinical Group",
   generalScore: 826,
   previousScore: 812,
   healthLevel: "Bom",

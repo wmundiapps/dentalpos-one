@@ -120,12 +120,12 @@ export async function processDailyLabRisk(clinicId?: string, nowOverride?: Date)
       if (dueISO && daysUntil(dueISO, today) < -MAX_OVERDUE_DAYS) continue
       if (!clinicNames.has(order.clinicId)) {
         const clinic = await prisma.clinic.findFirst({ where: { id: order.clinicId }, select: { name: true } })
-        clinicNames.set(order.clinicId, clinic?.name || 'DentalPos')
+        clinicNames.set(order.clinicId, clinic?.name || 'CompletoDonto')
       }
       const data = (order.data || {}) as Record<string, unknown>
       const snapshot: Snapshot = {
         patientName: order.patientName, workType: order.workType, teeth: data.teeth ? String(data.teeth) : null, dueDateISO: dueISO,
-        dentistName: order.dentistName || 'o dentista responsável', clinicName: clinicNames.get(order.clinicId) || 'DentalPos', status: order.status
+        dentistName: order.dentistName || 'o dentista responsável', clinicName: clinicNames.get(order.clinicId) || 'CompletoDonto', status: order.status
       }
       for (const channel of order.notifyChannels) {
         const already = await prisma.labNotification.findFirst({

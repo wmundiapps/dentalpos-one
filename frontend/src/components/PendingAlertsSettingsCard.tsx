@@ -1,16 +1,15 @@
+import LockedUsersUnlock from "./LockedUsersUnlock";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Box, Button, Checkbox, FormControlLabel, Paper, Radio, RadioGroup, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, FormControlLabel, Paper, Switch, Typography } from "@mui/material";
 import NotificationImportantIcon from "@mui/icons-material/NotificationImportant";
 import { loadPendingAlerts, savePendingAlertsSettings, type PendingAlerts } from "../services/PendingAlertsApi";
 import { errorMessage, toast } from "../utils/toast";
-import { AccessApi, type AccessUser } from "../services/AccessApi";
 
 export default function PendingAlertsSettingsCard() {
   const [data, setData] = useState<PendingAlerts | null>(null);
-  const [users, setUsers] = useState<AccessUser[]>([]);
-  const [locked, setLocked] = useState<string[]>([]);
   const [visibility, setVisibility] = useState<Record<string, string[]>>({});
-  const [key, setKey] = useState("");
+  const [lockDepartments, setLockDepartments] = useState<string[]>([]);
+  const [unlockKey, setUnlockKey] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -18,9 +17,8 @@ export default function PendingAlertsSettingsCard() {
     try {
       const d = await loadPendingAlerts();
       setData(d);
-      setLocked(d.settings?.lockedUserIds || []);
       setVisibility(d.settings?.visibility || {});
-      if (d.canManage) setUsers(await AccessApi.users().catch(() => []));
+      setLockDepartments(d.settings?.lockDepartments || []);
     } catch { setData(null); }
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -41,12 +39,10 @@ export default function PendingAlertsSettingsCard() {
     }
   };
 
-  const hasKey = Boolean(data.settings?.hasKey);
-  const eligible = users.filter((u) => u.role !== "ADMIN");
-  const toggleUser = (id: string) => setLocked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   return (
     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid", borderColor: "divider", mb: 3 }}>
+      <LockedUsersUnlock />
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
         <NotificationImportantIcon color="error" />
         <Box>
@@ -57,10 +53,29 @@ export default function PendingAlertsSettingsCard() {
       <FormControlLabel control={<Switch checked={data.enabled} onChange={(_, v) => void save({ enabled: v })} />} label="Avisar sobre pendências" />
       {data.enabled && (
         <>
-          <RadioGroup value={data.mode} onChange={(_, v) => void save({ mode: v as "ALERT" | "BLOCK" })} sx={{ mt: 1 }}>
-            <FormControlLabel value="ALERT" control={<Radio />} label="Só alerta: mostra o aviso, mas não impede o uso" />
-            <FormControlLabel value="BLOCK" control={<Radio />} label="Bloqueio: trava a tela dos usuários escolhidos enquanto houver pendência" />
-          </RadioGroup>
+          <Box sx={{ mt: 1.5, p: 2, border: "1px solid", borderColor: "warning.main", borderRadius: 2 }}>
+            <Typography sx={{ fontWeight: 800 }}>Alerta "Você está em risco"</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Sem travamento ligado, a tela não trava. Quem tem pendência vê um triângulo amarelo com a mensagem "VOCÊ ESTÁ EM RISCO". Ao clicar, aparece o prazo de 24 horas, a escala de advertências e a base legal. A aplicação de qualquer penalidade é decisão do gestor.
+            </Typography>
+          </Box>
+
+          <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "error.main", borderRadius: 2 }}>
+            <Typography sx={{ fontWeight: 800 }}>Travar diariamente o departamento que não resolver</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              Os departamentos marcados ficam travados enquanto houver pendência deles (só abrem as telas para resolver). Para liberar: resolver, justificar por escrito ou usar a chave. Você recebe e-mail quando for resolvido, justificado ou prorrogado. Gestor e administrador nunca são travados.
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", columnGap: 2 }}>
+              {(data.settings?.profiles || []).filter((p) => p.code !== "GESTOR").map((p) => (
+                <FormControlLabel key={p.code} control={<Checkbox size="small" checked={lockDepartments.includes(p.code)} onChange={() => setLockDepartments((cur) => (cur.includes(p.code) ? cur.filter((x) => x !== p.code) : [...cur, p.code]))} />} label={p.name || p.code} />
+              ))}
+            </Box>
+            <Button sx={{ mt: 1 }} variant="contained" color="error" onClick={() => void save({ lockDepartments }, lockDepartments.length ? "Travamento diário ligado." : "Travamento diário desligado.")}>Salvar travamento</Button>
+            <Box sx={{ display: "flex", gap: 1, mt: 2, alignItems: "center", flexWrap: "wrap" }}>
+              <input type="password" value={unlockKey} onChange={(e) => setUnlockKey(e.target.value)} placeholder={data.settings?.hasKey ? "Nova chave de desbloqueio" : "Chave de desbloqueio (opcional)"} style={{ padding: 8, minWidth: 260 }} />
+              <Button disabled={unlockKey.length < 4} onClick={() => { void save({ unlockKey }, "Chave de desbloqueio salva."); setUnlockKey(""); }}>Salvar chave</Button>
+            </Box>
+          </Box>
 
           <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
             <Typography sx={{ fontWeight: 800 }}>Quem vê cada pendência</Typography>
@@ -85,29 +100,6 @@ export default function PendingAlertsSettingsCard() {
               </Box>
             ))}
             <Button variant="contained" onClick={() => void save({ visibility }, "Quem vê cada pendência foi salvo.")}>Salvar quem vê cada pendência</Button>
-          </Box>
-
-          <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-            <Typography sx={{ fontWeight: 800 }}>Chave de desbloqueio</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-              {hasKey ? "Já existe uma chave definida. Digite uma nova para trocá-la." : "Defina uma chave (4 a 64 caracteres). Ela é necessária para ativar o bloqueio."} Quem estiver com a tela travada digita a chave para destravar até o fim do dia; o admin e o gestor também podem destravar pela faixa de aviso.
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              <TextField size="small" type="password" label={hasKey ? "Nova chave" : "Chave"} value={key} onChange={(e) => setKey(e.target.value)} autoComplete="new-password" />
-              <Button variant="outlined" disabled={key.trim().length < 4} onClick={() => { void save({ unlockKey: key }, "Chave de desbloqueio salva."); setKey(""); }}>{hasKey ? "Trocar chave" : "Definir chave"}</Button>
-            </Box>
-          </Box>
-
-          <Box sx={{ mt: 2 }}>
-            <Typography sx={{ fontWeight: 800 }}>Quem fica sujeito ao bloqueio</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Marque os usuários cuja tela deve travar. Administrador e gestor nunca são travados.</Typography>
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
-              {eligible.map((u) => (
-                <FormControlLabel key={u.id} control={<Checkbox size="small" checked={locked.includes(u.id)} onChange={() => toggleUser(u.id)} />} label={`${u.firstName} ${u.lastName}`.trim() || u.email} />
-              ))}
-              {eligible.length === 0 && <Typography variant="body2" color="text.secondary">Nenhum usuário disponível.</Typography>}
-            </Box>
-            <Button sx={{ mt: 1 }} variant="contained" onClick={() => void save({ lockedUserIds: locked }, "Usuários do bloqueio salvos.")}>Salvar usuários do bloqueio</Button>
           </Box>
         </>
       )}

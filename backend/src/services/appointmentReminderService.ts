@@ -1,7 +1,9 @@
+import { getHold } from './financialHoldService'
 import { prisma } from '../lib/prisma'
 import { decryptSecret } from './secretVault'
 import { dispatchRevah, type RevahChannel } from './revahProviderService'
 import { processDunning } from './dunningService'
+import { cashbacksmartFooter } from './cashbacksmartPromo'
 import { processDailyLabRisk, processDueLabNotifications } from './labNotificationService'
 
 const AUTOMATIC_CHANNELS = ['WHATSAPP', 'SMS', 'TELEGRAM'] as const
@@ -109,6 +111,12 @@ export async function processDueAppointmentReminders() {
         continue
       }
 
+      // Lembrete de consulta que já passou não é mais enviado (a rotina agora roda de hora em hora; lembretes antigos ficariam presos).
+      if (appointment.scheduledAt.getTime() < Date.now()) {
+        await prisma.appointmentReminder.update({ where: { id: reminder.id }, data: { status: 'CANCELLED', errorMessage: 'Consulta já passou.' } })
+        continue
+      }
+
       if (reminder.type !== 'ON_BOOKING' && appointment.status === 'WAITING') {
         continue
       }
@@ -180,7 +188,14 @@ export async function processDueAppointmentReminders() {
           consultationValueLabel: formatConsultationValue(appointment.doctor?.consultationValue ?? null),
         })
 
-        const result = await dispatchRevah(channel, destination, message, credentials, sender?.address)
+        // Paciente com cobrança vencida recebe o aviso junto com o lembrete (novos horários ficam bloqueados até regularizar).
+        const hold = await getHold(appointment.clinicId, appointment.tenantId, appointment.patientId).catch(() => null)
+        const text = hold?.hasPending
+          ? `${message}\n\nAviso: há uma pendência financeira em aberto no seu cadastro. Para poder marcar novos horários, regularize com a clínica (reemissão de boleto, Pix ou cartão).`
+          : message
+
+        const finalText = text + cashbacksmartFooter(channel, reminder.type, appointment.status)
+        const result = await dispatchRevah(channel, destination, finalText, credentials, sender?.address)
 
         if (result.simulated) {
           await postponeWithError(reminder.id, `O provedor ${result.provider} está em modo simulado.`)

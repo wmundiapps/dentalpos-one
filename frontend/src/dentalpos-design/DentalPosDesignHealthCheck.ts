@@ -54,7 +54,7 @@ export function checkDentalPosDesignHealth():
 
   if (!initialized) {
     issues.push(
-      "DentalPos Design ainda não foi inicializado."
+      "CompletoDonto Design ainda não foi inicializado."
     );
   }
 

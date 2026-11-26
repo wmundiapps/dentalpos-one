@@ -2,6 +2,8 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { confirmTreatment } from '../services/treatmentStageService'
+import { issueBudgetBoletos } from '../services/budgetBoletoService'
 
 function ctx(req: AuthRequest) {
   if (!req.user) throw new Error('Não autenticado')
@@ -140,6 +142,10 @@ export async function approve(req: AuthRequest, res: Response) {
     const provider = existing.paymentProvider
     const method = existing.paymentMethod
     const now = new Date()
+    // Vencimentos escolhidos pelo paciente: 1ª parcela e (opcional) entrada. Sem escolha, mantém o padrão (mensal a partir de hoje).
+    const parseDay = (v: unknown) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v || '')); return m ? new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0)) : null }
+    const firstDue = parseDay(req.body?.firstDueDate)
+    const entryDue = parseDay(req.body?.entryDueDate) || now
     const acceptedByName = req.body?.acceptedByName ? String(req.body.acceptedByName) : existing.patient.fullName
     const acceptedByDocument = req.body?.acceptedByDocument ? String(req.body.acceptedByDocument) : null
     const acceptanceEvidence = req.body?.acceptanceEvidence || { source: 'authenticated-clinic-session', acceptedAt: now.toISOString() }
@@ -151,16 +157,24 @@ export async function approve(req: AuthRequest, res: Response) {
         data: { status: 'APPROVED', installmentValue, version: existing.version + 1, acceptedAt: now, acceptedByName, acceptedByDocument, acceptanceEvidence },
       })
       if (existing.entryAmount > 0) {
-        await tx.payment.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, budgetId: id, amount: existing.entryAmount, grossAmount: existing.entryAmount, netAmount: existing.entryAmount, method, provider, installment: 0, dueDate: now, status: 'PENDING' } })
-        await tx.financialEntry.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, patientId: existing.patientId, type: 'INCOME', description: `${existing.description} • Entrada`, category: 'TRATAMENTO', personName: existing.patient.fullName, amount: existing.entryAmount, dueDate: now, status: 'PENDING', paymentMethod: method, provider, origin: 'BUDGET', originId: id, installment: 0, installments: count, issuerEntity: 'INSTITUTO_RAVEL' } })
+        await tx.payment.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, budgetId: id, amount: existing.entryAmount, grossAmount: existing.entryAmount, netAmount: existing.entryAmount, method, provider, installment: 0, dueDate: entryDue, status: 'PENDING' } })
+        await tx.financialEntry.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, patientId: existing.patientId, type: 'INCOME', description: `${existing.description} • Entrada`, category: 'TRATAMENTO', personName: existing.patient.fullName, amount: existing.entryAmount, dueDate: entryDue, status: 'PENDING', paymentMethod: method, provider, origin: 'BUDGET', originId: id, installment: 0, installments: count, issuerEntity: 'INSTITUTO_RAVEL' } })
       }
       for (let i = 1; i <= count && financed > 0; i++) {
-        const due = new Date(now)
-        due.setMonth(due.getMonth() + i - (existing.entryAmount > 0 ? 0 : 1))
+        const due = new Date(firstDue || now)
+        if (firstDue) {
+          // Mantém o mesmo dia do mês (31 vira o último dia de meses curtos).
+          const day = firstDue.getUTCDate()
+          due.setUTCDate(1)
+          due.setUTCMonth(firstDue.getUTCMonth() + i - 1)
+          const last = new Date(Date.UTC(due.getUTCFullYear(), due.getUTCMonth() + 1, 0)).getUTCDate()
+          due.setUTCDate(Math.min(day, last))
+        } else due.setMonth(due.getMonth() + i - (existing.entryAmount > 0 ? 0 : 1))
         await tx.payment.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, budgetId: id, amount: installmentValue, grossAmount: installmentValue, netAmount: installmentValue, method, provider, installment: i, dueDate: due, status: 'PENDING' } })
         await tx.financialEntry.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, patientId: existing.patientId, type: 'INCOME', description: `${existing.description} • Parcela ${i}/${count}`, category: 'TRATAMENTO', personName: existing.patient.fullName, amount: installmentValue, dueDate: due, status: 'PENDING', paymentMethod: method, provider, origin: 'BUDGET', originId: id, installment: i, installments: count, issuerEntity: 'INSTITUTO_RAVEL' } })
       }
     })
+    await confirmTreatment({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id }, existing.patientId, 'orçamento aprovado')
     const row = await prisma.budget.findUnique({ where: { id }, include: { patient: true, payments: true } })
     await writeAudit({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id, module: 'finance', action: 'BUDGET_APPROVE', entityType: 'Budget', entityId: id, beforeData: existing, afterData: row || undefined, summary: 'Orçamento aprovado com aceite registrado e contas a receber geradas.' })
     return res.json(row)
@@ -185,5 +199,75 @@ export async function remove(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao cancelar orçamento.' })
+  }
+}
+
+// Exclusão definitiva (orçamento lançado errado). Só é permitida sem nenhum valor recebido; remove as parcelas em aberto geradas por ele.
+export async function destroy(req: AuthRequest, res: Response) {
+  try {
+    const u = ctx(req)
+    const id = String(req.params.id)
+    const existing = await prisma.budget.findFirst({ where: { id, clinicId: u.clinicId, tenantId: u.tenantId }, include: { payments: true, patient: { select: { fullName: true } } } })
+    if (!existing) return res.status(404).json({ error: 'Orçamento não encontrado.' })
+    const received = existing.payments.some((p) => p.status === 'PAID' || p.status === 'RECEIVED' || Boolean(p.paidDate))
+    if (received) return res.status(409).json({ error: 'Este orçamento já tem valores recebidos e não pode ser excluído. Use Cancelar.' })
+    await prisma.$transaction(async (tx) => {
+      await tx.financialEntry.deleteMany({ where: { clinicId: u.clinicId, tenantId: u.tenantId, origin: 'BUDGET', originId: id, status: { not: 'PAID' } } })
+      await tx.budget.delete({ where: { id } })
+    })
+    await writeAudit({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id, module: 'finance', action: 'BUDGET_DELETE', entityType: 'Budget', entityId: id, beforeData: { ...existing, payments: undefined }, summary: `Orçamento "${existing.description}" de ${existing.patient.fullName} excluído.` })
+    return res.json({ ok: true })
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao excluir orçamento.' })
+  }
+}
+
+// Ajuste de vencimentos de um orçamento aprovado: só parcelas ainda não recebidas.
+export async function updateDueDates(req: AuthRequest, res: Response) {
+  try {
+    const u = ctx(req)
+    const id = String(req.params.id)
+    const list: Array<{ installment: number; dueDate: string }> = Array.isArray(req.body?.dues) ? req.body.dues : []
+    if (!list.length) return res.status(400).json({ error: 'Informe os vencimentos.' })
+    const existing = await prisma.budget.findFirst({ where: { id, clinicId: u.clinicId, tenantId: u.tenantId }, include: { payments: true } })
+    if (!existing) return res.status(404).json({ error: 'Orçamento não encontrado.' })
+    if (existing.status !== 'APPROVED') return res.status(409).json({ error: 'Só é possível alterar vencimentos de orçamento aprovado.' })
+    const changes: Array<{ installment: number; from: Date; to: Date }> = []
+    await prisma.$transaction(async (tx) => {
+      for (const d of list) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d.dueDate || ''))
+        if (!m) throw new Error('DATA')
+        const to = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0))
+        const pay = existing.payments.find((p) => p.installment === Number(d.installment))
+        if (!pay) continue
+        if (pay.status === 'PAID' || pay.status === 'RECEIVED' || pay.paidDate) continue
+        if (pay.dueDate.toISOString().slice(0, 10) === to.toISOString().slice(0, 10)) continue
+        await tx.payment.update({ where: { id: pay.id }, data: { dueDate: to } })
+        await tx.financialEntry.updateMany({ where: { clinicId: u.clinicId, tenantId: u.tenantId, origin: 'BUDGET', originId: id, installment: pay.installment, status: { not: 'PAID' } }, data: { dueDate: to } })
+        changes.push({ installment: pay.installment, from: pay.dueDate, to })
+      }
+    })
+    if (changes.length) await writeAudit({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id, module: 'finance', action: 'BUDGET_DUE_DATES', entityType: 'Budget', entityId: id, afterData: { changes }, summary: `Vencimentos do orçamento "${existing.description}" alterados (${changes.length} parcela(s)).` })
+    const row = await prisma.budget.findUnique({ where: { id }, include: { patient: true, payments: true } })
+    return res.json(row)
+  } catch (error) {
+    if ((error as Error).message === 'DATA') return res.status(400).json({ error: 'Data inválida.' })
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao alterar vencimentos.' })
+  }
+}
+
+export async function issueBoletos(req: AuthRequest, res: Response) {
+  try {
+    const u = ctx(req)
+    const out = await issueBudgetBoletos({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id }, String(req.params.id))
+    await writeAudit({ clinicId: u.clinicId, tenantId: u.tenantId, actorId: u.id, module: 'finance', action: 'BUDGET_BOLETOS', entityType: 'Budget', entityId: String(req.params.id), summary: `Boletos emitidos (${out.boletos.filter((b) => !b.error).length}/${out.boletos.length}) para ${out.patientName}.` })
+    return res.json(out)
+  } catch (error) {
+    const st = (error as { status?: number }).status
+    if (st) return res.status(st).json({ error: (error as Error).message })
+    console.error(error)
+    return res.status(502).json({ error: (error as Error).message || 'Erro ao emitir boletos.' })
   }
 }

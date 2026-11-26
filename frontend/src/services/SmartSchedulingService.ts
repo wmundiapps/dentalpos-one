@@ -308,7 +308,7 @@ function matchLaboratoryRule(laboratoryName: string | undefined, procedure: stri
 function preferredWeekdayForPatient(patientName: string, currentDateISO: string) {
   const selected = parseDate(currentDateISO);
   const previous = getAppointments()
-    .filter((appointment) => normalize(appointment.patientName) === normalize(patientName) && appointment.dateISO < currentDateISO && !["Cancelado", "Faltou"].includes(appointment.status))
+    .filter((appointment) => normalize(appointment.patientName) === normalize(patientName) && appointment.dateISO < currentDateISO && !["Cancelado", "Desmarcado", "Faltou"].includes(appointment.status))
     .sort((a, b) => b.dateISO.localeCompare(a.dateISO))[0];
   if (previous) return parseDate(previous.dateISO).getDay();
   return selected.getDay();
@@ -336,7 +336,7 @@ function cadenceLabel(days: number) {
 
 function latestPreviousAppointment(patientName: string, currentDateISO: string) {
   return getAppointments()
-    .filter((appointment) => normalize(appointment.patientName) === normalize(patientName) && appointment.dateISO < currentDateISO && !["Cancelado", "Faltou"].includes(appointment.status))
+    .filter((appointment) => normalize(appointment.patientName) === normalize(patientName) && appointment.dateISO < currentDateISO && !["Cancelado", "Desmarcado", "Faltou"].includes(appointment.status))
     .sort((a, b) => b.dateISO.localeCompare(a.dateISO))[0];
 }
 

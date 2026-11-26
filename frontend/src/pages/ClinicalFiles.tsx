@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
   FormControl, InputLabel, MenuItem, Paper, Select, Stack, TextField, Typography
@@ -7,11 +7,12 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DesignServicesIcon from "@mui/icons-material/DesignServices";
+// Design oculto (sigilo)
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PageHeader from "../components/PageHeader";
+import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import {
-  archiveClinicalFile, clinicalFileAccess, clinicalFileDesignHandoff,
+  archiveClinicalFile, clinicalFileAccess,
   listClinicalFileCategories, listClinicalFiles, listClinicalPatients, uploadClinicalFile
 } from "../services/ClinicalFileService";
 import { atributoAccept, erroDeUpload, validarArquivo } from "../security/uploadGuard";
@@ -37,7 +38,6 @@ const KINDS: Array<{ value: ClinicalFileKind; label: string }> = [
 ];
 
 export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: string } = {}) {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [patients, setPatients] = useState<Array<{ id: string; fullName: string }>>([]);
   const [patientId, setPatientId] = useState(fixedPatientId || searchParams.get("patientId") || "");
@@ -88,15 +88,16 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
     }
   }
 
-  async function openDesign(row: ClinicalFile) {
+  // openDesign preservado para retomar depois (Design oculto por sigilo).
+  /*   async function openDesign(row: ClinicalFile) {
     try {
       const handoff = await clinicalFileDesignHandoff(row.id);
       sessionStorage.setItem(`dentalpos.design.clinicalFile.${row.id}`, JSON.stringify(handoff.source));
       navigate(handoff.designPath);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível enviar ao DentalPos Design.");
+      setError(e instanceof Error ? e.message : "Não foi possível enviar ao CompletoDonto Design.");
     }
-  }
+  } */
 
   async function remove(row: ClinicalFile) {
     const reason = window.prompt(`Informe o motivo para arquivar "${row.title}". O registro será preservado para auditoria.`)?.trim();
@@ -107,6 +108,7 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
 
   return (
     <Box>
+      {!fixedPatientId && <PatientAlertBanner patientId={patientId} />}
       <PageHeader
         title="Arquivos e Exames Clínicos"
         description="Fotografias, radiografias, tomografias, DICOM, PDFs, exames laboratoriais e arquivos odontológicos 3D."
@@ -169,9 +171,6 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
 
             <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
               <Button size="small" startIcon={<OpenInNewIcon />} onClick={() => void openFile(row)}>Visualizar</Button>
-              {["STL", "PLY", "OBJ"].includes(row.kind) && (
-                <Button size="small" startIcon={<DesignServicesIcon />} onClick={() => void openDesign(row)}>DentalPos Design</Button>
-              )}
               <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => void remove(row)}>Arquivar</Button>
             </Stack>
           </Paper>
@@ -195,7 +194,7 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
           try {
             const result = await uploadClinicalFile({ patientId, ...data });
             if (!result.upload?.configured) {
-              setStorageWarning("O exame foi registrado, mas o armazenamento de imagens desta clínica ainda está sendo ativado pela equipe DentalPos One. O arquivo ficará disponível assim que a ativação for concluída.");
+              setStorageWarning("O exame foi registrado, mas o armazenamento de imagens desta clínica ainda está sendo ativado pela equipe CompletoDonto. O arquivo ficará disponível assim que a ativação for concluída.");
             } else {
               setUploadOpen(false);
             }

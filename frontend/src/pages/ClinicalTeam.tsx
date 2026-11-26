@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import BadgeIcon from "@mui/icons-material/Badge";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import PageHeader from "../components/PageHeader";
+import DoctorWeekScheduleDialog from "../components/DoctorWeekScheduleDialog";
 import { addDoctorDocument, createDoctor, loadClinicUsers, loadDoctorDocuments, loadDoctors, removeDoctorDocument, updateDoctor, type Doctor, type DoctorDocument, type DoctorUser } from "../services/DoctorApi";
 
 const VINCULOS: Array<[string, string]> = [["CLINICA","Sócio / da clínica"],["CLT","CLT"],["PJ","PJ contratado"],["AUTONOMO","Autônomo"],["LOCACAO","Locação de espaço"]];
@@ -14,6 +15,7 @@ const ESPECIALIDADES = ["Clínica geral","Implantodontia","Prótese","Ortodontia
 const TIPOS_DOC: Array<[string, string]> = [["RG_CPF","RG / CPF"],["ENDERECO","Comprovante de endereço"],["DIPLOMA","Diploma"],["CRO","Carteira do CRO"],["CRO_REGULARIDADE","Certidão de regularidade do CRO"],["ESPECIALIZACAO","Título de especialista"],["CNPJ","Cartão CNPJ"],["CONTRATO_SOCIAL","Contrato social"],["ALVARA","Alvará de funcionamento"],["ALVARA_SANITARIO","Alvará sanitário"],["RESP_TECNICA","Responsabilidade técnica"],["CONTRATO_PRESTACAO","Contrato de prestação de serviço"],["SEGURO","Seguro de responsabilidade civil"],["OUTRO","Outro"]];
 
 const VAZIO = {
+  firstName: "", lastName: "",
   userId:"", cro:"", croState:"", rqe:"", specialty:"", specialties:[] as string[], contractType:"CLINICA", documentIssuer:"CLINICA",
   revenueModel:"HONORARIO", revenuePercent:"", revenueBase:"BRUTO", materialSplit:"RATEADO", labSplit:"RATEADO", cardFeeSplit:"RATEADO",
   cpf:"", rg:"", birthDate:"", personalAddress:"", personalCity:"", personalState:"", personalZipCode:"",
@@ -37,9 +39,12 @@ export default function ClinicalTeam() {
   const [form, setForm] = useState(VAZIO);
   const [aba, setAba] = useState(0);
   const [docsDe, setDocsDe] = useState<Doctor | null>(null);
+  const [weekDe, setWeekDe] = useState<Doctor | null>(null);
   const [docs, setDocs] = useState<DoctorDocument[]>([]);
   const DOC_VAZIO = { documentType:"RG_CPF", title:"", fileName:"", issueDate:"", expiresAt:"", notes:"" };
   const [docForm, setDocForm] = useState(DOC_VAZIO);
+  const NOVO_USUARIO = { aberto: false, firstName: "", lastName: "", email: "", phone: "", password: "" };
+  const [novoUsuario, setNovoUsuario] = useState(NOVO_USUARIO);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -49,10 +54,10 @@ export default function ClinicalTeam() {
   }, []);
   useEffect(() => { void carregar(); }, [carregar]);
 
-  const abrirNovo = () => { setEditId(null); setForm(VAZIO); setAba(0); setError(""); setOpen(true); };
+  const abrirNovo = () => { setEditId(null); setForm(VAZIO); setNovoUsuario(NOVO_USUARIO); setAba(0); setError(""); setOpen(true); };
   const abrirEdicao = (d: Doctor) => {
     setEditId(d.id);
-    setForm({ ...VAZIO, userId:d.userId, cro:d.cro||"", croState:d.croState||"", rqe:d.rqe||"", specialty:d.specialty||"", specialties:d.specialties||[],
+    setForm({ ...VAZIO, firstName:d.user?.firstName||"", lastName:d.user?.lastName||"", userId:d.userId, cro:d.cro||"", croState:d.croState||"", rqe:d.rqe||"", specialty:d.specialty||"", specialties:d.specialties||[],
       contractType:d.contractType||"CLINICA", documentIssuer:d.documentIssuer||"CLINICA",
       revenueModel:d.revenueModel||"HONORARIO", revenuePercent:d.revenuePercent!=null?String(d.revenuePercent):"", revenueBase:d.revenueBase||"BRUTO",
       materialSplit:d.materialSplit||"RATEADO", labSplit:d.labSplit||"RATEADO", cardFeeSplit:d.cardFeeSplit||"RATEADO",
@@ -70,10 +75,19 @@ export default function ClinicalTeam() {
     setBusy(true); setError("");
     try {
       const payload: Record<string, unknown> = { ...form, specialty: form.specialty || form.specialties[0] || "Clínica geral" };
-      if (editId) { delete payload.userId; await updateDoctor(editId, payload); }
+      if (editId) {
+        if (!form.firstName.trim()) { setError("Informe o nome do profissional."); setBusy(false); return; }
+        delete payload.userId; await updateDoctor(editId, payload); }
       else {
-        if (!form.userId) { setError("Escolha o usuário do sistema ligado a este profissional."); setBusy(false); return; }
         if (!form.cro.trim()) { setError("Informe o CRO."); setBusy(false); return; }
+        if (novoUsuario.aberto) {
+          const n = novoUsuario;
+          if (!n.firstName.trim() || !n.lastName.trim()) { setError("Informe nome e sobrenome do novo usuário."); setBusy(false); return; }
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(n.email.trim())) { setError("Informe um e-mail válido para o login."); setBusy(false); return; }
+          if (n.password.length < 8) { setError("A senha provisória precisa ter pelo menos 8 caracteres."); setBusy(false); return; }
+          delete payload.userId;
+          payload.newUser = { firstName: n.firstName.trim(), lastName: n.lastName.trim(), email: n.email.trim(), phone: n.phone.trim(), password: n.password };
+        } else if (!form.userId) { setError("Escolha o usuário do sistema ou cadastre um novo."); setBusy(false); return; }
         await createDoctor(payload);
       }
       setOpen(false); setNotice("Profissional salvo."); await carregar();
@@ -140,6 +154,7 @@ export default function ClinicalTeam() {
               </Box>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <Button size="small" onClick={() => abrirEdicao(d)}>Editar</Button>
+                <Button size="small" onClick={() => setWeekDe(d)}>Dias e horários</Button>
                 <Button size="small" startIcon={<BadgeIcon />} onClick={() => void abrirDocs(d)}>Documentos</Button>
               </Box>
             </Box>
@@ -154,10 +169,33 @@ export default function ClinicalTeam() {
           </Tabs>
           {aba === 0 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+              {editId && (<>
+                <TextField required label="Nome" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+                <TextField required label="Sobrenome" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} helperText="Aparece nos documentos, agenda e relatórios." />
+              </>)}
               {!editId && (
-                <TextField select required label={"Usuário do sistema"} value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} sx={{ gridColumn: { md: "1/-1" } }} helperText={"O profissional precisa de um usuário para ter acesso e agenda."}>
-                  {users.map((u) => <MenuItem key={u.id} value={u.id}>{`${u.firstName} ${u.lastName} — ${u.email}`}</MenuItem>)}
-                </TextField>
+                <Box sx={{ gridColumn: { md: "1/-1" }, display: "grid", gap: 1.5 }}>
+                  {!novoUsuario.aberto && (
+                    <TextField select required label={"Usuário do sistema"} value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} helperText={users.length ? "Escolha um usuário que já existe ou cadastre um novo logo abaixo." : "Ainda não há usuário livre. Cadastre um novo logo abaixo."}>
+                      {users.map((u) => <MenuItem key={u.id} value={u.id}>{`${u.firstName} ${u.lastName} — ${u.email}`}</MenuItem>)}
+                    </TextField>
+                  )}
+                  <Box>
+                    <Button size="small" variant={novoUsuario.aberto ? "text" : "outlined"} onClick={() => setNovoUsuario({ ...novoUsuario, aberto: !novoUsuario.aberto })}>
+                      {novoUsuario.aberto ? "Usar um usuário que já existe" : "+ Cadastrar novo usuário (login do dentista)"}
+                    </Button>
+                  </Box>
+                  {novoUsuario.aberto && (
+                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+                      <Alert severity="info" sx={{ gridColumn: { md: "1/-1" } }}>{"O dentista entra no sistema com este e-mail e a senha provisória que você definir aqui. Ele ganha o acesso de Dentista, que você ajusta em Configurações > Permissões. Peça para ele trocar a senha em “Esqueci minha senha”."}</Alert>
+                      <TextField required label="Nome" value={novoUsuario.firstName} onChange={(e) => setNovoUsuario({ ...novoUsuario, firstName: e.target.value })} />
+                      <TextField required label="Sobrenome" value={novoUsuario.lastName} onChange={(e) => setNovoUsuario({ ...novoUsuario, lastName: e.target.value })} />
+                      <TextField required type="email" label="E-mail (será o login)" value={novoUsuario.email} onChange={(e) => setNovoUsuario({ ...novoUsuario, email: e.target.value })} />
+                      <TextField label="Telefone" value={novoUsuario.phone} onChange={(e) => setNovoUsuario({ ...novoUsuario, phone: e.target.value })} />
+                      <TextField required type="password" label="Senha provisória (mín. 8 caracteres)" value={novoUsuario.password} onChange={(e) => setNovoUsuario({ ...novoUsuario, password: e.target.value })} autoComplete="new-password" sx={{ gridColumn: { md: "1/-1" } }} />
+                    </Paper>
+                  )}
+                </Box>
               )}
               {seletor("contractType", "Vínculo", VINCULOS)}
               {seletor("documentIssuer", "Documentos do paciente em nome de", [["CLINICA","Clínica"],["PROFISSIONAL","Profissional"]], { helperText: "Define o cabeçalho dos contratos e termos." })}
@@ -253,6 +291,7 @@ export default function ClinicalTeam() {
         </DialogContent>
         <DialogActions><Button onClick={() => setDocsDe(null)}>Fechar</Button></DialogActions>
       </Dialog>
+      <DoctorWeekScheduleDialog doctor={weekDe ? { id: weekDe.id, name: nomeDe(weekDe) } : null} onClose={() => setWeekDe(null)} />
     </Box>
   );
 }

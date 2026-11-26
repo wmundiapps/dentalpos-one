@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-export interface PendingAlertItem { key: string; label: string; count: number; path: string }
+export interface PendingAlertItem { key: string; label: string; count: number; path: string; info?: boolean; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string; to?: string; noticeSent?: boolean }> }
 export interface LockedUser { id: string; name: string; count: number }
 export interface PendingAlerts {
   enabled: boolean;
@@ -11,8 +12,9 @@ export interface PendingAlerts {
   items: PendingAlertItem[];
   lockedUsers: LockedUser[];
   visibleKeys: string[];
+  blockingLabOrders?: Array<{ localId: string; patientName: string; workType: string; dentistName: string | null; dueDate: string | null }>;
   settings?: {
-    lockedUserIds: string[]; hasKey: boolean;
+    lockDepartments: string[]; lockedUserIds: string[]; hasKey: boolean;
     visibility: Record<string, string[]>;
     categories: Array<{ key: string; label: string }>;
     profiles: Array<{ code: string; name: string }>;
@@ -54,7 +56,7 @@ export async function loadPendingAlerts(): Promise<PendingAlerts> {
   return parse(await fetch(`${API}/pending-alerts`, { headers: headers() }));
 }
 
-export async function savePendingAlertsSettings(input: { enabled?: boolean; mode?: "ALERT" | "BLOCK"; lockedUserIds?: string[]; unlockKey?: string; visibility?: Record<string, string[]> }) {
+export async function savePendingAlertsSettings(input: { enabled?: boolean; mode?: "ALERT" | "BLOCK"; lockDepartments?: string[]; lockedUserIds?: string[]; unlockKey?: string; visibility?: Record<string, string[]> }) {
   const result = await parse<unknown>(await fetch(`${API}/pending-alerts/settings`, { method: "PUT", headers: headers(true), body: JSON.stringify(input) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
@@ -68,8 +70,59 @@ export async function unlockPendingAlerts(key: string) {
 }
 
 // Admin/gestor destrava a tela de um usuário.
-export async function unlockUserScreen(userId: string) {
-  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unlock-user`, { method: "POST", headers: headers(true), body: JSON.stringify({ userId }) }));
+export async function unlockUserScreen(userId: string, deadline: string, reason = "") {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unlock-user`, { method: "POST", headers: headers(true), body: JSON.stringify({ userId, deadline, reason }) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
+}
+
+// Destrava resolvendo a pendência: informa a entrega do trabalho com comprovação.
+export async function proveLabDelivery(input: { localId: string; code: string }) {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/resolve-lab`, { method: "POST", headers: headers(true), body: JSON.stringify(input) }));
+  window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
+  return result;
+}
+
+// Departamento travado justifica por escrito: a tela abre até o fim do dia e o gestor recebe a justificativa por e-mail.
+export async function justifyPending(text: string) {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/justify`, { method: "POST", headers: headers(true), body: JSON.stringify({ text }) }));
+  window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
+  return result;
+}
+
+// "Já estava no tratamento": confirma que os procedimentos lançados fora do plano deste paciente não são novos.
+export async function confirmUnplannedExisting(patientId: string) {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unplanned/resolve`, { method: "POST", headers: headers(true), body: JSON.stringify({ patientId }) }));
+  window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
+  return result;
+}
+
+// Gestor/proprietário autoriza o aviso ao paciente sobre procedimento novo. Devolve o texto para envio manual quando o paciente não tem e-mail.
+export async function authorizeUnplannedNotice(patientId: string) {
+  const result = await parse<{ sent: boolean; hasEmail: boolean; text: string; items: number }>(await fetch(`${API}/pending-alerts/unplanned/authorize-notice`, { method: "POST", headers: headers(true), body: JSON.stringify({ patientId }) }));
+  window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
+  return result;
+}
+
+// Quantidade de pendências que o usuário enxerga (para o contador do cabeçalho). Mesma regra de visibilidade da faixa de risco.
+export function usePendingCount(pathname: string): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let live = true;
+    const load = async () => {
+      if (!localStorage.getItem("dentalpos.token")) return;
+      try {
+        const data = await loadPendingAlerts();
+        if (!live) return;
+        if (!data.enabled) { setCount(0); return; }
+        const items = data.canManage ? data.items : data.items.filter((item) => pathname === item.path || pathname.startsWith(`${item.path}/`));
+        setCount(items.filter((item) => !item.info).reduce((sum, item) => sum + item.count, 0));
+      } catch { /* o contador nunca atrapalha o uso */ }
+    };
+    void load();
+    const timer = window.setInterval(() => void load(), 60000);
+    window.addEventListener(PENDING_ALERTS_EVENT, load);
+    return () => { live = false; window.clearInterval(timer); window.removeEventListener(PENDING_ALERTS_EVENT, load); };
+  }, [pathname]);
+  return count;
 }

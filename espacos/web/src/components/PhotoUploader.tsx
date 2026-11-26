@@ -6,6 +6,21 @@ import { errorText } from '../errors';
 const MAX_PHOTOS = 20;
 const MAX_BYTES = 10 * 1024 * 1024;
 
+/** Redesenha a foto (até 2000 px, JPEG): tira os dados escondidos do arquivo, como a localização GPS. */
+async function shrink(file: File, max = 2000): Promise<Blob> {
+  if (file.type === 'image/gif') return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bmp.width * scale); canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob>((ok, fail) => canvas.toBlob((b) => (b ? ok(b) : fail(new Error('blob'))), 'image/jpeg', 0.86));
+  } catch {
+    return file; // formato que o navegador não abre (ex.: HEIC em alguns aparelhos): vai como está
+  }
+}
+
 // Fotos do espaço: galeria/câmera do celular, arquivos do computador (clique
 // ou arrastar e soltar) ou link. A primeira foto é a capa.
 export function PhotoUploader({ photos, onChange }: { photos: string[]; onChange: (p: string[]) => void }) {
@@ -27,7 +42,11 @@ export function PhotoUploader({ photos, onChange }: { photos: string[]; onChange
     setUploading(ok.length);
     try {
       const form = new FormData();
-      ok.forEach((f) => form.append('files', f, f.name));
+      // Reduz para até 2000 px em JPEG: envio mais rápido e sem a localização GPS gravada pela câmera
+      for (const f of ok) {
+        const b = await shrink(f);
+        form.append('files', b, b === f ? f.name : `${f.name.replace(/\.\w+$/, '')}.jpg`);
+      }
       const r = await apiUpload<{ files: { url: string }[] }>('/uploads', form);
       onChange([...photos, ...r.files.map((x) => x.url)]);
     } catch (e) {

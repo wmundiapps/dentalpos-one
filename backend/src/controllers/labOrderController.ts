@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { createDeliveryCode, deliverWithCode, deliveryMessage } from '../services/labDeliveryCode'
 
 const DELIVERED = ['Entregue', 'Liberado']
 
@@ -32,8 +33,13 @@ async function upsertOne(clinicId: string, tenantId: string, actorId: string, it
   if (!localId || !patientName || !workType) return { ok: false as const, reason: 'Dados da ordem incompletos.' }
   if (JSON.stringify(data).length > 200_000) return { ok: false as const, reason: 'Ordem grande demais.' }
 
-  const status = text(data.status, 60) || 'Recebido'
+  let status = text(data.status, 60) || 'Recebido'
   const existing = await prisma.labOrder.findUnique({ where: { clinicId_localId: { clinicId, localId } } })
+  // Sair da fila (Entregue/Liberado) só é possível com o código de entrega (endpoint /deliver). Aqui o status é preservado.
+  if (DELIVERED.includes(status) && !existing?.deliveredAt) {
+    status = existing && !DELIVERED.includes(existing.status) ? existing.status : 'Controle de qualidade'
+    data.status = status
+  }
   if (existing) {
     const prevAt = String((existing.data as Record<string, unknown>)?.updatedAtISO || '')
     const newAt = String(data.updatedAtISO || '')
@@ -147,5 +153,46 @@ export async function restore(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error('Erro ao restaurar ordem do laboratório:', error)
     return res.status(500).json({ error: 'Erro ao restaurar ordem do laboratório.' })
+  }
+}
+
+
+const RECEIVER_PROFILES = ['GESTOR', 'DENTISTA', 'RECEPCAO', 'ADMINISTRACAO']
+
+// Quem recebe o serviço (dentista, recepção, gestor ou admin) gera o código. O laboratório não gera o próprio código.
+export async function deliveryCode(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const localId = text(req.params.localId, 60)
+    if (req.user!.role !== 'ADMIN') {
+      const rows = await prisma.userAccessProfile.findMany({ where: { userId: actorId, profile: { isActive: true } }, select: { profile: { select: { code: true } } } })
+      if (!rows.some(r => RECEIVER_PROFILES.includes(r.profile.code))) return res.status(403).json({ error: 'Só dentista, recepção, gestor ou administrador geram o código de entrega.' })
+    }
+    const order = await prisma.labOrder.findUnique({ where: { clinicId_localId: { clinicId, localId } } })
+    if (!order || order.tenantId !== tenantId || order.deletedAt) return res.status(404).json({ error: 'Trabalho não encontrado.' })
+    if (order.deliveredAt) return res.status(409).json({ error: 'Este trabalho já foi entregue.' })
+    const actor = await prisma.user.findFirst({ where: { id: actorId }, select: { firstName: true, lastName: true, email: true } })
+    const receivedBy = text(req.body?.receivedBy, 80) || (actor ? `${actor.firstName} ${actor.lastName}`.trim() || actor.email : '')
+    if (receivedBy.length < 3) return res.status(400).json({ error: 'Informe o nome de quem recebeu o serviço.' })
+    const receivedAt = new Date()
+    const code = createDeliveryCode(clinicId, localId, receivedBy, receivedAt)
+    await writeAudit({ clinicId, tenantId, actorId, module: 'laboratory', action: 'LAB_DELIVERY_CODE_ISSUED', entityType: 'LabOrder', entityId: order.id, summary: `Código de entrega gerado: ${order.workType} — ${order.patientName} (recebido por ${receivedBy}).` }).catch((e: unknown) => console.error(e))
+    return res.json({ code, receivedBy, receivedAt: receivedAt.toISOString(), message: deliveryMessage(order.workType, order.patientName, receivedBy, receivedAt, code) })
+  } catch (error) {
+    console.error('Erro ao gerar código de entrega:', error)
+    return res.status(500).json({ error: 'Erro ao gerar código de entrega.' })
+  }
+}
+
+// O laboratório digita o código recebido para dar baixa.
+export async function deliver(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const result = await deliverWithCode({ clinicId, tenantId, actorId, localId: text(req.params.localId, 60), code: String(req.body?.code || ''), via: 'LAB_PAGE' })
+    if (!result.ok) return res.status(result.status).json({ error: result.error })
+    return res.json(result)
+  } catch (error) {
+    console.error('Erro ao dar baixa com código:', error)
+    return res.status(500).json({ error: 'Erro ao dar baixa na entrega.' })
   }
 }

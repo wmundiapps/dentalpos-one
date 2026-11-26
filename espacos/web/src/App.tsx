@@ -4,12 +4,14 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { FeedbackWidget } from './components/FeedbackWidget';
 import { EmailVerifyBanner } from './components/EmailVerifyBanner';
+import { ScrollToHash } from './components/ActionAlert';
 import { MercadoPagoBar } from './components/MercadoPagoBar';
 import { ConsentBanner } from './components/ConsentBanner';
 import { AssistantWidget } from './components/AssistantWidget';
 import { loadTags, trackPage } from './tracking';
 import { startNative } from './native';
 import { useApp } from './state';
+import { useReferralCapture } from './pages/Partners';
 import Home from './pages/Home';
 
 const ListingPage = lazy(() => import('./pages/ListingPage'));
@@ -36,6 +38,8 @@ const HostLanding = lazy(() => import('./pages/Landing').then((m) => ({ default:
 const ProLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.ProLanding })));
 const GeneralLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.GeneralLanding })));
 const Admin = lazy(() => import('./pages/Misc').then((m) => ({ default: m.Admin })));
+const PartnersLanding = lazy(() => import('./pages/Partners').then((m) => ({ default: m.PartnersLanding })));
+const PartnerDashboard = lazy(() => import('./pages/Partners').then((m) => ({ default: m.PartnerDashboard })));
 const Diagnostics = lazy(() => import('./pages/Diagnostics'));
 
 function Private({ children }: { children: ReactNode }) {
@@ -51,6 +55,7 @@ export default function App() {
   const navigate = useNavigate();
   useEffect(() => { loadTags(); startNative(navigate); }, [navigate]);
   useEffect(() => { trackPage(loc.pathname); }, [loc.pathname]);
+  useReferralCapture(); // link de indicação do corretor (?ref=)
   return (
     <>
       <a href="#main" className="skip-link">Skip to content</a>
@@ -58,6 +63,7 @@ export default function App() {
       <MercadoPagoBar />
       <main id="main">
         <EmailVerifyBanner />
+        <ScrollToHash />
         <Suspense fallback={<div className="container"><div className="skeleton hero-skeleton" /></div>}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -75,6 +81,10 @@ export default function App() {
             <Route path="/notificacoes" element={<Private><Notifications /></Private>} />
             <Route path="/ocorrencias/:id" element={<Private><IncidentPage /></Private>} />
             <Route path="/admin" element={<Private><Admin /></Private>} />
+            <Route path="/admin/parceiros" element={<Private><Admin /></Private>} />
+            <Route path="/parceiros" element={<PartnersLanding />} />
+            <Route path="/parceiro" element={<Private><PartnerDashboard /></Private>} />
+            <Route path="/parceiro/reservas/:bookingId" element={<Private><PartnerDashboard /></Private>} />
             <Route path="/diagnostico" element={<Diagnostics />} />
             <Route path="/entrar" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
@@ -85,6 +95,7 @@ export default function App() {
             <Route path="/anuncie" element={<HostLanding />} />
             <Route path="/profissionais" element={<ProLanding />} />
             <Route path="/conheca" element={<GeneralLanding />} />
+            <Route path="/fiador/:token" element={<GuarantorPage />} />
             <Route path="/avalista/:token" element={<GuarantorPage />} />
             <Route path="/avaliar/:token" element={<ClientReviewPage />} />
             <Route path="/regras" element={<LegalPage />} />

@@ -31,6 +31,36 @@ function smtpSender(): Sender | undefined {
   };
 }
 
+// ───────────── Caixa própria de convites (captação) ─────────────
+// Convite sai por outra conta (ex.: convites@space-hour.com), nunca pela conta dos e-mails do sistema
+// (código, senha, pagamento): se alguém denunciar um convite como spam, os e-mails do sistema continuam chegando.
+//   INVITE_SMTP_USER=convites@space-hour.com INVITE_SMTP_PASS=...  (servidor e porta: os mesmos do SMTP_HOST,
+//   ou INVITE_SMTP_HOST / INVITE_SMTP_PORT / INVITE_SMTP_SECURE)  INVITE_MAIL_FROM="SpaceHour <convites@space-hour.com>"
+let inviteTransporter: Transporter | undefined;
+export const INVITE_MAILBOX = () => process.env.INVITE_SMTP_USER?.trim().toLowerCase() || null;
+/** null = pronto; senão o motivo de não poder enviar convites. */
+export function inviteMailProblem(): string | null {
+  if (override) return null;
+  const user = INVITE_MAILBOX();
+  if (!user || !process.env.INVITE_SMTP_PASS) return 'Falta a caixa de convites (INVITE_SMTP_USER e INVITE_SMTP_PASS).';
+  if (!(process.env.INVITE_SMTP_HOST || process.env.SMTP_HOST)) return 'Falta o servidor SMTP (INVITE_SMTP_HOST).';
+  if (user === process.env.SMTP_USER?.trim().toLowerCase()) return 'A caixa de convites tem de ser diferente da caixa do sistema (SMTP_USER).';
+  return null;
+}
+export async function sendInviteMail(m: OutgoingMail) {
+  if (override) return override(m);
+  const problem = inviteMailProblem();
+  if (problem) throw new Error(problem);
+  inviteTransporter ??= nodemailer.createTransport({
+    host: process.env.INVITE_SMTP_HOST || process.env.SMTP_HOST,
+    port: Number(process.env.INVITE_SMTP_PORT ?? process.env.SMTP_PORT ?? 465),
+    secure: (process.env.INVITE_SMTP_SECURE ?? process.env.SMTP_SECURE ?? 'true') === 'true',
+    auth: { user: process.env.INVITE_SMTP_USER!, pass: process.env.INVITE_SMTP_PASS! },
+  });
+  const from = process.env.INVITE_MAIL_FROM || `SpaceHour <${INVITE_MAILBOX()}>`;
+  await inviteTransporter.sendMail({ from, replyTo: m.replyTo ?? INVITE_MAILBOX()!, ...m });
+}
+
 /** Testa o login no servidor SMTP sem enviar e-mail (página de diagnóstico). */
 let smtpCheck: { at: number; result: string } | undefined;
 export async function verifySmtp(): Promise<string> {

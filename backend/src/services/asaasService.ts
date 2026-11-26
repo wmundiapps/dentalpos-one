@@ -50,7 +50,17 @@ const digits = (v?: string | null) => String(v || '').replace(/\D/g, '')
 // Um cliente Asaas por paciente (reaproveitado pela referência externa), em vez de criar um novo a cada cobrança.
 export async function ensureAsaasCustomer(conn: AsaasConn, c: CustomerInput) {
   const found = await asaasCall(conn, `/customers?externalReference=${encodeURIComponent(c.externalReference)}&limit=1`)
-  if (found?.data?.[0]?.id) return String(found.data[0].id)
+  if (found?.data?.[0]?.id) {
+    // Cliente já existe (criado numa tentativa anterior, talvez sem CPF/e-mail): atualiza com os dados informados agora.
+    const id = String(found.data[0].id)
+    const patch: Record<string, unknown> = {}
+    if (digits(c.cpfCnpj)) patch.cpfCnpj = digits(c.cpfCnpj)
+    if (c.email) patch.email = c.email
+    if (digits(c.phone)) patch.mobilePhone = digits(c.phone)
+    if (c.name) patch.name = c.name
+    if (Object.keys(patch).length) await asaasCall(conn, `/customers/${encodeURIComponent(id)}`, { method: 'POST', body: JSON.stringify(patch) })
+    return id
+  }
   const created = await asaasCall(conn, '/customers', {
     method: 'POST',
     body: JSON.stringify({
@@ -125,6 +135,6 @@ const WEBHOOK_EVENTS = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'PAYMENT_OVERDU
 export async function registerAsaasWebhook(conn: AsaasConn, url: string, authToken: string, email?: string) {
   await asaasCall(conn, '/webhooks', {
     method: 'POST',
-    body: JSON.stringify({ name: 'DentalPos One', url, ...(email ? { email } : {}), enabled: true, interrupted: false, apiVersion: 3, authToken, sendType: 'SEQUENTIALLY', events: WEBHOOK_EVENTS })
+    body: JSON.stringify({ name: 'CompletoDonto', url, ...(email ? { email } : {}), enabled: true, interrupted: false, apiVersion: 3, authToken, sendType: 'SEQUENTIALLY', events: WEBHOOK_EVENTS })
   })
 }

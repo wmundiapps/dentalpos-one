@@ -6,7 +6,7 @@ import PageHeader from "../components/PageHeader";
 import { bulkImportPatients } from "../services/PatientApi";
 
 type Target = "fullName" | "phone" | "cpf" | "rg" | "birthDate" | "gender" | "email" | "address" | "city" | "state" | "zipCode" | "notes";
-type Grid = { headers: string[]; rows: string[][] };
+export type Grid = { headers: string[]; rows: string[][] };
 
 const TARGETS: Array<[Target, string]> = [
   ["fullName", "Nome completo"], ["phone", "Telefone / celular"], ["cpf", "CPF"], ["rg", "RG"], ["birthDate", "Data de nascimento"],
@@ -15,20 +15,20 @@ const TARGETS: Array<[Target, string]> = [
 
 const ALIASES: Record<Target, string[]> = {
   fullName: ["nome", "nome completo", "paciente", "aluno", "cliente", "name", "nome do paciente", "nome do aluno", "nome do cliente"],
-  phone: ["telefone", "celular", "whatsapp", "fone", "phone", "tel"],
-  cpf: ["cpf"],
+  phone: ["telefone", "celular", "whatsapp", "fone", "phone", "tel", "mobilephone", "landline"],
+  cpf: ["cpf", "documentid"],
   rg: ["rg"],
   birthDate: ["nascimento", "data de nascimento", "data nascimento", "dt nascimento", "birthdate", "aniversario"],
-  gender: ["sexo", "genero"],
+  gender: ["sexo", "genero", "sex"],
   email: ["email", "e-mail"],
-  address: ["endereco", "logradouro", "rua"],
+  address: ["endereco", "logradouro", "rua", "address"],
   city: ["cidade", "city", "municipio"],
-  state: ["estado", "uf"],
-  zipCode: ["cep"],
-  notes: ["observacao", "observacoes", "obs"],
+  state: ["estado", "uf", "state"],
+  zipCode: ["cep", "zip"],
+  notes: ["observacao", "observacoes", "obs", "notes"],
 };
 
-const normalize = (h: string) => h.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+export const normalize = (h: string) => h.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
 const EXCLUDED = /(mae|pai|responsavel|conjuge|indicacao|profissional|empresa|trabalho|comercial)/;
 
 function autoMap(headers: string[]): Record<number, Target | ""> {
@@ -92,7 +92,7 @@ function cellToString(value: unknown): string {
   return String(value).trim();
 }
 
-async function readFileGrid(file: File): Promise<Grid> {
+export async function readFileGrid(file: File): Promise<Grid> {
   const name = file.name.toLowerCase();
   let matrix: string[][];
   if (name.endsWith(".xlsx")) {
@@ -114,16 +114,20 @@ const emptyBuilt = (): Built => ({ fullName: "", phone: "", cpf: "", rg: "", bir
 const digits = (v: string) => v.replace(/\D/g, "");
 
 function buildRows(grid: Grid, mapping: Record<number, Target | "">): Built[] {
-  return grid.rows.map((cells) => {
+  // Exportações do Clinicorp trazem uma coluna "Deleted" (X = paciente apagado): essas linhas não entram.
+  const deletedCol = grid.headers.findIndex((h) => normalize(h) === "deleted");
+  return grid.rows.filter((cells) => deletedCol < 0 || (cells[deletedCol] || "").trim().toUpperCase() !== "X").map((cells) => {
     const out = emptyBuilt();
     const phones: string[] = [];
     grid.headers.forEach((_, index) => {
       const target = mapping[index];
       const value = (cells[index] || "").trim();
       if (!target || !value) return;
-      if (target === "phone") phones.push(value);
+      if (target === "phone") { if (normalize(grid.headers[index]) === "landline") phones.push(value); else phones.unshift(value); }
       else if (!out[target]) out[target] = value;
     });
+    // Data ISO com hora (2000-01-31T00:00:00.000Z): fica só a data, sem deslocar o dia pelo fuso.
+    if (/^\d{4}-\d{2}-\d{2}T/.test(out.birthDate)) out.birthDate = out.birthDate.slice(0, 10);
     out.phone = phones.find((p) => digits(p).length >= 10) || phones[0] || "";
     // Excel guarda CPF como número e perde o zero à esquerda.
     if (out.cpf && digits(out.cpf).length >= 9 && digits(out.cpf).length < 11) out.cpf = digits(out.cpf).padStart(11, "0");
@@ -133,7 +137,7 @@ function buildRows(grid: Grid, mapping: Record<number, Target | "">): Built[] {
 
 const BATCH = 1000;
 
-export default function ImportPatients() {
+export default function ImportPatients({ embedded = false }: { embedded?: boolean } = {}) {
   const [grid, setGrid] = useState<Grid | null>(null);
   const [mapping, setMapping] = useState<Record<number, Target | "">>({});
   const [fileName, setFileName] = useState("");
@@ -185,10 +189,12 @@ export default function ImportPatients() {
 
   return (
     <Box>
-      <PageHeader
-        title="Importar clientes, alunos e cadastros de outro sistema"
-        description="Traga o cadastro de clientes, alunos ou outros contatos de outro sistema. Somente dados cadastrais são importados — financeiro, recebimentos e agenda permanecem no sistema de origem."
-      />
+      {!embedded && (
+        <PageHeader
+          title="Importar clientes, alunos e cadastros de outro sistema"
+          description="Traga o cadastro de clientes, alunos ou outros contatos de outro sistema. Somente dados cadastrais são importados — financeiro, recebimentos e agenda permanecem no sistema de origem."
+        />
+      )}
 
       <Alert severity="info" sx={{ mb: 2 }}>
         No sistema de origem, procure o relatório ou a exportação de clientes ou alunos para Excel (.xlsx) ou CSV e envie aqui. Você confere e ajusta quais colunas correspondem a cada campo antes de importar. Cadastros sem telefone com DDD não são importados (aparecem na lista de ignorados). Cadastros já existentes — mesmo nome e telefone, ou mesmo CPF — são ignorados, então é seguro reenviar o arquivo.

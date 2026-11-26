@@ -29,6 +29,7 @@ export interface SessionUser {
   clinic?: {
     name?: string;
     displayName?: string | null;
+    logo?: string | null;
     plan?: string;
   };
 }
@@ -81,7 +82,7 @@ export function appRootUrl() {
 }
 
 export function demoRegistrationUrl() {
-  return new URL("experience", appRootUrl()).toString();
+  return new URL("cadastro", appRootUrl()).toString();
 }
 
 export function publicBookingUrl(clinicId?: string | null) {
@@ -92,7 +93,7 @@ export function publicBookingUrl(clinicId?: string | null) {
 
 export function demoSalesUrl() {
   const phone = "5544984535069";
-  const message = "Quero contratar o DentalPos One";
+  const message = "Quero contratar o DentalPos";
   return (
     import.meta.env.VITE_SALES_URL ||
     `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
@@ -100,12 +101,12 @@ export function demoSalesUrl() {
 }
 
 const ROUTE_MODULES: Array<[RegExp, string]> = [
-  [/^\/agenda(?:\/|$)/, "agenda"],
+  [/^\/(?:agenda|chegada-por-rosto)(?:\/|$)/, "agenda"],
   [/^\/pacientes(?:\/|$)/, "patients"],
-  [/^\/(?:prontuario|documentos-clinicos|orcamentos-tratamentos|painel-atendimentos)(?:\/|$)/, "clinical"],
+  [/^\/(?:prontuario|documentos-clinicos|kit-clinica|orcamentos-tratamentos|painel-atendimentos)(?:\/|$)/, "clinical"],
   [/^\/laboratorio(?:\/|$)/, "laboratory"],
   [/^\/design(?:\/|$)/, "design"],
-  [/^\/(?:financeiro|pagamentos|inteligencia-financeira)(?:\/|$)/, "finance"],
+  [/^\/(?:financeiro|pagamentos|inteligencia-financeira|rateio-condominio|fechamento-caixa)(?:\/|$)/, "finance"],
   [/^\/(?:backoffice|contabil-fiscal|automacao-fiscal)(?:\/|$)/, "accounting"],
   [/^\/rh(?:\/|$)/, "hr"],
   [/^\/(?:marketing|revah|revah-chatbot|comunicacoes|recall|avaliacoes-atendimento)(?:\/|$)/, "marketing"],

@@ -1,8 +1,11 @@
+import { confirmTreatment } from '../services/treatmentStageService'
+import { consumeForProcedure } from '../services/stockUsageService'
 import { randomUUID } from 'crypto'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { notifyManagersUnplanned, UNPLANNED_ORIGIN } from '../services/unplannedProcedureService'
 
 const FDI_ADULT = [
   18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28,
@@ -29,6 +32,45 @@ const DEFAULT_FINDINGS = [
   ['PROSTHESIS','Prótese','PROSTHETIC','#5e35b1'],
   ['LESION','Lesão','PATHOLOGY','#ad1457'],
   ['MISSING','Ausente','CURRENT','#616161'],
+  ['CLEANING','Profilaxia / limpeza','PREVENTIVE','#2e7d32'],
+  ['SCALING','Raspagem','PERIODONTAL','#00838f'],
+  ['WHITENING','Clareamento','AESTHETIC','#f9a825'],
+  ['FACET','Faceta / lente de contato','AESTHETIC','#8e24aa'],
+  ['POST_CORE','Núcleo / pino','RESTORATIVE','#1976d2'],
+  ['ORTHO','Ortodontia / manutenção do aparelho','ORTHODONTIC','#3949ab'],
+  ['SUTURE_REMOVAL','Remoção de pontos','SURGICAL','#546e7a'],
+  ['EXTRACTION','Extração','SURGICAL','#546e7a'],
+  ['INTRUSION','Intrusão','ORTHODONTIC','#3949ab'],
+  ['EXTRUSION','Extrusão','ORTHODONTIC','#3949ab'],
+  ['IMPLANT_CROWN','Coroa sobre implante','PROSTHETIC','#7b1fa2'],
+  ['ENDO_RETREAT','Retratamento endodôntico','ENDODONTIC','#00838f'],
+  ['PULPOTOMY','Pulpotomia','ENDODONTIC','#00838f'],
+  ['SEALANT','Selante','PREVENTIVE','#2e7d32'],
+  ['FLUORIDE','Aplicação de flúor','PREVENTIVE','#2e7d32'],
+  ['BONE_GRAFT','Enxerto ósseo','SURGICAL','#546e7a'],
+  ['SINUS_LIFT','Levantamento de seio maxilar','SURGICAL','#546e7a'],
+  ['GINGIVOPLASTY','Gengivoplastia','PERIODONTAL','#00838f'],
+  ['REMOVABLE','Prótese removível','PROSTHETIC','#5e35b1'],
+  ['SPLINT','Placa / contenção','OTHER','#455a64'],
+  ['IMPLANT_REOPENING','Reabertura','IMPLANT','#455a64'],
+  ['SCANNING','Escaneamento','DIAGNOSTIC','#455a64'],
+  ['EXAM_REQUEST','Solicitação de exames','DIAGNOSTIC','#455a64'],
+  ['ZIRCONIA_PROSTHESIS_INSTALL','Instalação de prótese de zircônia','PROSTHETIC','#7b1fa2'],
+  ['PROVISIONAL_PROSTHESIS_INSTALL','Instalação de prótese provisória','PROSTHETIC','#ed6c02'],
+  ['METAL_CERAMIC_PROSTHESIS_INSTALL','Instalação de prótese metal e cerâmica','PROSTHETIC','#7b1fa2'],
+  ['RPD_INSTALL','Instalação de prótese parcial removível','PROSTHETIC','#5e35b1'],
+  ['ORTHO_BONDING','Colagem de aparelho ortodôntico','ORTHODONTIC','#3949ab'],
+  ['ORTHO_PLANNING','Planejamento ortodôntico','ORTHODONTIC','#3949ab'],
+  ['ORTHO_REPAIR','Conserto de aparelho ortodôntico','ORTHODONTIC','#3949ab'],
+  ['ORTHO_MAINTENANCE','Manutenção de aparelho ortodôntico','ORTHODONTIC','#3949ab'],
+  ['ORTHO_REMOVABLE_INSTALL','Instalação de aparelho removível','ORTHODONTIC','#3949ab'],
+  ['ORTHO_ORTHOPEDIC_INSTALL','Instalação de aparelho ortopédico','ORTHODONTIC','#3949ab'],
+  ['SPACE_MAINTAINER_INSTALL','Instalação de mantenedor','ORTHODONTIC','#3949ab'],
+  ['AEB_PLATE_TPB_INSTALL','Instalação de AEB / placa / barra transpalatina','ORTHODONTIC','#3949ab'],
+  ['ATTACHMENT_INSTALL','Instalação de attachment','ORTHODONTIC','#3949ab'],
+  ['ORTHO_REMOVAL','Remoção de aparelho ortodôntico','ORTHODONTIC','#3949ab'],
+  ['ORTHO_RETENTION','Contenção ortodôntica','ORTHODONTIC','#3949ab'],
+  ['OTHER_PROCEDURE','Outro procedimento','OTHER','#455a64'],
 ] as const
 
 function context(req: AuthRequest) {
@@ -95,6 +137,16 @@ export async function saveEntry(req: AuthRequest, res: Response) {
     if (!findingCode || !findingLabel) return res.status(400).json({ error: 'Achado clínico obrigatório.' })
 
     const completedAt = clinicalState === 'COMPLETED' ? new Date() : null
+    // Concluído sem ter sido planejado antes (odontograma ou plano de tratamento) = procedimento novo, ainda sem orçamento.
+    let unplanned = false
+    if (clinicalState === 'COMPLETED') {
+      const planned = await prisma.$queryRaw<any[]>`
+        SELECT 1 FROM "DentalChartEntry"
+        WHERE "clinicId"=${clinicId} AND "patientId"=${patientId} AND "status"='ACTIVE' AND "clinicalState" IN ('PLANNED','CURRENT')
+          AND (("id"=${id}) OR ("tooth"=${tooth} AND "findingCode"=${findingCode})) LIMIT 1`
+      const inPlan = planned.length ? null : await prisma.treatmentItem.findFirst({ where: { clinicId, tenantId, patientId, tooth, procedure: findingLabel, status: { in: ['PLANNED', 'APPROVED', 'IN_PROGRESS'] } }, select: { id: true } })
+      unplanned = !planned.length && !inPlan
+    }
     await prisma.$executeRaw`
       INSERT INTO "DentalChartEntry"
         ("id","clinicId","tenantId","patientId","dentition","tooth","surface","findingCode","findingLabel","clinicalState","status","notes","completedAt","createdBy","createdAt","updatedAt")
@@ -133,18 +185,20 @@ export async function saveEntry(req: AuthRequest, res: Response) {
           surfaces: surface ? [surface] : [],
           procedure: findingLabel,
           status: clinicalState === 'COMPLETED' ? 'COMPLETED' : 'PLANNED',
-          origin: 'ODONTOGRAM',
+          origin: unplanned ? UNPLANNED_ORIGIN : 'ODONTOGRAM',
           odontogramMarkId: legacyMark.id,
           completedAt
         }
       })
     }
 
+    let evolutionId: string | undefined
     if (clinicalState === 'COMPLETED' && req.body.evolutionNotes) {
       const professionalName = String(req.body.professionalName || 'Profissional responsável')
-      await prisma.clinicalEvolution.create({
+      const created = await prisma.clinicalEvolution.create({
         data: {
           clinicId, tenantId, patientId,
+          teeth: [String(tooth)],
           professionalId: req.body.professionalId ? String(req.body.professionalId) : null,
           professionalName,
           procedure: findingLabel,
@@ -153,17 +207,36 @@ export async function saveEntry(req: AuthRequest, res: Response) {
           nextAppointmentCreated: false
         }
       })
+      evolutionId = created.id
+      await consumeForProcedure({ clinicId, tenantId }, { evolutionId: created.id, patientId, procedure: findingLabel, teethCount: 1 })
     }
+    if (clinicalState === 'COMPLETED') await confirmTreatment({ clinicId, tenantId, actorId: actorUserId }, patientId, 'primeiro procedimento executado')
 
     await writeAudit({
       clinicId, tenantId, actorId: actorUserId, module: 'clinical',
       action: 'DENTAL_CHART_ENTRY_UPSERT', entityType: 'DentalChartEntry', entityId: id,
       metadata: { patientId, dentition, tooth, surface, findingCode, clinicalState }
     })
-    return res.status(200).json({ id })
+    return res.status(200).json({ id, unplanned, evolutionId })
   } catch (error: any) {
     console.error(error)
     return res.status(400).json({ error: error?.message || 'Erro ao salvar odontograma.' })
+  }
+}
+
+export async function notifyUnplanned(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorUserId } = context(req)
+    const patientId = String(req.params.patientId)
+    const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId, tenantId }, select: { fullName: true } })
+    if (!patient) return res.status(404).json({ error: 'Paciente não encontrado.' })
+    const items = (Array.isArray(req.body?.items) ? req.body.items : []).slice(0, 40).map((i: any) => ({ tooth: Number(i?.tooth) || 0, procedure: String(i?.procedure || '').trim().slice(0, 120) })).filter((i: { tooth: number; procedure: string }) => i.tooth && i.procedure)
+    if (!items.length) return res.status(400).json({ error: 'Nenhum procedimento informado.' })
+    const result = await notifyManagersUnplanned({ clinicId, tenantId, actorId: actorUserId, patientId, patientName: patient.fullName, professional: String(req.body?.professional || '').trim().slice(0, 120), items })
+    return res.json(result)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao avisar o gestor.' })
   }
 }
 
@@ -201,7 +274,8 @@ export async function findings(req: AuthRequest, res: Response) {
       ORDER BY "label"
     `
     const defaults = DEFAULT_FINDINGS.map(([code,label,category,color]) => ({ id: code, code, label, category, color, isActive: true, system: true }))
-    return res.json([...defaults, ...custom])
+    // Ordem alfabética (português) para a lista de procedimentos.
+    return res.json([...defaults, ...custom].sort((x, y) => String(x.label).localeCompare(String(y.label), 'pt-BR', { sensitivity: 'base' })))
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao carregar achados configuráveis.' })

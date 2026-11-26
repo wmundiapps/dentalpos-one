@@ -1,3 +1,5 @@
+import { getHold, holdMessage } from '../services/financialHoldService'
+import { notifyHoldScheduled } from '../services/holdScheduleNotice'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
@@ -84,6 +86,18 @@ const includeDetails = {
   doctor: { include: { user: true } },
   history: { orderBy: { createdAt: 'desc' as const }, include: { actor: { select: { id: true, firstName: true, lastName: true, email: true } } } },
   reminders: { orderBy: { scheduledFor: 'asc' as const } }
+}
+
+// Quantos atendimentos podem se sobrepor para o mesmo profissional (padrão 2: encaixe quando o dentista precisar).
+const MAX_PER_SLOT = Math.max(1, Math.floor(Number(process.env.APPOINTMENT_MAX_PER_SLOT) || 2))
+function overCapacity(items: Array<{ scheduledAt: Date; durationMinutes: number }>, start: number, end: number) {
+  const overlapping = items.filter(item => {
+    const itemStart = item.scheduledAt.getTime()
+    return itemStart < end && itemStart + item.durationMinutes * 60000 > start
+  })
+  // Só os inícios dentro da janela mudam a contagem de sobreposição.
+  const points = [start, ...overlapping.map(item => item.scheduledAt.getTime()).filter(t => t > start && t < end)]
+  return points.some(t => overlapping.filter(item => item.scheduledAt.getTime() <= t && item.scheduledAt.getTime() + item.durationMinutes * 60000 > t).length + 1 > MAX_PER_SLOT)
 }
 
 export async function index(req: AuthRequest, res: Response) {
@@ -175,11 +189,7 @@ export async function availability(req: AuthRequest, res: Response) {
 
         const candidateStart = candidate.getTime()
         const candidateEnd = candidateStart + durationMinutes * 60000
-        const conflict = appointments.some(item => {
-          const itemStart = item.scheduledAt.getTime()
-          const itemEnd = itemStart + item.durationMinutes * 60000
-          return itemStart < candidateEnd && itemEnd > candidateStart
-        })
+        const conflict = overCapacity(appointments, candidateStart, candidateEnd)
         const blocked = isAgendaBlocked(
           agendaBlocks,
           doctorId,
@@ -224,7 +234,7 @@ export async function show(req: AuthRequest, res: Response) {
 export async function store(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
-    const { patientId, doctorId, procedure, nextProcedure, scheduledAt, room, notes, source, budgetId, reminderChannel } = req.body
+    const { evolutionId, patientId, doctorId, procedure, nextProcedure, scheduledAt, room, notes, source, budgetId, reminderChannel } = req.body
     if (!patientId || !doctorId || !procedure || !scheduledAt) {
       return res.status(400).json({ error: 'Paciente, profissional, procedimento e data/hora são obrigatórios.' })
     }
@@ -247,6 +257,17 @@ export async function store(req: AuthRequest, res: Response) {
 
     if (when.getTime() < Date.now()) {
       return res.status(400).json({ error: 'Não é permitido criar agendamento em data ou horário retroativo.' })
+    }
+
+    // Pendência financeira: 1 horário é permitido com aviso; o seguinte pede regularizar ou "Agendar mesmo assim"
+    // (qualquer usuário da agenda; fica na auditoria e o gestor é avisado por e-mail).
+    const hold = await getHold(req.user.clinicId, req.user.tenantId, patient.id).catch(() => null)
+    let overridden = false
+    if (hold?.blocked) {
+      const scheduleAnyway = req.body?.scheduleAnyway === true || (req.body?.overrideFinancialHold === true && req.user.role === 'ADMIN')
+      if (!scheduleAnyway) return res.status(409).json({ code: 'FINANCIAL_HOLD', error: holdMessage(hold), hold, canScheduleAnyway: true })
+      overridden = true
+      await writeAudit({ clinicId: req.user.clinicId, tenantId: req.user.tenantId, actorId: req.user.id, module: 'agenda', action: 'FINANCIAL_HOLD_OVERRIDE', entityType: 'Patient', entityId: patient.id, summary: `Agendamento feito com pendência financeira em aberto ("Agendar mesmo assim")${String(req.body?.overrideReason || '').trim() ? `: ${String(req.body.overrideReason).trim().slice(0, 200)}` : '.'}` }).catch((e: unknown) => console.error(e))
     }
 
     const assistantId = req.body.assistantId ? String(req.body.assistantId) : null
@@ -299,13 +320,8 @@ export async function store(req: AuthRequest, res: Response) {
       },
       select: { id: true, scheduledAt: true, durationMinutes: true }
     })
-    const conflict = possibleConflicts.find(item => {
-      const itemStart = item.scheduledAt.getTime()
-      const itemEnd = itemStart + item.durationMinutes * 60000
-      return itemStart < incomingEnd && itemEnd > incomingStart
-    })
-    if (conflict) {
-      return res.status(409).json({ error: 'Este profissional já possui um agendamento neste horário.' })
+    if (overCapacity(possibleConflicts, incomingStart, incomingEnd)) {
+      return res.status(409).json({ error: `Este profissional já tem ${MAX_PER_SLOT} agendamento(s) neste horário.` })
     }
 
     const appointment = await prisma.$transaction(async tx => {
@@ -367,6 +383,14 @@ export async function store(req: AuthRequest, res: Response) {
       userAgent: req.get('user-agent')
     })
 
+    // Gestor avisado por e-mail: paciente com pendência foi agendado (regularizou ou não). Sem esperar, sem derrubar o agendamento.
+    const stillPending = !!hold?.hasPending
+    const regularizedNow = !stillPending && req.body?.holdWasShown === true
+    if (stillPending || regularizedNow) {
+      void notifyHoldScheduled({ clinicId: req.user.clinicId, tenantId: req.user.tenantId, actorId: req.user.id, patientId: patient.id, doctorId: doctor.id, procedure: String(procedure), scheduledAt: when, regularized: regularizedNow, hold: hold || null, overridden })
+    }
+
+    if (evolutionId) await prisma.clinicalEvolution.updateMany({ where: { id: String(evolutionId), clinicId: req.user!.clinicId, patientId: patient.id }, data: { nextAppointmentCreated: true, appointmentId: appointment.id } }).catch(() => undefined)
     const full = await prisma.appointment.findUnique({ where: { id: appointment.id }, include: includeDetails })
     return res.status(201).json(full)
   } catch (error) {
@@ -387,7 +411,10 @@ export async function update(req: AuthRequest, res: Response) {
 
     const newScheduledAt = req.body.scheduledAt ? parseDate(req.body.scheduledAt) : existing.scheduledAt
     if (!newScheduledAt) return res.status(400).json({ error: 'Data/hora inválida.' })
-    const newStatus = req.body.status ? String(req.body.status) : existing.status
+    // "Desmarcado" é um cancelamento marcado em confirmation: o horário é liberado e o paciente entra na lista de quem precisa reagendar.
+    const wantUnscheduled = String(req.body.status || '') === 'UNSCHEDULED'
+    const wasUnscheduled = existing.status === 'CANCELLED' && existing.confirmation === 'UNSCHEDULED'
+    const newStatus = wantUnscheduled ? 'CANCELLED' : req.body.status ? String(req.body.status) : existing.status
     const normalizedReminderChannel = normalizeReminderChannel(req.body.reminderChannel || existing.confirmChannel || 'WHATSAPP')
     const reminderSelectionProvided = req.body.reminders && typeof req.body.reminders === 'object'
     const lifecycleTypes = ['ON_BOOKING', 'ONE_DAY_BEFORE', 'ON_DAY']
@@ -402,9 +429,17 @@ export async function update(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Duração do agendamento inválida.' })
     }
     const newDurationMinutes = Math.round(parsedDuration)
+    // Troca de profissional (o paciente passa a ser atendido por outro dentista).
+    let newDoctorId = existing.doctorId
+    if (req.body.doctorId !== undefined && String(req.body.doctorId || '') && String(req.body.doctorId) !== existing.doctorId) {
+      const doc = await prisma.doctor.findFirst({ where: { id: String(req.body.doctorId), clinicId: req.user.clinicId, tenantId: req.user.tenantId, isActive: true }, select: { id: true } })
+      if (!doc) return res.status(404).json({ error: 'Profissional não encontrado na clínica atual.' })
+      newDoctorId = doc.id
+    }
+    const changedDoctor = newDoctorId !== existing.doctorId
     const changedSchedule = newScheduledAt.getTime() !== existing.scheduledAt.getTime()
     const changedDuration = newDurationMinutes !== existing.durationMinutes
-    const changedStatus = newStatus !== existing.status
+    const changedStatus = newStatus !== existing.status || (newStatus === 'CANCELLED' && wantUnscheduled !== wasUnscheduled)
     let newAssistantId = existing.assistantId
     if (req.body.assistantId !== undefined) {
       newAssistantId = req.body.assistantId ? String(req.body.assistantId) : null
@@ -412,7 +447,7 @@ export async function update(req: AuthRequest, res: Response) {
         return res.status(404).json({ error: 'Auxiliar não pertence à clínica atual.' })
       }
     }
-    if ((changedSchedule || changedDuration || changedStatus) && !String(req.body.reason || '').trim()) {
+    if ((changedSchedule || changedDuration || changedStatus || changedDoctor) && !String(req.body.reason || '').trim()) {
       return res.status(400).json({ error: 'Informe o motivo da remarcação, cancelamento, falta ou alteração.' })
     }
 
@@ -420,11 +455,11 @@ export async function update(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Não é permitido remarcar para data ou horário retroativo.' })
     }
 
-    if ((changedSchedule || changedDuration) && newStatus !== 'CANCELLED') {
+    if ((changedSchedule || changedDuration || changedDoctor) && newStatus !== 'CANCELLED') {
       const withinJourney = await fitsWorkSchedule(
         req.user.clinicId,
         req.user.tenantId,
-        existing.doctorId,
+        newDoctorId,
         newScheduledAt,
         newDurationMinutes
       )
@@ -437,7 +472,7 @@ export async function update(req: AuthRequest, res: Response) {
       const agendaBlocks = await listAgendaBlocks(req.user.clinicId)
       if (isAgendaBlocked(
         agendaBlocks,
-        existing.doctorId,
+        newDoctorId,
         newScheduledAt,
         new Date(newScheduledAt.getTime() + newDurationMinutes * 60000)
       )) {
@@ -447,7 +482,7 @@ export async function update(req: AuthRequest, res: Response) {
       const recurringBreaks = await listRecurringBreaks(req.user.clinicId)
       if (isRecurringBreakBlocked(
         recurringBreaks,
-        existing.doctorId,
+        newDoctorId,
         newScheduledAt,
         newDurationMinutes
       )) {
@@ -463,7 +498,7 @@ export async function update(req: AuthRequest, res: Response) {
           id: { not: id },
           clinicId: req.user.clinicId,
           tenantId: req.user.tenantId,
-          doctorId: existing.doctorId,
+          doctorId: newDoctorId,
           status: { not: 'CANCELLED' },
           scheduledAt: {
             gte: new Date(incomingStart - 480 * 60000),
@@ -472,14 +507,8 @@ export async function update(req: AuthRequest, res: Response) {
         },
         select: { id: true, scheduledAt: true, durationMinutes: true }
       })
-      const conflict = possibleConflicts.find(item => {
-        const itemStart = item.scheduledAt.getTime()
-        const itemEnd = itemStart + item.durationMinutes * 60000
-        return itemStart < incomingEnd && itemEnd > incomingStart
-      })
-
-      if (conflict) {
-        return res.status(409).json({ error: 'Este profissional já possui um agendamento neste horário.' })
+      if (overCapacity(possibleConflicts, incomingStart, incomingEnd)) {
+        return res.status(409).json({ error: `Este profissional já tem ${MAX_PER_SLOT} agendamento(s) neste horário.` })
       }
     }
 
@@ -487,10 +516,11 @@ export async function update(req: AuthRequest, res: Response) {
       const updated = await tx.appointment.update({
         where: { id },
         data: {
+          doctorId: newDoctorId,
           scheduledAt: newScheduledAt,
           durationMinutes: newDurationMinutes,
           status: newStatus,
-          confirmation: newStatus === 'CONFIRMED' ? 'CONFIRMED' : newStatus === 'CANCELLED' ? 'CANCELLED' : existing.confirmation,
+          confirmation: newStatus === 'CONFIRMED' ? 'CONFIRMED' : newStatus === 'CANCELLED' ? (wantUnscheduled ? 'UNSCHEDULED' : 'CANCELLED') : ['CANCELLED', 'UNSCHEDULED'].includes(existing.confirmation || '') ? 'PENDING' : existing.confirmation,
           confirmChannel: normalizedReminderChannel,
           procedure: req.body.procedure !== undefined ? String(req.body.procedure) : existing.procedure,
           nextProcedure: req.body.nextProcedure !== undefined ? String(req.body.nextProcedure || '') || null : existing.nextProcedure,
@@ -500,7 +530,7 @@ export async function update(req: AuthRequest, res: Response) {
         }
       })
       if (changedSchedule || changedStatus || req.body.reason) {
-        const action = newStatus === 'CANCELLED' ? 'CANCELLED' : newStatus === 'NO_SHOW' ? 'NO_SHOW' : changedSchedule ? 'RESCHEDULED' : 'UPDATED'
+        const action = newStatus === 'CANCELLED' ? (wantUnscheduled ? 'UNSCHEDULED' : 'CANCELLED') : newStatus === 'NO_SHOW' ? 'NO_SHOW' : changedSchedule ? 'RESCHEDULED' : 'UPDATED'
         await tx.appointmentHistory.create({
           data: {
             clinicId: req.user!.clinicId,
@@ -595,6 +625,7 @@ export async function remove(req: AuthRequest, res: Response) {
     const id = String(req.params.id)
     const reason = String(req.body?.reason || '').trim()
     if (!reason) return res.status(400).json({ error: 'Informe o motivo do cancelamento.' })
+    const unscheduled = req.body?.unscheduled === true
     const existing = await prisma.appointment.findFirst({
       where: { id, clinicId: req.user.clinicId, tenantId: req.user.tenantId },
       include: { reminders: { orderBy: { scheduledFor: 'asc' } } }
@@ -602,14 +633,14 @@ export async function remove(req: AuthRequest, res: Response) {
     if (!existing) return res.status(404).json({ error: 'Agendamento não encontrado.' })
 
     const appointment = await prisma.$transaction(async tx => {
-      const updated = await tx.appointment.update({ where: { id }, data: { status: 'CANCELLED' } })
+      const updated = await tx.appointment.update({ where: { id }, data: { status: 'CANCELLED', ...(unscheduled ? { confirmation: 'UNSCHEDULED' } : {}) } })
       await tx.appointmentHistory.create({
         data: {
           clinicId: req.user!.clinicId,
           tenantId: req.user!.tenantId,
           appointmentId: id,
           actorId: req.user!.id,
-          action: 'CANCELLED',
+          action: unscheduled ? 'UNSCHEDULED' : 'CANCELLED',
           requestedBy: req.body?.requestedBy ? String(req.body.requestedBy) : 'CLINIC',
           reason,
           previousScheduledAt: existing.scheduledAt,
@@ -649,11 +680,15 @@ export async function remove(req: AuthRequest, res: Response) {
 // (portanto só a fila do consultório dele), sem revalidar horário nem exigir motivo.
 const FLOW_ACTIONS: Record<string, { to: string; from: string[] }> = {
   ARRIVED: { to: 'WAITING', from: ['SCHEDULED', 'CONFIRMED', 'NO_SHOW'] },
+  // Desfaz uma chegada marcada por engano (ex.: reconhecimento facial errado).
+  UNDO_ARRIVAL: { to: 'SCHEDULED', from: ['WAITING'] },
   PREPARE_ROOM: { to: 'ROOM_PREPARATION', from: ['WAITING'] },
   START: { to: 'IN_PROGRESS', from: ['WAITING', 'ROOM_PREPARATION'] },
   FINISH: { to: 'COMPLETED', from: ['IN_PROGRESS'] },
   // Agenda: recepção confirma que o paciente compareceu (também corrige uma falta marcada por engano).
-  ATTENDED: { to: 'COMPLETED', from: ['SCHEDULED', 'CONFIRMED', 'WAITING', 'ROOM_PREPARATION', 'IN_PROGRESS', 'NO_SHOW'] }
+  ATTENDED: { to: 'COMPLETED', from: ['SCHEDULED', 'CONFIRMED', 'WAITING', 'ROOM_PREPARATION', 'IN_PROGRESS', 'NO_SHOW'] },
+  // Agenda: marca a falta direto, sem passar pelo formulário (o paciente não veio).
+  NO_SHOW: { to: 'NO_SHOW', from: ['SCHEDULED', 'CONFIRMED', 'WAITING', 'ROOM_PREPARATION'] }
 }
 
 export async function flowAction(req: AuthRequest, res: Response) {
@@ -684,7 +719,7 @@ export async function flowAction(req: AuthRequest, res: Response) {
           tenantId: req.user!.tenantId,
           appointmentId: id,
           actorId: req.user!.id,
-          action: 'UPDATED',
+          action: action.to === 'NO_SHOW' ? 'NO_SHOW' : 'UPDATED',
           reason: `Painel de atendimentos: ${action.to}`,
           previousScheduledAt: existing.scheduledAt,
           newScheduledAt: existing.scheduledAt,
@@ -692,6 +727,7 @@ export async function flowAction(req: AuthRequest, res: Response) {
           newStatus: action.to
         }
       })
+      if (action.to === 'NO_SHOW') await tx.appointmentReminder.updateMany({ where: { appointmentId: id, status: 'PENDING' }, data: { status: 'CANCELLED' } })
       return updated
     })
     return res.status(200).json(appointment)

@@ -20,6 +20,7 @@ import cronRoutes from './routes/cron'
 import crmRoutes from './routes/crm'
 import inboxRoutes from './routes/inbox'
 import integrationRoutes from './routes/integrations'
+import inviteRoutes from './routes/invite'
 import leadRoutes from './routes/leads'
 import publicRoutes from './routes/public'
 import settingsRoutes from './routes/settings'
@@ -59,6 +60,7 @@ export function createApp() {
 
   app.get('/', (_req, res) => res.json({ service: 'REVAH API', docs: '/health' }))
   app.use(publicRoutes)
+  app.use(inviteRoutes)
   app.use(cronRoutes)
   app.use('/webhooks', webhookRoutes)
   app.use('/auth', (req, res, next) => (req.method === 'POST' ? authLimiter(req, res, next) : next()), authRoutes)

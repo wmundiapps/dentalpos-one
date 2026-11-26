@@ -105,7 +105,7 @@ export function getLaboratoryWorks(): IntegratedLaboratoryWork[] {
         patientName: work.patientName ?? work.patientCode ?? "Paciente",
         patientCode: work.patientCode ?? formatPatientCode(work.patientName ?? "Paciente"),
         dentistName: work.dentistName ?? "A definir",
-        clinicName: work.clinicName ?? "DentalPos",
+        clinicName: work.clinicName ?? "CompletoDonto",
         workType: work.workType ?? "Trabalho laboratorial",
         material: work.material ?? "A definir",
         responsibleTechnician: work.responsibleTechnician ?? "A definir",
@@ -237,7 +237,7 @@ export function sendLaboratoryWorkToDesign(id: number) {
   const work = getLaboratoryWorks().find((item) => item.id === id);
   if (!work) return undefined;
   const now = new Date().toISOString();
-  updateLaboratoryWork(id, { hasCadCamFile: true, designStatus: "Preparando", status: work.status === "Recebido" ? "Planejamento" : work.status }, "Caso encaminhado ao DentalPos Design.");
+  updateLaboratoryWork(id, { hasCadCamFile: true, designStatus: "Preparando", status: work.status === "Recebido" ? "Planejamento" : work.status }, "Caso encaminhado ao CompletoDonto Design.");
   localStorage.setItem("dentalpos.design.activeLabWork.v1", JSON.stringify({
     id: work.id, patientName: work.patientName, dentistName: work.dentistName, workType: work.workType, teeth: work.teeth, toothShade: work.toothShade, shadeSystem: work.shadeSystem, patientAge: work.patientAge, patientSex: work.patientSex, faceBiotype: work.faceBiotype, faceShape: work.faceShape, faceDescription: work.faceDescription, dueDateISO: work.dueDateISO, patientReturnDateISO: work.patientReturnDateISO, observations: work.observations, openedAtISO: now
   }));
@@ -261,7 +261,7 @@ export function createLaboratoryWorkFromDesign(input: {
   return createLaboratoryWork({
     patientName: input.patientName,
     dentistName: "A definir",
-    clinicName: "DentalPos",
+    clinicName: "CompletoDonto",
     workType: input.workType,
     material: "A definir",
     responsibleTechnician: "A definir",
@@ -270,8 +270,8 @@ export function createLaboratoryWorkFromDesign(input: {
     status: "CAD",
     priority: input.priority,
     hasCadCamFile: true,
-    observations: input.observations || "Caso enviado automaticamente pelo DentalPos Design.",
-    source: "DentalPos Design",
+    observations: input.observations || "Caso enviado automaticamente pelo CompletoDonto Design.",
+    source: "CompletoDonto Design",
     designJobId: input.designJobId,
     nextAction: "Conferir arquivos e iniciar produção",
   });
@@ -303,7 +303,7 @@ export interface AgendaFillSuggestion {
 export async function getAgendaFillSuggestions(limit = 8): Promise<AgendaFillSuggestion[]> {
   const appointments = getAppointments();
   const activeFuture = appointments.filter((a) =>
-    !["Cancelado", "Faltou", "Finalizado"].includes(a.status) &&
+    !["Cancelado", "Desmarcado", "Faltou", "Finalizado"].includes(a.status) &&
     a.dateISO >= todayISO()
   );
 
@@ -350,7 +350,7 @@ export function createAppointment(input: Omit<IntegratedAppointment, "id" | "cre
     const lab = createLaboratoryWork({
       patientName: input.patientName,
       dentistName: input.professionalName,
-      clinicName: "DentalPos",
+      clinicName: "CompletoDonto",
       workType: inferLaboratoryWorkType(input.procedure),
       material: "A definir",
       responsibleTechnician: "A definir",
@@ -392,11 +392,11 @@ export function changeAppointmentWithHistory(id: number, input: {
   if (!original) return;
 
   const dateChanged = Boolean(input.dateISO && input.dateISO !== original.dateISO) || Boolean(input.time && input.time !== original.time);
-  const action = input.status === "Cancelado" ? "Cancelado" : input.status === "Faltou" ? "Faltou" : dateChanged ? "Remarcado" : "Alterado";
+  const action = input.status === "Cancelado" ? "Cancelado" : input.status === "Desmarcado" ? "Desmarcado" : input.status === "Faltou" ? "Faltou" : dateChanged ? "Remarcado" : "Alterado";
   const event = {
     id: Date.now(),
     atISO: new Date().toISOString(),
-    action: action as "Remarcado" | "Cancelado" | "Faltou" | "Alterado",
+    action: action as "Remarcado" | "Cancelado" | "Desmarcado" | "Faltou" | "Alterado",
     requestedBy: input.requestedBy,
     reason: input.reason,
     previousDateISO: original.dateISO,
@@ -497,6 +497,9 @@ function getFinancialEntries(): AlertFinanceRow[] {
   return realFinanceRows.map(fromRealFinance);
 }
 
+// Lançamentos usados pelos avisos (mesma fonte), para mostrar o financeiro do paciente na agenda do início.
+export const getFinanceRowsForAlerts = () => getFinancialEntries();
+
 const daysBetween = (dateISO?: string) => {
   if (!dateISO) return Number.POSITIVE_INFINITY;
   const a = new Date(`${todayISO()}T12:00:00`).getTime();
@@ -521,12 +524,12 @@ export function getOperationalAlerts(): OperationalAlert[] {
   const agendaRows = getAppointments();
   agendaRows.forEach((appointment) => {
     const days = daysBetween(appointment.dateISO);
-    if (days === 0 && appointment.status !== "Cancelado" && appointment.status !== "Finalizado") {
+    if (days === 0 && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado" && appointment.status !== "Finalizado") {
       alerts.push({ id: `agenda-today-${appointment.id}`, area: "Agenda", severity: "info", title: "Consulta hoje", description: `${appointment.time} • ${appointment.patientName} • ${appointment.procedure}. Próximo: ${appointment.nextProcedure}`, dueISO: appointment.dateISO, route: "/agenda" });
     } else if (days === 1 && appointment.reminders.oneDayBefore) {
       alerts.push({ id: `agenda-tomorrow-${appointment.id}`, area: "Agenda", severity: "info", title: "Lembrete de consulta para amanhã", description: `${appointment.patientName} às ${appointment.time}.`, dueISO: appointment.dateISO, route: "/agenda" });
     }
-    const futureForPatient = agendaRows.some(a=>a.patientName.toLowerCase()===appointment.patientName.toLowerCase() && a.dateISO>todayISO() && !["Cancelado","Faltou"].includes(a.status));
+    const futureForPatient = agendaRows.some(a=>a.patientName.toLowerCase()===appointment.patientName.toLowerCase() && a.dateISO>todayISO() && !["Cancelado","Desmarcado","Faltou"].includes(a.status));
     if (appointment.status === "Faltou" && days <= 0 && !futureForPatient) {
       alerts.push({ id:`agenda-noshow-${appointment.id}`, area:"Pacientes", severity:"warning", title:"Falta ainda não remarcada", description:`${appointment.patientName} faltou em ${appointment.dateISO.split("-").reverse().join("/")} e ainda não possui novo agendamento.`, dueISO:appointment.dateISO, route:"/agenda" });
     }

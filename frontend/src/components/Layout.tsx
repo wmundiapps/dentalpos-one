@@ -1,14 +1,18 @@
-import { Box } from "@mui/material";
+import { Alert, Box } from "@mui/material";
+import { useLocation } from "react-router-dom";
+import { pathAllowed, useMenuAccess } from "../config/menuAccess";
 import { useEffect, type ReactNode } from "react";
 import { syncProcedureDurations } from "../services/ProcedureDurations";
 import { EDU_ONLY } from "../config/appMode";
 
 import DemoBanner from "./DemoBanner";
+import SubscriptionBanner from "./SubscriptionBanner";
 import EvaluationWidget from "./EvaluationWidget";
 import SuggestionBox from "./SuggestionBox";
 import Footer from "./Footer";
 import Header from "./Header";
 import PendingAlertsBar from "./PendingAlertsBar";
+import PendingLockGate from "./PendingLockGate";
 import ToastHost from "./ToastHost";
 import PrintHeader from "./PrintHeader";
 import FeedbackButton from "../edu/feedback/FeedbackButton";
@@ -17,6 +21,7 @@ import Sidebar from "./Sidebar";
 import AssistenteTreinamento from "./AssistenteTreinamento";
 import ScreenWatermark from "./ScreenWatermark";
 import CopyDeterrent from "./CopyDeterrent";
+import { AlertsDrawerHost } from "./alerts/AlertsMenu";
 
 interface LayoutProps {
   children: ReactNode;
@@ -26,6 +31,9 @@ export default function Layout({
   children,
 }: LayoutProps) {
   useEffect(() => { if (!EDU_ONLY) void syncProcedureDurations(); }, []);
+  const location = useLocation();
+  const menuAccess = useMenuAccess();
+  const blocked = !pathAllowed(location.pathname, menuAccess);
 
   return (
     <Box
@@ -48,7 +56,8 @@ export default function Layout({
       >
         <Header />
         <Box className="no-print"><DemoBanner /></Box>
-        <Box className="no-print"><PendingAlertsBar /></Box>
+        <Box className="no-print"><SubscriptionBanner /></Box>
+        <Box className="no-print" sx={{ display: { xs: "none", md: "block" } }}><PendingAlertsBar /></Box>
         <ToastHost />
 
         <Box
@@ -57,24 +66,31 @@ export default function Layout({
             flex: 1,
             minWidth: 0,
             maxWidth: "100%",
-            p: {
-              xs: 2,
-              md: 4,
-            },
+            // A agenda usa a tela toda (margens pequenas) para mostrar mais horários e pacientes.
+            p: location.pathname.startsWith("/agenda") && !location.pathname.startsWith("/agendamento")
+              ? { xs: 1, md: 1.5 }
+              : { xs: 2, md: 4 },
           }}
         >
           {EDU_ONLY ? <DemoExpiryBanner /> : null}
           <PrintHeader />
-          {children}
-          <SuggestionBox />
-          <FeedbackButton />
-          <AssistenteTreinamento />
+          {blocked ? (
+            <Alert severity="warning" sx={{ maxWidth: 640 }}>Seu departamento não tem acesso a esta tela. Peça ao administrador ou ao gestor para liberar em Configurações &gt; Permissões.</Alert>
+          ) : (
+            <PendingLockGate>
+              {children}
+              <SuggestionBox />
+              <FeedbackButton />
+              <AssistenteTreinamento />
+            </PendingLockGate>
+          )}
         </Box>
 
         <Footer />
       </Box>
 
       <Box className="no-print"><EvaluationWidget /></Box>
+      <Box className="no-print"><AlertsDrawerHost /></Box>
       <ScreenWatermark />
       <CopyDeterrent />
     </Box>

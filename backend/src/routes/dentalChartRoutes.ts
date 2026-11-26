@@ -7,6 +7,7 @@ const router = Router()
 
 router.get('/patients/:patientId/dental-chart', requirePermission('clinical.view'), dentalChartController.chart)
 router.put('/patients/:patientId/dental-chart/entries', requirePermission('clinical.edit'), dentalChartController.saveEntry)
+router.post('/patients/:patientId/unplanned-procedures', requirePermission('clinical.edit'), dentalChartController.notifyUnplanned)
 router.delete('/patients/:patientId/dental-chart/entries/:id', requirePermission('clinical.edit'), dentalChartController.removeEntry)
 
 router.get('/dental-findings', requirePermission('clinical.view'), dentalChartController.findings)

@@ -10,6 +10,10 @@ export interface BackendPatient {
   phone: string;
   email?: string | null;
   cpf?: string | null;
+  rg?: string | null;
+  address?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
   birthDate?: string | null;
   gender?: PatientGender | null;
   city?: string | null;
@@ -21,6 +25,7 @@ export interface BackendPatient {
   medicalHistory?: string | null;
   notes?: string | null;
   isActive?: boolean;
+  treatmentStage?: "BUDGET" | "TREATMENT" | null;
   createdAt?: string;
 }
 
@@ -29,6 +34,10 @@ export interface PatientInput {
   phone: string;
   email?: string;
   cpf?: string;
+  rg?: string;
+  address?: string;
+  state?: string;
+  zipCode?: string;
   birthDate?: string;
   gender?: PatientGender;
   city?: string;

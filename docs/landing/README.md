@@ -1,12 +1,14 @@
-# Landing page do DentalPos One
+# Landing page do DentalPos
 
 **Versão atual:** `landing-dentalpos-one-v3.html`, publicada em `https://one.dentalpos.com.br/landingpage` (projeto Vercel `dentalpos-landing`). A página principal (`/`) foi atualizada com a mesma política (cópia em `pagina-principal-www-dentalpos.html`); o formulário de contato (`api/contato.js`) não mudou.
 `landing-dentalpos-one-v1.html` é o rascunho original (artefato https://claude.ai/artifact/MqEQR3z6hwDpRX6j9Q3nyo), mantido só como histórico.
 
+**Atualização de 11/11/2026:** a landing do CompletoDonto (projeto `dentalpos-landing`, branch `landing-completodonto`) agora leva **todos os botões** para `https://app.completodonto.com.br/cadastro` (planos com `?plano=BASIC|INTERMEDIUM|PLENUM`); os formulários de e-mail foram trocados por botão de cadastro. Cópias atuais: `pagina-principal-completodonto.html` (`index.html`) e `landing-completodonto-v4.html` (`landingpage/index.html`). Os demais arquivos desta pasta são histórico.
+
 ## Política de atratividade e lançamento (definida em 03/10/2026)
 - **Promoção de lançamento:** 30 dias grátis, sem cartão de crédito, e **50% de desconto nos 12 meses seguintes**.
 - **Planos:** Basic R$ 197/mês, Intermedium R$ 397/mês, Plenum R$ 597/mês (com 50% no 1º ano: R$ 98,50, R$ 198,50 e R$ 298,50).
-- **Acadêmicos de odontologia:** acesso gratuito durante a graduação (penúltimo e último ano); depois da colação de grau, 6 meses de carência e mais 6 meses com 50% de desconto. Estudantes de outros períodos: My Students, R$ 23/mês.
+- **Acadêmicos de odontologia:** acesso gratuito até a colação de grau e por mais 6 meses grátis depois da formatura (regra de 19/10/2026); depois, mensalidade reduzida (50% de desconto) nos 12 meses seguintes. Profissionais: 30 dias grátis e 50% de desconto nos 12 meses seguintes. Estudantes de outros períodos: My Students, R$ 23/mês.
 - **Instalação:** em destaque apenas a instalação gratuita feita pelo próprio assinante (passo a passo + IA integrada). Discretas: assistida remota R$ 499 em 5x no cartão; feita pela equipe R$ 2.000 em 10x no cartão.
 - **Cobrança:** sem cartão no teste; depois, cobrança por Asaas ou Mercado Pago (a implementar em até 30 dias).
 

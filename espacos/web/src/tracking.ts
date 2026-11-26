@@ -9,6 +9,8 @@ const TIKTOK_PIXEL_ID = import.meta.env.VITE_TIKTOK_PIXEL_ID as string | undefin
 const SRC_KEY = 'sh_src';
 const CONSENT_KEY = 'sh_consent';
 const SRC_TTL_MS = 30 * 86400000;
+const GCLID_KEY = 'sh_gclid';
+const GCLID_TTL_MS = 90 * 86400000; // validade do clique no Google Ads
 
 type W = Window & { ttq?: any; TiktokAnalyticsObject?: string; fbq?: (...a: unknown[]) => void; _fbq?: unknown; gtag?: (...a: unknown[]) => void; dataLayer?: unknown[] };
 const w = window as W;
@@ -18,9 +20,18 @@ function store(key: string, value?: string) {
   return null;
 }
 
-/** Guarda a origem da primeira visita com UTM (válida por 30 dias). */
+/**
+ * Guarda a origem da primeira visita com UTM (válida por 30 dias). Clique do Google Ads sem UTM vira "google/cpc".
+ * O identificador do clique (gclid) fica só nesta aba até a pessoa aceitar os cookies; aí é guardado por 90 dias.
+ */
 export function captureSource() {
   const p = new URLSearchParams(location.search);
+  const gclid = (p.get('gclid') ?? '').trim();
+  if (/^[\w-]{10,200}$/.test(gclid)) {
+    try { sessionStorage.setItem(GCLID_KEY, gclid); } catch { /* navegação privada */ }
+    if (consent() === 'yes') store(GCLID_KEY, `${Date.now()}|${gclid}`);
+    if (!p.get('utm_source')) { p.set('utm_source', 'google'); p.set('utm_medium', 'cpc'); }
+  }
   const parts = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].map((k) => (p.get(k) ?? '').trim().slice(0, 48));
   if (!parts[0]) return;
   const current = store(SRC_KEY);
@@ -35,12 +46,24 @@ export function signupSource(): string | undefined {
   return Date.now() - at < SRC_TTL_MS ? src : undefined;
 }
 
+/** gclid da chegada (só com consentimento), enviado no cadastro para medir qual anúncio trouxe a conta. */
+export function adClickId(): string | undefined {
+  if (consent() !== 'yes') return undefined;
+  const v = store(GCLID_KEY);
+  if (!v) return undefined;
+  return Date.now() - Number(v.split('|')[0]) < GCLID_TTL_MS ? v.slice(v.indexOf('|') + 1) : undefined;
+}
+
 // No aplicativo não há pixel de anúncios (evita rastreamento entre apps; regras da App Store).
 export const trackingConfigured = () => !isNativeApp() && !!(META_PIXEL_ID || GOOGLE_TAG_ID || TIKTOK_PIXEL_ID);
 export const consent = () => store(CONSENT_KEY) as 'yes' | 'no' | null;
 
 export function setConsent(v: 'yes' | 'no') {
   store(CONSENT_KEY, v);
+  let g: string | null = null;
+  try { g = sessionStorage.getItem(GCLID_KEY); } catch { /* navegação privada */ }
+  if (v === 'yes' && g) store(GCLID_KEY, `${Date.now()}|${g}`);
+  if (v === 'no') { try { localStorage.removeItem(GCLID_KEY); sessionStorage.removeItem(GCLID_KEY); } catch { /* navegação privada */ } }
   if (v === 'yes') loadTags();
 }
 

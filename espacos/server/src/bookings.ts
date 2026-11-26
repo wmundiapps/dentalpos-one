@@ -8,15 +8,17 @@ import * as repo from './repo.js';
 import { ACTIVE_STATUSES } from './repo.js';
 import { HttpError, addStrike, assertCanTransact } from './auth.js';
 import { notify } from './notify.js';
+import { onBookingCancelled, onBookingCompleted, onBookingConfirmed } from './partners.js';
 import {
   type Gateway, type PaymentUpdate, capturePayment, chargeExtra, gatewayForBooking, gatewayOf, holdDeposit, markFailed, markPaid, newPayment,
   payHost, refundPayment, releaseDeposit, startCheckout, supportsHold, voidPayment,
 } from './payments/index.js';
-import type { Booking, Incident, IncidentType, Listing, Occurrence, Payment, User } from '../../shared/types.js';
+import type { Booking, Incident, IncidentType, Listing, MaritalStatus, Occurrence, Payment, PropertyRegime, User } from '../../shared/types.js';
 import {
-  BOOKING_LIMITS, FEES, addDays, GUARANTOR_RULES, INCIDENT_RESPONSE_HOURS, OVERSTAY, PENALTIES, REVIEW_RULES, RULES_VERSION,
+  BOOKING_LIMITS, FEES, addDays, GUARANTOR_RULES, INCIDENT_RESPONSE_HOURS, OVERSTAY, PENALTIES, REVIEW_RULES, RULES_VERSION, spouseConsentRequired,
   computeGuestRefund, computePrice, daysBetween, guarantorRequired, hostCancellationPenalty, occurrenceEndUtc,
   occurrenceHours, occurrenceStartUtc, roundMoney, suggestedPenalty, validateOccurrences,
+  bookingPattern, partnerFeesOf,
 } from '../../shared/rules.js';
 import { getCountry } from '../../shared/countries.js';
 import { isLaunched } from './launch.js';
@@ -76,7 +78,8 @@ export async function validationContext(db: Db, listing: Listing, guestId: strin
         // janela móvel de 30 dias em torno das novas ocorrências
         if (Math.abs(daysBetween(dates[0], o.date)) <= 30 || Math.abs(daysBetween(dates[dates.length - 1], o.date)) <= 30) guestHours += occurrenceHours(o);
       }
-      if (b.occurrences.length > 1 && daysBetween(b.occurrences[0].date, b.occurrences[1].date) === 7) series++;
+      const pat = bookingPattern(b.occurrences);
+      if (pat === 'weekly' || pat === 'package') series++; // séries semanais e pacotes contam juntos
     }
   }
   // Intervalo obrigatório após uma série semanal completa (12 semanas) no mesmo espaço
@@ -143,7 +146,7 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
         if (guest.licenseStatus !== 'pending') guest.licenseStatus = 'needs_review';
         await repo.updateUser(tx, guest);
       } else if (!['pending', 'needs_review'].includes(guest.licenseStatus)) {
-        throw new HttpError(422, 'license_required');
+        throw new HttpError(422, 'license_required', undefined, { to: '/perfil#registro', label: 'license' });
       }
     }
     if (!isLaunched(listing.countryCode)) throw new HttpError(422, 'country_not_supported');
@@ -280,14 +283,23 @@ export function applyPaymentUpdate(update: PaymentUpdate): Promise<void> {
   });
 }
 
-// Após avalista (ou sem avalista): reserva instantânea confirma, senão vai ao anfitrião.
+// Após o fiador (e, quando exigido, o cônjuge dele) ou sem fiador: reserva instantânea confirma, senão vai ao anfitrião.
 async function advanceAfterGuarantor(tx: Db, b: Booking, l: Listing, now = new Date()) {
-  if (b.guarantor && b.guarantor.status !== 'accepted') {
+  const g = b.guarantor;
+  if (g && g.status !== 'accepted') {
     b.status = 'pending_guarantor';
     b.hostDecisionDeadline = new Date(now.getTime() + BOOKING_LIMITS.guarantorDecisionHours * 3600000).toISOString();
-    await notify(tx, { email: b.guarantor.email }, 'guarantor_invite',
-      `Você foi indicado(a) como avalista de uma reserva em "${l.title}". Responsabilidade limitada a ${b.guarantor.liabilityCap} ${b.price.currency}.`,
-      `${APP_URL}/avalista/${b.guarantor.token}`);
+    await notify(tx, { email: g.email }, 'guarantor_invite',
+      `Você foi indicado(a) como fiador(a) de uma reserva em "${l.title}". Responsabilidade limitada a ${g.liabilityCap} ${b.price.currency}.`,
+      `${APP_URL}/fiador/${g.token}`);
+    return;
+  }
+  if (g?.spouse && g.spouse.status !== 'accepted') {
+    // Fiança de pessoa casada só vale com a autorização do cônjuge (CC art. 1.647, III)
+    b.status = 'pending_guarantor';
+    await notify(tx, { email: g.spouse.email }, 'guarantor_spouse_invite',
+      `${g.name} aceitou ser fiador(a) de uma reserva em "${l.title}" e indicou você como cônjuge. Pela lei, a fiança só vale com a sua autorização. Responsabilidade limitada a ${g.liabilityCap} ${b.price.currency}.`,
+      `${APP_URL}/fiador/${g.spouse.token}`);
     return;
   }
   // Espaço com registro profissional só confirma sozinho se o anfitrião assumiu a conferência
@@ -315,6 +327,8 @@ async function confirm(tx: Db, b: Booking, l: Listing) {
   }
   await notify(tx, { userId: b.guestId }, 'booking_confirmed', `Reserva confirmada: "${l.title}" — ${whenText(b)}. O endereço completo e o mapa já estão disponíveis na reserva.`, `/reservas/${b.id}`);
   await notify(tx, { userId: b.hostId }, 'booking_confirmed', `Reserva confirmada em "${l.title}" — ${whenText(b)}.`, `/anfitriao/reservas/${b.id}`);
+  // Corretor e zelador: valor a repassar e troca de contatos com o locatário
+  await onBookingConfirmed(tx, b, l);
 }
 
 async function voidBookingPayment(tx: Db, b: Booking, l: Pick<Listing, 'countryCode'>) {
@@ -325,25 +339,56 @@ async function voidBookingPayment(tx: Db, b: Booking, l: Pick<Listing, 'countryC
   }
 }
 
-export function respondGuarantor(tok: string, accept: boolean): Promise<Booking> {
+export type GuarantorAnswer = {
+  accept: boolean;
+  maritalStatus?: MaritalStatus;
+  propertyRegime?: PropertyRegime;
+  spouse?: { name: string; documentNumber: string; email: string };
+};
+
+/** Resposta do fiador ou do cônjuge (o link de cada um tem o próprio token). */
+export function respondGuarantor(tok: string, answer: GuarantorAnswer): Promise<Booking> {
   return withTx(async (tx) => {
     const found = await repo.getBookingByGuarantorToken(tx, tok);
     if (!found || !found.guarantor) throw new HttpError(404, 'guarantor_invite_not_found');
     await lockKey(tx, `listing:${found.listingId}`);
     const b = await getBooking(tx, found.id, true);
-    if (b.status !== 'pending_guarantor' || b.guarantor!.status !== 'invited') throw new HttpError(409, 'guarantor_invite_closed');
     const g = b.guarantor!;
+    const isSpouse = g.spouse?.token === tok;
+    const pending = isSpouse ? g.spouse!.status === 'invited' : g.status === 'invited';
+    if (b.status !== 'pending_guarantor' || !pending) throw new HttpError(409, 'guarantor_invite_closed');
     const l = await getListing(tx, b.listingId);
-    g.status = accept ? 'accepted' : 'declined';
-    g.respondedAt = nowIso();
-    if (accept) {
-      await notify(tx, { userId: b.guestId }, 'guarantor_accepted', `${g.name} aceitou ser seu avalista.`, `/reservas/${b.id}`);
-      await advanceAfterGuarantor(tx, b, l);
-    } else {
+    if (!answer.accept) {
+      if (isSpouse) { g.spouse!.status = 'declined'; g.spouse!.respondedAt = nowIso(); } else { g.status = 'declined'; g.respondedAt = nowIso(); }
       b.status = 'expired';
       await voidBookingPayment(tx, b, l);
-      await notify(tx, { userId: b.guestId }, 'guarantor_declined', `${g.name} recusou ser avalista. A reserva não foi concluída e nada foi cobrado.`, `/reservas/${b.id}`);
+      await notify(tx, { userId: b.guestId }, 'guarantor_declined', isSpouse
+        ? `O cônjuge de ${g.name} não autorizou a fiança. A reserva não foi concluída; se você já pagou, o valor será estornado integralmente.`
+        : `${g.name} recusou ser fiador(a). A reserva não foi concluída; se você já pagou, o valor será estornado integralmente.`, `/reservas/${b.id}`);
+      await repo.saveBooking(tx, b);
+      return b;
     }
+    if (isSpouse) {
+      g.spouse!.status = 'accepted';
+      g.spouse!.respondedAt = nowIso();
+    } else {
+      if (!answer.maritalStatus) throw new HttpError(422, 'guarantor_marital_status_required');
+      if (answer.maritalStatus === 'married' && !answer.propertyRegime) throw new HttpError(422, 'guarantor_property_regime_required');
+      g.maritalStatus = answer.maritalStatus;
+      g.propertyRegime = answer.maritalStatus === 'married' ? answer.propertyRegime : undefined;
+      if (spouseConsentRequired(g.maritalStatus, g.propertyRegime)) {
+        const sp = answer.spouse;
+        if (!sp?.name || !sp.documentNumber || !sp.email) throw new HttpError(422, 'guarantor_spouse_required');
+        if ([g.email.toLowerCase()].includes(sp.email.toLowerCase())) throw new HttpError(422, 'guarantor_spouse_same_email');
+        g.spouse = { name: sp.name, documentNumber: sp.documentNumber, email: sp.email.toLowerCase(), token: token(), status: 'invited' };
+      }
+      g.status = 'accepted';
+      g.respondedAt = nowIso();
+      await notify(tx, { userId: b.guestId }, 'guarantor_accepted', g.spouse
+        ? `${g.name} aceitou ser seu fiador(a). Falta a autorização do cônjuge, que recebeu o convite por e-mail.`
+        : `${g.name} aceitou ser seu fiador(a).`, `/reservas/${b.id}`);
+    }
+    await advanceAfterGuarantor(tx, b, l);
     await repo.saveBooking(tx, b);
     return b;
   });
@@ -370,7 +415,7 @@ export function hostDecision(host: User, bookingId: string, approve: boolean, re
       b.status = 'declined';
       b.cancellationReason = reason;
       await voidBookingPayment(tx, b, l);
-      await notify(tx, { userId: b.guestId }, 'booking_declined', `O anfitrião não pôde aceitar sua solicitação para "${l.title}". Nada foi cobrado.`, `/reservas/${b.id}`);
+      await notify(tx, { userId: b.guestId }, 'booking_declined', `O anfitrião não pôde aceitar sua solicitação para "${l.title}". Se você já pagou, o valor será estornado integralmente.`, `/reservas/${b.id}`);
     }
     await repo.saveBooking(tx, b);
     return b;
@@ -404,9 +449,10 @@ export function guestCancel(guest: User, bookingId: string, reason: string, now 
       if (p) {
         await releaseDeposit(await gw(l, p), p);
         const kept = b.price.baseAmount - r.refundBase + (b.price.cleaningFee - r.refundCleaning);
-        p.payoutAmount = roundMoney(kept * (1 - FEES.hostServiceFeeRate), p.currency);
+        p.payoutAmount = roundMoney(kept * (1 - (b.price.hostServiceFeeRate ?? (b.price.baseAmount + b.price.cleaningFee ? b.price.hostServiceFee / (b.price.baseAmount + b.price.cleaningFee) : FEES.hostServiceFeeRate))), p.currency);
         if (p.payoutAmount <= 0) p.payoutStatus = 'cancelled';
       }
+      await onBookingCancelled(tx, b, r.refundPartnerFees ?? 0);
       await notify(tx, { userId: b.hostId }, 'booking_cancelled', `O locatário cancelou a reserva em "${l.title}".`, `/anfitriao/reservas/${b.id}`);
     }
     b.status = 'cancelled_guest';
@@ -432,6 +478,7 @@ export function hostCancel(host: User, bookingId: string, reason: string, extenu
       await repo.savePayment(tx, p);
     }
     b.refundAmount = b.price.total;
+    await onBookingCancelled(tx, b, partnerFeesOf(b.price)); // devolução integral: parceiros não recebem
     b.status = 'cancelled_host';
     b.cancelledAt = now.toISOString();
     b.cancellationReason = reason;
@@ -501,7 +548,10 @@ export function checkOut(guest: User, bookingId: string, now = new Date()): Prom
     }
     const remaining = b.occurrences.some((x) => !b.attendance.find((a) => a.date === x.date)?.checkOutAt && occurrenceEndUtc(l, x).getTime() > now.getTime());
     b.status = remaining ? 'confirmed' : 'completed';
-    if (!remaining) b.completedAt = now.toISOString();
+    if (!remaining) {
+      b.completedAt = now.toISOString();
+      await onBookingCompleted(tx, b);
+    }
     await repo.saveBooking(tx, b);
     return b;
   });
@@ -554,7 +604,7 @@ export function respondIncident(user: User, incidentId: string, accept: boolean,
     } else {
       inc.status = 'contested';
       await repo.saveIncident(tx, inc);
-      await notify(tx, { userId: inc.reporterId }, 'incident_contested', 'A outra parte contestou o incidente. A equipe de mediação decidirá em até 5 dias úteis.', `/ocorrencias/${inc.id}`);
+      await notify(tx, { userId: inc.reporterId }, 'incident_contested', 'A outra parte contestou o incidente. A equipe de mediação decidirá em até 10 dias úteis.', `/ocorrencias/${inc.id}`);
     }
     return inc;
   });
@@ -614,10 +664,10 @@ async function applyResolution(tx: Db, inc: Incident, decision: { chargedAmount:
   inc.resolution = { at: nowIso(), chargedAmount: amount, strike, note: decision.note, chargedFrom };
   await repo.saveIncident(tx, inc);
   if (amount > 0 && againstGuest && b.guarantor?.status === 'accepted' && chargedFrom === 'payment') {
-    await notify(tx, { email: b.guarantor.email }, 'guarantor_notice', `Aviso ao avalista: houve cobrança de ${amount} ${b.price.currency} na reserva ${b.id}. Se o locatário não pagar em 5 dias, a cobrança poderá ser direcionada a você, até o limite de ${b.guarantor.liabilityCap}.`);
+    await notify(tx, { email: b.guarantor.email }, 'guarantor_notice', `Aviso ao fiador: houve cobrança de ${amount} ${b.price.currency} na reserva ${b.id}. Se o locatário não pagar em 5 dias, a cobrança poderá ser direcionada a você, até o limite de ${b.guarantor.liabilityCap}.`);
   }
   if (payLink) {
-    await notify(tx, { userId: b.guestId }, 'extra_charge_link', `Pague ${amount} ${b.price.currency} referentes ao incidente da reserva ${b.id}. Sem pagamento em 5 dias, o valor poderá ser cobrado do avalista.`, payLink);
+    await notify(tx, { userId: b.guestId }, 'extra_charge_link', `Pague ${amount} ${b.price.currency} referentes ao incidente da reserva ${b.id}. Sem pagamento em 5 dias, o valor poderá ser cobrado do fiador.`, payLink);
   }
   await notify(tx, { userId: inc.againstUserId }, 'incident_resolved', `Incidente resolvido. Valor: ${amount} ${b.price.currency}.`, `/ocorrencias/${inc.id}`);
   await notify(tx, { userId: inc.reporterId }, 'incident_resolved', `Incidente resolvido. Valor: ${amount} ${b.price.currency}.`, `/ocorrencias/${inc.id}`);
@@ -665,7 +715,7 @@ export async function tick(now = new Date()) {
       if ((b.status === 'pending_host' || b.status === 'pending_guarantor') && b.hostDecisionDeadline && new Date(b.hostDecisionDeadline) < now) {
         b.status = 'expired';
         if (p) await voidPayment(await gw(l, p), p);
-        await notify(tx, { userId: b.guestId }, 'booking_expired', `Sua solicitação para "${l.title}" expirou sem resposta. Nada foi cobrado.`, `/reservas/${b.id}`);
+        await notify(tx, { userId: b.guestId }, 'booking_expired', `Sua solicitação para "${l.title}" expirou sem resposta. Se você já pagou, o valor será estornado integralmente.`, `/reservas/${b.id}`);
         changed = true;
       }
       const start = firstStart(l, b);
@@ -677,6 +727,7 @@ export async function tick(now = new Date()) {
       if (b.status === 'confirmed' && now.getTime() > end) {
         b.status = 'completed';
         b.completedAt = new Date(end).toISOString();
+        await onBookingCompleted(tx, b);
         changed = true;
       }
       if (b.status === 'checked_in' && now.getTime() > end + 3 * 3600000) {
@@ -685,6 +736,7 @@ export async function tick(now = new Date()) {
         if (att) att.checkOutAt = new Date(end).toISOString();
         b.status = 'completed';
         b.completedAt = new Date(end).toISOString();
+        await onBookingCompleted(tx, b);
         changed = true;
       }
       if (p && p.depositStatus === 'held' && ['completed', 'cancelled_guest', 'cancelled_host'].includes(b.status) && now.getTime() > end + FEES.depositReleaseHours * 3600000) {
@@ -700,9 +752,21 @@ export async function tick(now = new Date()) {
       }
     });
   }
+  // Sem resposta no prazo: só o atraso na saída (tarifa objetiva, medida pelo check-out) é cobrado sozinho;
+  // dano e demais cobranças vão para a mediação, com revisão humana antes de cobrar (parecer jurídico 2026-10).
   const expired = await repo.findIncidents(pool, "status = 'open' AND response_deadline < $1", [now.toISOString()]);
   for (const inc of expired) {
-    await resolveIncident(inc.id, { chargedAmount: inc.requestedAmount, note: 'no_response_within_deadline' }).catch(() => {});
+    if (inc.type === 'overstay') {
+      await resolveIncident(inc.id, { chargedAmount: inc.requestedAmount, note: 'no_response_within_deadline' }).catch(() => {});
+    } else {
+      await withTx(async (tx) => {
+        const cur = await repo.getIncident(tx, inc.id);
+        if (!cur || cur.status !== 'open') return;
+        cur.status = 'contested';
+        await repo.saveIncident(tx, cur);
+        await notify(tx, { userId: cur.reporterId }, 'incident_contested', 'A outra parte não respondeu no prazo. A equipe de mediação vai analisar o caso e decidir em até 10 dias úteis.', `/ocorrencias/${cur.id}`);
+      }).catch(() => {});
+    }
   }
 }
 

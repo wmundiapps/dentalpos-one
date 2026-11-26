@@ -5,6 +5,7 @@ import {
   evaluateDemoPermission,
   getDemoAccess,
 } from '../services/demoAccessService'
+import { subscriptionBlock } from '../services/subscriptionService'
 
 export function requirePermission(code: string) {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -21,6 +22,9 @@ export function requirePermission(code: string) {
           demo,
         })
       }
+
+      const block = await subscriptionBlock(req.user.clinicId, String(code || '').toLowerCase().split('.')[1] || 'view')
+      if (block) return res.status(403).json(block)
 
       if (req.user.role === 'ADMIN') return next()
 

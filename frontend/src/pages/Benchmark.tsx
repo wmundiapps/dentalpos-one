@@ -598,7 +598,7 @@ export default function Benchmark() {
                   }}
                 >
                   <Typography variant="body2">
-                    DentalPos
+                    CompletoDonto
                   </Typography>
 
                   <Typography

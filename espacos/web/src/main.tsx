@@ -6,7 +6,9 @@ import { I18nProvider } from './i18n';
 import { AppProvider } from './state';
 import './styles.css';
 import { captureSource } from './tracking';
+import { installGuards } from './guard';
 
+installGuards();
 captureSource();
 
 createRoot(document.getElementById('root')!).render(

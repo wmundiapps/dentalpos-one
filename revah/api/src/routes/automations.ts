@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { assertCleanText } from '../lib/contentFilter'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { ah, badRequest, notFound } from '../lib/errors'
@@ -24,6 +25,13 @@ const ActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('webhook'), url: z.string().url(), delayMinutes: z.number().int().min(0).optional() }),
 ])
 
+function assertCleanActions(actions?: z.infer<typeof ActionSchema>[]) {
+  for (const a of actions || []) {
+    if (a.type === 'send_message') assertCleanText({ Mensagem: a.template, Assunto: a.subject })
+    if (a.type === 'place_call') assertCleanText({ 'Roteiro da ligação': a.script })
+  }
+}
+
 const AutomationSchema = z.object({
   name: z.string().trim().min(1).max(120),
   trigger: z.string().min(1).max(120),
@@ -40,6 +48,7 @@ r.get('/automations', ah(async (req: AuthedRequest, res) => {
 
 r.post('/automations', ah(async (req: AuthedRequest, res) => {
   const b = AutomationSchema.parse(req.body)
+  assertCleanActions(b.actions)
   const a = await prisma.automation.create({ data: { tenantId: req.tenant.id, name: b.name, trigger: b.trigger, conditions: (b.conditions as any) || undefined, actions: b.actions as any, isActive: b.isActive ?? true } })
   await audit(req.tenant.id, req.user.id, 'AUTOMATION_CREATE', 'Automation', a.id)
   res.status(201).json(a)
@@ -49,6 +58,7 @@ r.patch('/automations/:id', ah(async (req: AuthedRequest, res) => {
   const found = await prisma.automation.findFirst({ where: { id: req.params.id, tenantId: req.tenant.id } })
   if (!found) throw notFound('Automação não encontrada.')
   const b = AutomationSchema.partial().parse(req.body)
+  assertCleanActions(b.actions)
   res.json(
     await prisma.automation.update({
       where: { id: found.id },

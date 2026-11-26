@@ -32,7 +32,7 @@ export async function schedule(req: AuthRequest, res: Response) {
 
     const clinic = await prisma.clinic.findFirst({ where: { id: clinicId }, select: { name: true } })
     const dueDateISO = b.dueDateISO ? String(b.dueDateISO).slice(0, 10) : null
-    const snapshot = { patientName, workType, teeth: b.teeth ? String(b.teeth) : null, dueDateISO, dentistName: String(b.dentistName || 'o dentista responsável'), clinicName: clinic?.name || 'DentalPos' }
+    const snapshot = { patientName, workType, teeth: b.teeth ? String(b.teeth) : null, dueDateISO, dentistName: String(b.dentistName || 'o dentista responsável'), clinicName: clinic?.name || 'CompletoDonto' }
 
     // Só o primeiro aviso sai agora; depois o sistema avisa todo dia (com o risco do dia) até a entrega.
     await prisma.labNotification.updateMany({ where: { clinicId, workRef, status: 'PENDING' }, data: { status: 'CANCELLED', errorMessage: 'Substituído por nova programação.' } })

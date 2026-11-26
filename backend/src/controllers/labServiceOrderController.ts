@@ -1,0 +1,258 @@
+import { Response } from 'express'
+import { randomInt, randomUUID } from 'crypto'
+import { Prisma } from '@prisma/client'
+import { prisma } from '../lib/prisma'
+import { AuthRequest } from '../middleware/auth'
+import { writeAudit } from '../services/auditService'
+import { getUserPermissionCodes } from '../services/permissionService'
+
+// Ordem de serviço do laboratório: todos os campos são obrigatórios e geram um protocolo impresso nas moldeiras e na OS.
+const RESPONSIBLES = ['AUXILIAR', 'DENTISTA', 'RECEPCAO', 'LABORATORIO']
+
+function ctx(req: AuthRequest) {
+  if (!req.user) throw new Error('Não autenticado.')
+  return { clinicId: req.user.clinicId, tenantId: req.user.tenantId, userId: req.user.id }
+}
+const text = (v: unknown, max = 300) => String(v ?? '').trim().slice(0, max)
+const parseDay = (v: unknown) => {
+  const m = String(v ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/)
+  return m ? new Date(`${m[1]}-${m[2]}-${m[3]}T12:00:00.000Z`) : null
+}
+const phoneOk = (v: string) => v.replace(/\D/g, '').length >= 10
+
+// Quem só tem a função de laboratório (não é administrador) não enxerga o código: ele vem impresso na ordem que acompanha o trabalho.
+async function labOnly(req: AuthRequest) {
+  if (req.user!.role === 'ADMIN') return false
+  return (await getUserPermissionCodes(req.user!.id)).includes('laboratory.receive')
+}
+const hide = <T extends { receiptCode?: string | null }>(o: T) => ({ ...o, receiptCode: undefined })
+const attempts = new Map<string, { n: number; until: number }>()
+
+async function userName(userId: string) {
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, email: true } })
+  return u ? `${u.firstName} ${u.lastName}`.trim() || u.email : null
+}
+
+export async function list(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const status = text(req.query.status, 20).toUpperCase()
+    const rows = await prisma.labServiceOrder.findMany({
+      where: { clinicId, tenantId, ...(status ? { status } : {}) },
+      orderBy: { createdAt: 'desc' }, take: 500
+    })
+    return res.json((await labOnly(req)) ? rows.map(hide) : rows)
+  } catch (error) {
+    console.error('Erro ao listar ordens do laboratório:', error)
+    return res.status(500).json({ error: 'Erro ao listar as ordens de serviço.' })
+  }
+}
+
+export async function create(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, userId } = ctx(req)
+    const b = req.body || {}
+    const data = {
+      patientName: text(b.patientName), patientContact: text(b.patientContact, 60), dentistName: text(b.dentistName),
+      dentistContact: text(b.dentistContact, 60), assistantName: text(b.assistantName), laboratoryName: text(b.laboratoryName),
+      service: text(b.service), shade: text(b.shade, 60), elements: text(b.elements, 120)
+    }
+    const labels: Record<keyof typeof data, string> = {
+      patientName: 'nome e sobrenome do paciente', patientContact: 'contato do paciente', dentistName: 'dentista responsável', dentistContact: 'contato do dentista',
+      assistantName: 'auxiliar responsável', laboratoryName: 'laboratório', service: 'serviço a ser executado', shade: 'cor do elemento', elements: 'elementos a fazer'
+    }
+    const missing = (Object.keys(data) as Array<keyof typeof data>).filter(k => !data[k]).map(k => labels[k])
+    if (missing.length) return res.status(400).json({ error: `Preencha todos os campos. Falta: ${missing.join(', ')}.` })
+    if (data.patientName.split(' ').filter(Boolean).length < 2) return res.status(400).json({ error: 'Informe nome e sobrenome do paciente.' })
+    if (!phoneOk(data.patientContact) || !phoneOk(data.dentistContact)) return res.status(400).json({ error: 'Informe o contato do paciente e do dentista com DDD.' })
+    const sentAt = parseDay(b.sentAt)
+    const dueAt = parseDay(b.dueAt)
+    if (!sentAt || !dueAt) return res.status(400).json({ error: 'Informe a data do envio e a data de entrega.' })
+    if (dueAt < sentAt) return res.status(400).json({ error: 'A data de entrega não pode ser anterior à data do envio.' })
+    const flags = {
+      scanUpper: b.scanUpper === true, scanLower: b.scanLower === true, scanBite: b.scanBite === true,
+      impressionUpper: b.impressionUpper === true, impressionLower: b.impressionLower === true, waxBite: b.waxBite === true
+    }
+    if (!Object.values(flags).some(Boolean)) return res.status(400).json({ error: 'Marque o que acompanha o trabalho (escaneamento ou moldagem/mordida).' })
+    const patientId = b.patientId ? text(b.patientId, 60) : null
+    if (patientId) {
+      const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId, tenantId }, select: { id: true } })
+      if (!patient) return res.status(404).json({ error: 'Paciente não encontrado.' })
+    }
+
+    const year = new Date(Date.now() - 3 * 3600000).getUTCFullYear()
+    const createdByName = await userName(userId)
+    let order: Awaited<ReturnType<typeof prisma.labServiceOrder.create>> | null = null
+    for (let attempt = 0; attempt < 6 && !order; attempt++) {
+      const count = await prisma.labServiceOrder.count({ where: { clinicId, protocol: { startsWith: `OS-${year}-` } } })
+      const protocol = `OS-${year}-${String(count + 1 + attempt).padStart(4, '0')}`
+      try {
+        order = await prisma.labServiceOrder.create({
+          data: { clinicId, tenantId, protocol, patientId, appointmentId: b.appointmentId ? text(b.appointmentId, 60) : null, ...data, sentAt, dueAt, ...flags, createdById: userId, createdByName, receiptCode: String(randomInt(100000, 1000000)) }
+        })
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) throw error
+      }
+    }
+    if (!order) return res.status(409).json({ error: 'Não foi possível gerar o número de protocolo. Tente novamente.' })
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: 'LAB_ORDER_CREATE', entityType: 'LabServiceOrder', entityId: order.id, summary: `Ordem ${order.protocol} enviada a ${order.laboratoryName} (${order.patientName}).` }).catch((e: unknown) => console.error(e))
+    return res.status(201).json((await labOnly(req)) ? hide(order) : order)
+  } catch (error) {
+    console.error('Erro ao criar ordem do laboratório:', error)
+    return res.status(500).json({ error: 'Erro ao criar a ordem de serviço.' })
+  }
+}
+
+async function loadOrder(req: AuthRequest) {
+  const { clinicId, tenantId } = ctx(req)
+  return prisma.labServiceOrder.findFirst({ where: { id: String(req.params.id), clinicId, tenantId } })
+}
+
+// Recebido ou recusado pelo laboratório: exige o nome de quem recebeu/recusou e, na recusa, o motivo.
+export async function receipt(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, userId } = ctx(req)
+    const order = await loadOrder(req)
+    if (!order) return res.status(404).json({ error: 'Ordem de serviço não encontrada.' })
+    if (order.status !== 'SENT') return res.status(409).json({ error: 'Esta ordem já teve o recebimento registrado.' })
+    const lock = attempts.get(order.id)
+    if (lock && lock.until > Date.now()) return res.status(429).json({ error: 'Muitas tentativas com código errado. Aguarde alguns minutos.' })
+    if (order.receiptCode && String(req.body?.code ?? '').replace(/\D/g, '') !== order.receiptCode) {
+      const n = (lock?.n || 0) + 1
+      attempts.set(order.id, { n: n >= 5 ? 0 : n, until: n >= 5 ? Date.now() + 10 * 60 * 1000 : 0 })
+      return res.status(400).json({ error: 'Código de recebimento incorreto. Confira o código impresso na ordem de serviço.' })
+    }
+    attempts.delete(order.id)
+    const outcome = String(req.body?.outcome || '').toUpperCase()
+    if (!['RECEIVED', 'REFUSED'].includes(outcome)) return res.status(400).json({ error: 'Informe se o laboratório recebeu ou recusou.' })
+    const name = text(req.body?.receivedByName, 120)
+    if (!name) return res.status(400).json({ error: 'Informe o nome de quem recebeu ou recusou no laboratório.' })
+    const reason = text(req.body?.reason, 500)
+    if (outcome === 'REFUSED' && !reason) return res.status(400).json({ error: 'Informe o motivo da recusa.' })
+    const updated = await prisma.labServiceOrder.update({
+      where: { id: order.id },
+      data: { status: outcome, receivedAt: new Date(), receivedByName: name, refusalReason: outcome === 'REFUSED' ? reason : null }
+    })
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: outcome === 'RECEIVED' ? 'LAB_ORDER_RECEIVED' : 'LAB_ORDER_REFUSED', entityType: 'LabServiceOrder', entityId: order.id, summary: `${order.protocol}: ${outcome === 'RECEIVED' ? 'recebido' : 'recusado'} por ${name}${reason ? ` — ${reason}` : ''}.` }).catch((e: unknown) => console.error(e))
+    return res.json(hide(updated))
+  } catch (error) {
+    console.error('Erro ao registrar recebimento:', error)
+    return res.status(500).json({ error: 'Erro ao registrar o recebimento.' })
+  }
+}
+
+type ErrorItem = { id: string; at: string; byName: string | null; responsibleType: string; responsibleName: string; description: string; resolved: boolean; resolvedAt?: string; resolution?: string }
+
+export async function reportError(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, userId } = ctx(req)
+    const order = await loadOrder(req)
+    if (!order) return res.status(404).json({ error: 'Ordem de serviço não encontrada.' })
+    const responsibleType = String(req.body?.responsibleType || '').toUpperCase()
+    if (!RESPONSIBLES.includes(responsibleType)) return res.status(400).json({ error: 'Escolha o responsável pelo erro: auxiliar, dentista, recepção ou laboratório.' })
+    const description = text(req.body?.description, 1000)
+    if (description.length < 5) return res.status(400).json({ error: 'Relate o erro ocorrido.' })
+    const item: ErrorItem = { id: randomUUID(), at: new Date().toISOString(), byName: await userName(userId), responsibleType, responsibleName: text(req.body?.responsibleName, 120), description, resolved: false }
+    const errors = [...((order.errors as unknown as ErrorItem[]) || []), item]
+    const updated = await prisma.labServiceOrder.update({ where: { id: order.id }, data: { errors: errors as unknown as Prisma.InputJsonValue } })
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: 'LAB_ORDER_ERROR', entityType: 'LabServiceOrder', entityId: order.id, summary: `${order.protocol}: erro atribuído a ${responsibleType}${item.responsibleName ? ` (${item.responsibleName})` : ''} — ${description.slice(0, 120)}` }).catch((e: unknown) => console.error(e))
+    return res.status(201).json(updated)
+  } catch (error) {
+    console.error('Erro ao registrar erro da ordem:', error)
+    return res.status(500).json({ error: 'Erro ao registrar o erro.' })
+  }
+}
+
+export async function resolveError(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, userId } = ctx(req)
+    const order = await loadOrder(req)
+    if (!order) return res.status(404).json({ error: 'Ordem de serviço não encontrada.' })
+    const resolution = text(req.body?.resolution, 1000)
+    if (resolution.length < 5) return res.status(400).json({ error: 'Descreva como o erro foi tratado.' })
+    const errors = ((order.errors as unknown as ErrorItem[]) || []).map(e => e.id === String(req.params.errorId) ? { ...e, resolved: true, resolvedAt: new Date().toISOString(), resolution } : e)
+    const updated = await prisma.labServiceOrder.update({ where: { id: order.id }, data: { errors: errors as unknown as Prisma.InputJsonValue } })
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: 'LAB_ORDER_ERROR_RESOLVED', entityType: 'LabServiceOrder', entityId: order.id, summary: `${order.protocol}: erro tratado — ${resolution.slice(0, 120)}` }).catch((e: unknown) => console.error(e))
+    return res.json(updated)
+  } catch (error) {
+    console.error('Erro ao tratar erro da ordem:', error)
+    return res.status(500).json({ error: 'Erro ao tratar o erro.' })
+  }
+}
+
+export async function deliver(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, userId } = ctx(req)
+    const order = await loadOrder(req)
+    if (!order) return res.status(404).json({ error: 'Ordem de serviço não encontrada.' })
+    if (order.status === 'SENT') return res.status(409).json({ error: 'Registre antes o recebimento pelo laboratório.' })
+    if (order.status !== 'RECEIVED') return res.status(409).json({ error: 'Só dá para registrar a entrega de uma ordem recebida pelo laboratório.' })
+    const updated = await prisma.labServiceOrder.update({ where: { id: order.id }, data: { status: 'DELIVERED', deliveredAt: new Date() } })
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: 'LAB_ORDER_DELIVERED', entityType: 'LabServiceOrder', entityId: order.id, summary: `${order.protocol}: trabalho entregue à clínica.` }).catch((e: unknown) => console.error(e))
+    return res.json(updated)
+  } catch (error) {
+    console.error('Erro ao registrar entrega:', error)
+    return res.status(500).json({ error: 'Erro ao registrar a entrega.' })
+  }
+}
+
+// Andamento do trabalho no laboratório: etapa (em andamento / finalizado / entregue) e texto livre de como está
+// (aguardando projeto, falta fresar, fresando, falta maquear, falta chegar material...). Cada atualização fica no histórico.
+const STAGES = ['IN_PROGRESS', 'FINISHED', 'DELIVERED']
+export async function updateProgress(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, userId } = ctx(req)
+    const order = await loadOrder(req)
+    if (!order) return res.status(404).json({ error: 'Ordem de serviço não encontrada.' })
+    if (order.status === 'SENT') return res.status(409).json({ error: 'Registre antes o recebimento pelo laboratório.' })
+    if (order.status === 'REFUSED') return res.status(409).json({ error: 'Esta ordem foi recusada pelo laboratório.' })
+    const currentStage = order.status === 'DELIVERED' ? 'DELIVERED' : order.stage || 'IN_PROGRESS'
+    const stage = String(req.body?.stage || currentStage).toUpperCase()
+    if (!STAGES.includes(stage)) return res.status(400).json({ error: 'Escolha: em andamento, finalizado ou entregue.' })
+    const note = text(req.body?.note, 500)
+    // Data em que o trabalho precisa estar pronto: vazio limpa; sem o campo mantém a anterior.
+    let readyBy: Date | null | undefined
+    if (req.body && 'readyBy' in req.body) {
+      const raw = String(req.body.readyBy || '').trim()
+      if (!raw) readyBy = null
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(raw) && !Number.isNaN(new Date(`${raw}T12:00:00.000Z`).getTime())) readyBy = new Date(`${raw}T12:00:00.000Z`)
+      else return res.status(400).json({ error: 'Data inválida.' })
+    }
+    const readyChanged = readyBy !== undefined && (readyBy?.getTime() ?? null) !== (order.readyBy?.getTime() ?? null)
+    if (stage === currentStage && note === (order.progressNote || '') && !readyChanged) return res.status(400).json({ error: 'Nada foi alterado.' })
+    const name = await userName(userId)
+    const entry = { at: new Date().toISOString(), byName: name, stage, note, readyBy: (readyBy === undefined ? order.readyBy : readyBy)?.toISOString().slice(0, 10) || null }
+    const log = [...(Array.isArray(order.progressLog) ? (order.progressLog as unknown[]) : []), entry].slice(-30)
+    const data: Prisma.LabServiceOrderUpdateInput = {
+      progressNote: note || null, progressAt: new Date(), progressByName: name,
+      progressLog: log as unknown as Prisma.InputJsonValue,
+    }
+    if (readyBy !== undefined) data.readyBy = readyBy
+    if (stage === 'DELIVERED') {
+      if (order.status !== 'DELIVERED') { data.status = 'DELIVERED'; data.deliveredAt = new Date() }
+    } else {
+      data.stage = stage
+      // Corrigir uma entrega marcada por engano: o trabalho volta a "recebido pelo laboratório".
+      if (order.status === 'DELIVERED') { data.status = 'RECEIVED'; data.deliveredAt = null }
+    }
+    const updated = await prisma.labServiceOrder.update({ where: { id: order.id }, data })
+    const reopened = order.status === 'DELIVERED' && stage !== 'DELIVERED'
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: reopened ? 'LAB_ORDER_DELIVERY_UNDONE' : 'LAB_ORDER_PROGRESS', entityType: 'LabServiceOrder', entityId: order.id, summary: `${order.protocol}: ${reopened ? 'entrega desfeita, ' : ''}${stage === 'IN_PROGRESS' ? 'em andamento' : stage === 'FINISHED' ? 'finalizado' : 'entregue'}${note ? ` — ${note}` : ''}${entry.readyBy ? ` (pronto até ${entry.readyBy})` : ''}.` }).catch((e: unknown) => console.error(e))
+    return res.json((await labOnly(req)) ? hide(updated) : updated)
+  } catch (error) {
+    console.error('Erro ao atualizar andamento da ordem:', error)
+    return res.status(500).json({ error: 'Erro ao atualizar o andamento.' })
+  }
+}
+
+// Ordens novas aguardando o laboratório confirmar o recebimento (aparecem como notificação para quem tem a função de laboratório).
+export async function pendingReceipt(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const rows = await prisma.labServiceOrder.findMany({ where: { clinicId, tenantId, status: 'SENT' }, orderBy: { createdAt: 'desc' }, take: 100 })
+    return res.json(rows.map(hide))
+  } catch (error) {
+    console.error('Erro ao listar ordens pendentes:', error)
+    return res.status(500).json({ error: 'Erro ao listar as ordens pendentes.' })
+  }
+}

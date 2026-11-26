@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { assertCleanText } from '../lib/contentFilter'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { ah, notFound, paymentRequired } from '../lib/errors'
@@ -37,6 +38,7 @@ const TemplateSchema = z.object({
 
 r.post('/templates', ah(async (req: AuthedRequest, res) => {
   const b = TemplateSchema.parse(req.body)
+  assertCleanText({ Modelo: b.body, Assunto: b.subject })
   await assertCanAddTemplate(req.tenant)
   res.status(201).json(await prisma.messageTemplate.create({ data: { tenantId: req.tenant.id, ...b, segment: b.segment || 'Geral' } }))
 }))
@@ -53,7 +55,9 @@ r.post('/templates/library/:key/use', ah(async (req: AuthedRequest, res) => {
 r.patch('/templates/:id', ah(async (req: AuthedRequest, res) => {
   const found = await prisma.messageTemplate.findFirst({ where: { id: req.params.id, tenantId: req.tenant.id } })
   if (!found) throw notFound('Template não encontrado.')
-  res.json(await prisma.messageTemplate.update({ where: { id: found.id }, data: TemplateSchema.partial().parse(req.body) }))
+  const b = TemplateSchema.partial().parse(req.body)
+  assertCleanText({ Modelo: b.body, Assunto: b.subject })
+  res.json(await prisma.messageTemplate.update({ where: { id: found.id }, data: b }))
 }))
 
 r.delete('/templates/:id', ah(async (req: AuthedRequest, res) => {

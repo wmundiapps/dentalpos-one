@@ -91,3 +91,34 @@ test('LinkedIn: respostas do formulário viram lead', async () => {
   assert.equal(lead.phone, '5544999998888')
   assert.equal(lead.originRef, 'abc')
 })
+
+test('2 etapas: TOTP confere com o vetor do RFC 6238', async () => {
+  const { hotp, base32Encode, base32Decode, matchStep } = await import('../src/services/twoFactor')
+  const secret = Buffer.from('12345678901234567890')
+  assert.equal(hotp(secret, 1), '287082') // T=59s → 94287082 (8 dígitos)
+  assert.deepEqual(base32Decode(base32Encode(secret)), secret)
+  assert.equal(matchStep(secret, '287082', 59_000), 1)
+  assert.equal(matchStep(secret, '000000', 59_000), null)
+})
+
+test('captação: celular antigo sem o 9 e MEI', async () => {
+  const { fixOldMobile, isMeiNature } = await import('../src/scripts/receitaImport')
+  assert.equal(fixOldMobile('4499998888'), '44999998888') // celular antigo (começa em 9)
+  assert.equal(fixOldMobile('4488887777'), '44988887777') // celular antigo (começa em 8)
+  assert.equal(fixOldMobile('4430301010'), '4430301010') // fixo fica como está
+  assert.equal(fixOldMobile('44999998888'), '44999998888') // já com o 9
+  assert.equal(isMeiNature('213-5'), true)
+  assert.equal(isMeiNature('2062'), false)
+})
+
+test('filtro de texto das campanhas: recusa conteúdo adulto e link de executável, aceita marketing normal', async () => {
+  const { checkText } = await import('../src/lib/contentFilter')
+  assert.equal(checkText('Veja meus nudes'), 'improprio')
+  assert.equal(checkText('P0rn0 grátis'), 'improprio')
+  assert.equal(checkText('Garota  de programa'), 'improprio')
+  assert.equal(checkText('Baixe aqui: https://x.com/promo.exe'), 'executavel')
+  assert.equal(checkText('Instale o app https://site.com/app.apk?v=2 agora'), 'executavel')
+  assert.equal(checkText('Consulta de saúde sexual com 20% off. Ligue (44) 99999-1111 ou acesse https://clinica.com.br'), null)
+  assert.equal(checkText('Disputa de preços, reputação e computador novo'), null)
+  assert.equal(checkText('Baixe o PDF: https://site.com.br/catalogo.pdf'), null)
+})

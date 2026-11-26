@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Chip, FormControlLabel, Paper, Switch, Typography } from "@mui/material";
 import PageHeader from "../components/PageHeader";
+import UnscheduledPatientsCard from "../components/UnscheduledPatientsCard";
 import { appointmentFlowAction, loadBackendAppointments, type BackendAppointment, type FlowAction } from "../services/AppointmentApi";
 
 type FlowStatus = "SCHEDULED" | "CONFIRMED" | "WAITING" | "ROOM_PREPARATION" | "IN_PROGRESS" | "COMPLETED";
@@ -174,6 +175,7 @@ export default function PatientFlow() {
           })}
         </Paper>
       ))}
+      {!tvMode && <Box sx={{ mt: 3 }}><UnscheduledPatientsCard /></Box>}
     </Box>
   );
 }

@@ -4,5 +4,12 @@ async function req<T>(p:string,i?:RequestInit):Promise<T>{const r=await fetch(`$
 export type BudgetRow={id:string;patientId:string;description:string;totalAmount:number;installments:number;installmentValue:number;status:string;discountPercent:number;entryAmount:number;monthlyRatePercent:number;paymentMethod:string;paymentProvider:string;validUntil:string;patient?:{fullName:string}};
 export const listBudgets=()=>req<BudgetRow[]>('/budgets');
 export const createBudget=(data:any)=>req<BudgetRow>('/budgets',{method:'POST',body:JSON.stringify(data)});
-export const approveBudget=(id:string)=>req<BudgetRow>(`/budget/${id}/approve`,{method:'POST',body:'{}'});
+export const approveBudget=(id:string,dues?:{firstDueDate?:string;entryDueDate?:string})=>req<BudgetRow>(`/budget/${id}/approve`,{method:'POST',body:JSON.stringify(dues||{})});
 export const cancelBudget=(id:string)=>req<BudgetRow>(`/budget/${id}`,{method:'DELETE'});
+
+export const deleteBudget=(id:string)=>req<{ok:boolean}>(`/budget/${id}/permanent`,{method:'DELETE'});
+
+export const updateBudgetDueDates=(id:string,dues:Array<{installment:number;dueDate:string}>)=>req<BudgetRow>(`/budget/${id}/due-dates`,{method:'PUT',body:JSON.stringify({dues})});
+
+export type BoletoIssue={boletos:Array<{installment:number;amount:number;dueDate:string;bankSlipUrl:string|null;digitableLine:string|null;error?:string}>;pdfBase64:string|null;patientName:string};
+export const issueBudgetBoletos=(id:string)=>req<BoletoIssue>(`/budget/${id}/boletos`,{method:'POST',body:'{}'});

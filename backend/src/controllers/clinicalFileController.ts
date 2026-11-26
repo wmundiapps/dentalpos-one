@@ -78,6 +78,14 @@ export async function categories(req: AuthRequest, res: Response) {
         orderBy: [{ isSystem: 'desc' }, { name: 'asc' }]
       })
     }
+    // Pasta para fotos das etiquetas de implantes, biomateriais e componentes (rastreabilidade). Criada também nas clínicas já existentes.
+    if (!rows.some(r => r.name === 'Etiquetas de implantes e materiais')) {
+      await prisma.clinicalFileCategory.create({ data: { clinicId, tenantId, name: 'Etiquetas de implantes e materiais', kind: 'PHOTO', isSystem: true } }).catch(() => undefined)
+      rows = await prisma.clinicalFileCategory.findMany({
+        where: { clinicId, tenantId, isActive: true },
+        orderBy: [{ isSystem: 'desc' }, { name: 'asc' }]
+      })
+    }
     return res.json(rows)
   } catch (error) {
     console.error(error)
@@ -331,7 +339,7 @@ export async function designHandoff(req: AuthRequest, res: Response) {
 
     const ext = row.extension.toLowerCase()
     if (!['stl', 'ply', 'obj'].includes(ext)) {
-      return res.status(400).json({ error: 'A integração com DentalPos Design está disponível para STL, PLY e OBJ.' })
+      return res.status(400).json({ error: 'A integração com CompletoDonto Design está disponível para STL, PLY e OBJ.' })
     }
 
     const fileAccess = row.externalUrl
@@ -339,7 +347,7 @@ export async function designHandoff(req: AuthRequest, res: Response) {
       : await createDownloadAccess({ clinicId, tenantId, storageKey: row.storageKey, fileName: row.originalName })
 
     if (!fileAccess.configured) return res.status(503).json({
-      error: 'Configure o storage clínico para abrir este arquivo no DentalPos Design.',
+      error: 'Configure o storage clínico para abrir este arquivo no CompletoDonto Design.',
       code: 'CLINICAL_STORAGE_NOT_CONFIGURED'
     })
 
@@ -357,7 +365,7 @@ export async function designHandoff(req: AuthRequest, res: Response) {
     })
   } catch (error) {
     console.error(error)
-    return res.status(500).json({ error: 'Erro ao preparar integração com DentalPos Design.' })
+    return res.status(500).json({ error: 'Erro ao preparar integração com CompletoDonto Design.' })
   }
 }
 
@@ -380,5 +388,41 @@ export async function remove(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao arquivar arquivo clínico.' })
+  }
+}
+
+// Pastas de escaneamentos: uma por paciente, com os arquivos 3D (STL, PLY, OBJ) ou marcados como "escaneamento".
+const SCAN_KINDS = ['STL', 'PLY', 'OBJ']
+const SCAN_TAG = 'escaneamento'
+
+export async function scanFolders(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = context(req)
+    const sort = ['alpha', 'name', 'date'].includes(String(req.query.sort)) ? String(req.query.sort) : 'alpha'
+    const search = typeof req.query.search === 'string' ? req.query.search.trim().toLowerCase() : ''
+    const asc = req.query.order === 'asc'
+    const from = req.query.from ? new Date(`${String(req.query.from)}T00:00:00.000-03:00`) : null
+    const to = req.query.to ? new Date(`${String(req.query.to)}T23:59:59.999-03:00`) : null
+    const files = await prisma.clinicalFile.findMany({
+      where: { clinicId, tenantId, deletedAt: null, OR: [{ kind: { in: SCAN_KINDS } }, { tags: { has: SCAN_TAG } }] },
+      select: { patientId: true, examDate: true, createdAt: true, sizeBytes: true },
+    })
+    const byPatient = new Map<string, { fileCount: number; firstAt: Date; lastAt: Date; totalBytes: number }>()
+    for (const f of files) {
+      const at = f.examDate || f.createdAt
+      if ((from && at < from) || (to && at > to)) continue
+      const cur = byPatient.get(f.patientId)
+      if (!cur) byPatient.set(f.patientId, { fileCount: 1, firstAt: at, lastAt: at, totalBytes: f.sizeBytes })
+      else { cur.fileCount++; cur.totalBytes += f.sizeBytes; if (at < cur.firstAt) cur.firstAt = at; if (at > cur.lastAt) cur.lastAt = at }
+    }
+    const patients = await prisma.patient.findMany({ where: { id: { in: [...byPatient.keys()] }, clinicId, tenantId }, select: { id: true, fullName: true, recordNumber: true } })
+    let rows = patients.map((p) => ({ patientId: p.id, patientName: p.fullName, recordNumber: p.recordNumber, ...byPatient.get(p.id)! }))
+    if (search) rows = rows.filter((r) => r.patientName.toLowerCase().includes(search) || String(r.recordNumber ?? '') === search)
+    const byName = (a: { patientName: string }, b: { patientName: string }) => a.patientName.localeCompare(b.patientName, 'pt-BR', { sensitivity: 'base' })
+    rows.sort(sort === 'date' ? (a, b) => (asc ? 1 : -1) * (a.lastAt.getTime() - b.lastAt.getTime()) || byName(a, b) : byName)
+    return res.json(rows)
+  } catch (error) {
+    console.error('Erro ao listar pastas de escaneamentos:', error)
+    return res.status(500).json({ error: 'Erro ao listar as pastas de escaneamentos.' })
   }
 }

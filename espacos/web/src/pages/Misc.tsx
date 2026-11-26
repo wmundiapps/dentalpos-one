@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
+import { PartnersAdmin } from './Partners';
 import { Link, useParams } from 'react-router-dom';
-import { api, apiBlobUrl } from '../api';
+import { api, apiBlobUrl, openProtectedFile } from '../api';
 import { useI18n, type DictKey } from '../i18n';
 import { useApp } from '../state';
 import { IncidentItem } from './BookingPage';
 import type { Incident, Notification } from '../../../shared/types';
 import { errorText } from '../errors';
 import { formatDateTime } from '../format';
+import { ProspectingAdmin } from '../components/ProspectingAdmin';
 
 export function Notifications() {
   const { t, locale } = useI18n();
@@ -85,18 +87,18 @@ function Incidents() {
   );
 }
 
-type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant' | 'users' | 'contacts';
+type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant' | 'users' | 'contacts' | 'prospecting' | 'partners';
 
 export function Admin() {
   const { t } = useI18n();
-  const [tab, setTab] = useState<Tab>('verifications');
+  const [tab, setTab] = useState<Tab>(() => (window.location.pathname.endsWith('/parceiros') ? 'partners' : 'verifications'));
   return (
     <div className="container">
       <h1>{t('admin.title')}</h1>
       <div className="segmented" role="tablist">
-        {(['verifications', 'users', 'contacts', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
+        {(['verifications', 'users', 'contacts', 'prospecting', 'partners', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : k === 'users' ? 'admin.tabUsers' : k === 'contacts' ? 'admin.tabContacts' : 'admin.tabFeedback')}
+            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : k === 'users' ? 'admin.tabUsers' : k === 'contacts' ? 'admin.tabContacts' : k === 'prospecting' ? 'admin.tabProspecting' : k === 'partners' ? 'admin.tabPartners' : 'admin.tabFeedback')}
           </button>
         ))}
       </div>
@@ -107,6 +109,8 @@ export function Admin() {
       {tab === 'assistant' && <AssistantAdmin />}
       {tab === 'users' && <UsersAdmin />}
       {tab === 'contacts' && <ContactsAdmin />}
+      {tab === 'prospecting' && <ProspectingAdmin />}
+      {tab === 'partners' && <PartnersAdmin />}
     </div>
   );
 }
@@ -138,7 +142,7 @@ function Verifications() {
     try { await api(`/admin/verifications/${v.id}/decision`, { body: { status, note: notes[v.id] || undefined } }); load(); } catch (e) { setError(errorText(e, t)); }
   }
   async function openDoc(v: Verification) {
-    try { window.open(await apiBlobUrl(`/admin/verifications/${v.id}/document`), '_blank', 'noopener'); } catch (e) { setError(errorText(e, t)); }
+    try { await openProtectedFile(`/admin/verifications/${v.id}/document`, `registro-${v.id}`); } catch (e) { setError(errorText(e, t)); }
   }
   return (
     <div>
@@ -183,7 +187,7 @@ function IdentityReview() {
   const load = () => api<Idv[]>('/admin/identities').then(setList).catch((e) => setError(errorText(e, t)));
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const open = async (v: Idv, which: 'document' | 'selfie') => {
-    try { window.open(await apiBlobUrl(`/admin/identities/${v.id}/${which}`), '_blank', 'noopener'); } catch (e) { setError(errorText(e, t)); }
+    try { await openProtectedFile(`/admin/identities/${v.id}/${which}`, `${which}-${v.id}`); } catch (e) { setError(errorText(e, t)); }
   };
   const decide = async (v: Idv, status: 'approved' | 'rejected') => {
     try { await api(`/admin/identities/${v.id}/decision`, { body: { status } }); load(); } catch (e) { setError(errorText(e, t)); }

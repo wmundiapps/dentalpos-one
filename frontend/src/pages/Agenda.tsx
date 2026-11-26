@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { PENDING_ALERTS_EVENT } from "../services/PendingAlertsApi";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -17,9 +18,16 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
-
+  Collapse,
+  useMediaQuery,
 } from "@mui/material";
+import type { Theme } from "@mui/material";
+import AgendaMobileBar from "../components/agenda/AgendaMobileBar";
+import { professionalColorMap } from "../components/AgendaCalendarBoard";
+import { setAgendaLegend } from "../utils/agendaLegend";
 import AddIcon from "@mui/icons-material/Add";
+import MiniMonthCalendar from "../components/MiniMonthCalendar";
+import AgendaPrintDialog from "../components/AgendaPrintDialog";
 import LinkIcon from "@mui/icons-material/Link";
 
 import TuneIcon from "@mui/icons-material/Tune";
@@ -31,10 +39,18 @@ import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
 import SmartSchedulingSettingsDialog from "../components/SmartSchedulingSettingsDialog";
 import AgendaAvailabilitySettingsDialog from "../components/AgendaAvailabilitySettingsDialog";
+import AgendaMarkerPicker from "../components/AgendaMarkerPicker";
+import { AgendaMarkersContext, type MarkerDot } from "../contexts/AgendaMarkers";
+import { AppointmentMarkerApi, type AppointmentMarker } from "../services/AppointmentMarkerApi";
+import NextProcedureHint from "../components/NextProcedureHint";
+import PatientAlertBanner from "../components/patient/PatientAlertBanner";
+import LabServiceOrderDialog, { type LabOrderPrefill } from "../components/LabServiceOrderDialog";
+import { printLabLabels, printLabOrder } from "../utils/labOrderPrint";
+import AgendaPatientSearch from "../components/AgendaPatientSearch";
 import PatientSearchField, { formatPhoneBR, isValidPhoneBR, type PatientChoice } from "../components/PatientSearchField";
 import DurationSelect from "../components/DurationSelect";
 import { suggestDuration } from "../services/ProcedureDurations";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   changeAppointmentWithHistory,
   createAppointment,
@@ -49,11 +65,18 @@ import { createBackendPatient, loadBackendPatients, type BackendPatient } from "
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadFinancialEntries } from "../services/FinancialApi";
 import { toast } from "../utils/toast";
+import FinancialHoldDialog from "../components/FinancialHoldDialog";
+import CloseAgendaDialog from "../components/CloseAgendaDialog";
+import { loadPatientHold } from "../services/FinancialHoldApi";
+import AbsenceRecallDialog from "../components/AbsenceRecallDialog";
+import AbsenceRecallBanner from "../components/AbsenceRecallBanner";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
-import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
+import { isFinancialHold, createBackendAppointment, loadNextProcedureHint, type NextProcedureHint as NextProcedureHintData, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import {
+  createAgendaBlock,
+  deleteAgendaBlock,
   loadAgendaBlocks,
   loadBackendSchedules,
   loadRecurringBreaks,
@@ -164,7 +187,8 @@ function backendAppointmentId(value: string) {
   return -Math.abs(hash || 1);
 }
 
-function backendStatus(status: string): AppointmentStatus {
+function backendStatus(status: string, confirmation?: string | null): AppointmentStatus {
+  if (status === "CANCELLED" && confirmation === "UNSCHEDULED") return "Desmarcado";
   const map: Record<string, AppointmentStatus> = {
     SCHEDULED: "Agendado",
     CONFIRMED: "Confirmado",
@@ -187,8 +211,9 @@ function backendChannel(value: Channel) {
   return ({ WhatsApp: "WHATSAPP", SMS: "SMS", "E-mail": "EMAIL", Telegram: "TELEGRAM", Voz: "VOICE" } as const)[value];
 }
 
-function historyAction(value: string): "Criado" | "Remarcado" | "Cancelado" | "Faltou" | "Alterado" {
+function historyAction(value: string): "Criado" | "Remarcado" | "Cancelado" | "Desmarcado" | "Faltou" | "Alterado" {
   if (value === "RESCHEDULED") return "Remarcado";
+  if (value === "UNSCHEDULED") return "Desmarcado";
   if (value === "CANCELLED") return "Cancelado";
   if (value === "NO_SHOW") return "Faltou";
   if (value === "CREATED" || value === "ONLINE_REQUEST") return "Criado";
@@ -212,6 +237,7 @@ function backendStatusValue(status: AppointmentStatus): string {
     "Em atendimento": "IN_PROGRESS",
     "Finalizado": "COMPLETED",
     "Cancelado": "CANCELLED",
+    "Desmarcado": "UNSCHEDULED",
     "Faltou": "NO_SHOW",
   };
   return map[status];
@@ -234,7 +260,7 @@ function mapBackendAppointment(appointment: BackendAppointment): IntegratedAppoi
     dateISO: iso(scheduled),
     time: scheduled.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false }),
     room: appointment.room || "A definir",
-    status: backendStatus(appointment.status),
+    status: backendStatus(appointment.status, appointment.confirmation),
     source: "Interno",
     category: "1ª consulta",
     durationMinutes: appointment.durationMinutes || 30,
@@ -298,16 +324,44 @@ export default function Agenda() {
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(today());
   const [professional, setProfessional] = useState("Todos");
+  // Por padrão a agenda abre sozinha, grande; busca, filtros, atalhos e pendências ficam em "Mais opções".
+  const [showMore, setShowMore] = useState(() => { try { return localStorage.getItem("dentalpos.agenda.showMore") === "1"; } catch { return false; } });
+  // Link vindo do aviso de pendências: ?date=AAAA-MM-DD&view=day abre a agenda exatamente no dia do atendimento sem desfecho.
+  const routeLocation = useLocation();
+  useEffect(() => {
+    const q = new URLSearchParams(routeLocation.search);
+    const d = q.get("date");
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      setDate(d);
+      const v = q.get("view");
+      if (v === "day" || v === "week" || v === "month") setView(v);
+    }
+  }, [routeLocation.search]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(((new URLSearchParams(window.location.search).get("status")) || "Todos") as StatusFilter);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<IntegratedAppointment | null>(null);
+  const [moveReq, setMoveReq] = useState<{ appointment: IntegratedAppointment; dateISO: string; time: string } | null>(null);
+  const [moveReason, setMoveReason] = useState("");
+  const [compOpen, setCompOpen] = useState(false);
+  const [compTitle, setCompTitle] = useState("");
+  const [compDoctor, setCompDoctor] = useState("");
+  const [compDate, setCompDate] = useState("");
+  const [compStart, setCompStart] = useState("12:00");
+  const [compEnd, setCompEnd] = useState("13:00");
+  const [compBusy, setCompBusy] = useState(false);
+  const [moveBusy, setMoveBusy] = useState(false);
   const refreshAfterQuickAction = async () => {
     const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
     saveAppointments(refreshed);
     setItems(refreshed);
     setEdit(null);
+    window.dispatchEvent(new Event(PENDING_ALERTS_EVENT)); // atualiza a faixa de pendências na hora
     toast.success("Agenda atualizada.");
   };
+  const [absenceOpen, setAbsenceOpen] = useState(false);
+  const [labOrderPrefill, setLabOrderPrefill] = useState<LabOrderPrefill | null>(null);
+  const [holdTarget, setHoldTarget] = useState<{ id: string; name: string; retry?: boolean } | null>(null);
+  const holdResolvedFor = useRef<string | null>(null); // paciente cuja pendência foi mostrada e regularizada antes de agendar
   const [editReason, setEditReason] = useState("");
   const [editRequestedBy, setEditRequestedBy] = useState<"Paciente" | "Clínica" | "Dentista" | "Outro">("Paciente");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -337,6 +391,8 @@ export default function Agenda() {
   const [backendDoctors, setBackendDoctors] = useState<BackendDoctor[]>([]);
   const [scheduleBlocks, setScheduleBlocks] = useState<BackendSchedule[]>([]);
   const [agendaBlocks, setAgendaBlocks] = useState<AgendaBlock[]>([]);
+  const [closeAgendaOpen, setCloseAgendaOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
   const [recurringBreaks, setRecurringBreaks] = useState<RecurringBreak[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
@@ -430,6 +486,36 @@ export default function Agenda() {
     loadBackendDoctors().then(setBackendDoctors).catch(() => setBackendDoctors([]));
     loadTeamMembers().then((rows) => setAssistants(rows.filter((m) => (m.role === "ASB" || m.role === "TSB") && m.showInAgenda))).catch(() => setAssistants([]));
   }, []);
+
+  // Fechar a agenda de um dentista no dia em que ele não atende (bloqueio do dia inteiro; reabrir remove o bloqueio).
+  const closedDayBlock = (doctorId?: string) => {
+    if (!doctorId) return undefined;
+    const dayStart = new Date(`${date}T00:00:00`).getTime();
+    const dayEnd = dayStart + 24 * 3600000;
+    return agendaBlocks.find((block) => (block.doctorId === doctorId || !block.doctorId) && new Date(block.startAt).getTime() <= dayStart && new Date(block.endAt).getTime() >= dayEnd);
+  };
+  const toggleCloseDay = async (doctorId: string) => {
+    const existing = closedDayBlock(doctorId);
+    try {
+      if (existing) {
+        // Bloqueio sem profissional = feriado (ou dia fechado para todos): reabrir vale para a clínica inteira.
+        if (!existing.doctorId && !window.confirm(`${existing.reason}. Reabrir a agenda neste dia para TODOS os profissionais da clínica?`)) return;
+        await deleteAgendaBlock(existing.id);
+        toast.success("Agenda reaberta para este dia.");
+      } else {
+        const booked = items.filter((a) => a.dateISO === date && a.professionalName === professional && !["Cancelado", "Desmarcado"].includes(a.status)).length;
+        const note = booked ? `\n\nAtenção: já existem ${booked} consulta(s) marcada(s) neste dia. Elas não serão canceladas; remarque ou desmarque cada uma.` : "";
+        if (!window.confirm(`Fechar a agenda de ${professional} em ${date.split("-").reverse().join("/")}? Nenhum horário novo poderá ser marcado nesse dia.${note}`)) return;
+        const start = new Date(`${date}T00:00:00`);
+        const end = new Date(start.getTime() + 24 * 3600000);
+        await createAgendaBlock({ doctorId, startAt: start.toISOString(), endAt: end.toISOString(), reason: "Dentista não atende neste dia" });
+        toast.success("Agenda fechada para este dia.");
+      }
+      await refreshAgendaConfiguration();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível alterar o fechamento do dia.");
+    }
+  };
 
   const refreshAgendaConfiguration = async () => {
     const [schedules, blocks, breaks] = await Promise.all([
@@ -665,7 +751,7 @@ export default function Agenda() {
 
   const statusMetrics = useMemo(
     () => ({
-      total: baseFiltered.length,
+      total: baseFiltered.filter((appointment) => appointment.status !== "Desmarcado").length,
       confirmed: baseFiltered.filter((appointment) => appointment.status === "Confirmado").length,
       waiting: baseFiltered.filter((appointment) => appointment.status === "Aguardando").length,
       inCare: baseFiltered.filter((appointment) => appointment.status === "Em atendimento").length,
@@ -685,6 +771,12 @@ export default function Agenda() {
       ),
     [items, backendDoctors],
   );
+  const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
+  const colorMap = useMemo(() => professionalColorMap([...professionals, ...items.map((item) => item.professionalName)]), [professionals, items]);
+  useEffect(() => {
+    setAgendaLegend(professionals.filter((n) => n !== "Todos").map((name) => ({ name, color: colorMap.get(name.trim()) || "#1976d2" })));
+    return () => setAgendaLegend([]);
+  }, [professionals, colorMap]);
   const filterVisible = usePendingVisibility();
   const alerts = filterVisible(getOperationalAlerts()).filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
   const normalizeProfessionalName = (value: unknown) =>
@@ -703,6 +795,36 @@ export default function Agenda() {
     patientMode === "registered"
       ? backendPatients.find((patient) => patient.fullName.trim().toLowerCase() === normalizedPatientName)
       : undefined;
+
+  const [markerDefs, setMarkerDefs] = useState<AppointmentMarker[]>([]);
+  const [markerLinks, setMarkerLinks] = useState<Map<string, string[]>>(new Map());
+  const loadMarkerDefs = () => AppointmentMarkerApi.list().then(setMarkerDefs).catch(() => undefined);
+  useEffect(() => { void loadMarkerDefs(); }, []);
+  const markerIdsKey = (filtered as Array<{ backendId?: string }>).map((a) => a.backendId || "").filter(Boolean).join(",");
+  useEffect(() => {
+    const ids = markerIdsKey ? markerIdsKey.split(",") : [];
+    if (!ids.length) { setMarkerLinks(new Map()); return; }
+    let alive = true;
+    AppointmentMarkerApi.links(ids).then((rows) => { if (!alive) return; const m = new Map<string, string[]>(); rows.forEach((r) => m.set(r.appointmentId, [...(m.get(r.appointmentId) || []), r.markerId])); setMarkerLinks(m); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [markerIdsKey]);
+  const markerDots = useMemo(() => {
+    const out = new Map<string, MarkerDot[]>();
+    for (const [apptId, ids] of markerLinks) out.set(apptId, ids.map((id) => markerDefs.find((d) => d.id === id)).filter(Boolean).map((d) => ({ name: (d as AppointmentMarker).name, color: (d as AppointmentMarker).color })));
+    return out;
+  }, [markerDefs, markerLinks]);
+  const [nextHint, setNextHint] = useState<NextProcedureHintData | null>(null);
+  useEffect(() => {
+    setNextHint(null);
+    if (!selectedPatient?.id) return;
+    let alive = true;
+    loadNextProcedureHint(selectedPatient.id).then((h) => {
+      if (!alive || !h) return;
+      setNextHint(h);
+      setForm((cur) => (!cur.procedure.trim() || cur.procedure === "Consulta inicial / avaliação" ? { ...cur, procedure: h.nextProcedure, durationMinutes: suggestDuration(h.nextProcedure, cur.durationMinutes) } : cur));
+    }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [selectedPatient?.id]);
 
   const openNew = (prefill?: Partial<AppointmentForm>) => {
     setSmartSuggestion(null);
@@ -729,7 +851,8 @@ export default function Agenda() {
     setOpen(true);
   };
 
-  const save = async () => {
+  const save = () => saveWith(false);
+  const saveWith = async (anyway = false) => {
     if (!form.procedure.trim()) return;
 
     const normalizeName = (value: string) =>
@@ -789,7 +912,7 @@ export default function Agenda() {
         return;
       }
     } else if (!backendPatient) {
-      window.alert("Digite o nome, CPF ou telefone do paciente. Se não existir, escolha \"Paciente novo\".");
+      window.alert("Digite o nome, CPF ou telefone do paciente. Se não existir, toque no botão \"Paciente novo\" logo abaixo do campo.");
       return;
     }
 
@@ -814,6 +937,7 @@ export default function Agenda() {
     let backendCreated: BackendAppointment;
     try {
       backendCreated = await createBackendAppointment({
+        evolutionId: nextHint && form.procedure.trim() === nextHint.nextProcedure ? nextHint.evolutionId : undefined,
         patientId: backendPatient.id,
         doctorId: backendDoctor.id,
         procedure: form.procedure,
@@ -824,11 +948,21 @@ export default function Agenda() {
         durationMinutes: Number(form.durationMinutes || 30),
         reminderChannel: backendChannel(channel),
         reminders: reminderSelection,
+        scheduleAnyway: anyway || undefined,
+        holdWasShown: holdResolvedFor.current === backendPatient.id || undefined,
       });
     } catch (error) {
+      if (isFinancialHold(error)) {
+        // Mantém o aviso e a abertura das opções de regularização; o botão "Agendar mesmo assim" repete o agendamento.
+        setHoldTarget({ id: backendPatient.id, name: backendPatient.fullName, retry: true });
+        return;
+      }
       window.alert(error instanceof Error ? error.message : "Não foi possível salvar o agendamento.");
       return;
     }
+    holdResolvedFor.current = null;
+    // Aviso de pendência financeira: este é o único horário permitido até regularizar.
+    void loadPatientHold(backendPatient.id).then((hold) => { if (hold.hasPending) setHoldTarget({ id: backendPatient.id, name: backendPatient.fullName }); }).catch(() => undefined);
     createAppointment({
       ...form,
       patientName: patientNameForAppointment,
@@ -853,6 +987,13 @@ export default function Agenda() {
     } else {
       next.setDate(next.getDate() + delta * (view === "day" ? 1 : 7));
     }
+    setDate(iso(next));
+  };
+
+  const step = (kind: "small" | "big", direction: -1 | 1) => {
+    const next = new Date(`${date}T12:00:00`);
+    if (view === "month") next.setMonth(next.getMonth() + direction * (kind === "small" ? 1 : 12), 1);
+    else next.setDate(next.getDate() + direction * (kind === "small" ? 1 : 7));
     setDate(iso(next));
   };
 
@@ -958,16 +1099,40 @@ export default function Agenda() {
   };
 
   return (
-    <Box>
+    <Box sx={{ textAlign: "left" }}>
+      {isMobile ? (
+        <AgendaMobileBar
+          date={date} view={view} isToday={date === today()} onStep={step} onDate={setDate} onToday={() => setDate(today())} onView={setView}
+          professionals={professionals} colors={colorMap} professional={professional} onProfessional={setProfessional}
+          onNewAppointment={() => openNew({ dateISO: date })}
+          onNewCommitment={() => { setCompDoctor(selectedBackendDoctorId || ""); setCompDate(date); setCompTitle(""); setCompStart("12:00"); setCompEnd("13:00"); setCompOpen(true); }}
+          moreOpen={showMore} onToggleMore={() => setShowMore((v) => { const next = !v; try { localStorage.setItem("dentalpos.agenda.showMore", next ? "1" : "0"); } catch { /* sem armazenamento */ } return next; })}
+          extra={<>
+            <Button variant="outlined" onClick={() => setPrintOpen(true)}>Imprimir agenda</Button>
+            <ExportMenu label="Baixar / imprimir agenda" build={() => {
+              const inRange = items.filter((a) => range.includes(a.dateISO)).sort((a, b) => `${a.dateISO} ${a.time}`.localeCompare(`${b.dateISO} ${b.time}`));
+              return { title: `Agenda de ${range[0].split("-").reverse().join("/")}${range.length > 1 ? ` a ${range[range.length - 1].split("-").reverse().join("/")}` : ""}`, fileBase: "agenda", headers: ["Data", "Hora", "Paciente", "Telefone", "Profissional", "Procedimento", "Sala", "Situação"], rows: inRange.map((a) => [a.dateISO.split("-").reverse().join("/"), a.time, a.patientName, a.patientPhone || "", a.professionalName, a.procedure, a.room, a.status]) };
+            }} />
+            {view === "day" && selectedBackendDoctorId ? <Button color="warning" variant={closedDayBlock(selectedBackendDoctorId) ? "contained" : "outlined"} onClick={() => void toggleCloseDay(selectedBackendDoctorId)}>{closedDayBlock(selectedBackendDoctorId) ? "Reabrir agenda do dia" : "Fechar agenda do dia"}</Button> : null}
+          </>}
+        />
+      ) : (
       <PageHeader
-        title="Agenda inteligente"
-        description="Tempo clínico, retorno, laboratório, plano financeiro e dia habitual do paciente em uma única agenda."
+        compact
+        title="Agenda"
         actionLabel="Novo agendamento"
         actionIcon={<AddIcon />}
         onAction={() => openNew({ dateISO: date })}
+        secondaryLabel="Novo compromisso"
+        onSecondary={() => { setCompDoctor(selectedBackendDoctorId || ""); setCompDate(date); setCompTitle(""); setCompStart("12:00"); setCompEnd("13:00"); setCompOpen(true); }}
       />
+      )}
+      <AbsenceRecallDialog open={absenceOpen} onClose={() => setAbsenceOpen(false)} />
+      <AgendaPrintDialog open={printOpen} onClose={() => setPrintOpen(false)} items={items} professionals={professionals} defaultView={view} dateISO={date} defaultProfessional={professional} />
+      <CloseAgendaDialog open={closeAgendaOpen} onClose={() => setCloseAgendaOpen(false)} doctors={backendDoctors} defaultDoctorId={selectedBackendDoctorId} defaultDate={date} appointments={items} onSaved={refreshAgendaConfiguration} />
+      {holdTarget && <FinancialHoldDialog patientId={holdTarget.id} patientName={holdTarget.name} open onClose={() => setHoldTarget(null)} onResolved={(id) => { holdResolvedFor.current = id; }} onScheduleAnyway={holdTarget.retry ? () => { setHoldTarget(null); void saveWith(true); } : undefined} />}
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
+      {!isMobile && <Paper variant="outlined" sx={{ p: 1, borderRadius: 3, mb: 1 }}>
         <Box
           sx={{
             display: "grid",
@@ -987,6 +1152,7 @@ export default function Agenda() {
             />
             <Button variant="outlined" onClick={() => move(1)} aria-label="Próximo período" sx={{ minWidth: 44, fontSize: 24, lineHeight: 1 }}>›</Button>
             <Button variant="contained" onClick={() => setDate(today())}>Hoje</Button>
+            <Button variant="contained" size="small" onClick={() => setPrintOpen(true)}>Imprimir agenda</Button>
             <ExportMenu
               label="Baixar / imprimir agenda"
               build={() => {
@@ -1014,6 +1180,17 @@ export default function Agenda() {
             <ToggleButton value="week">Semana</ToggleButton>
             <ToggleButton value="month">Mês</ToggleButton>
           </ToggleButtonGroup>
+          {view === "day" && selectedBackendDoctorId ? (
+            <Button
+              size="small"
+              variant={closedDayBlock(selectedBackendDoctorId) ? "contained" : "outlined"}
+              color="warning"
+              sx={{ justifySelf: "center" }}
+              onClick={() => void toggleCloseDay(selectedBackendDoctorId)}
+            >
+              {closedDayBlock(selectedBackendDoctorId) ? "Reabrir agenda do dia" : "Fechar agenda do dia"}
+            </Button>
+          ) : null}
 
           <TextField
             size="small"
@@ -1021,15 +1198,38 @@ export default function Agenda() {
             label="Agenda / profissional"
             value={professional}
             onChange={(event) => setProfessional(event.target.value)}
-            sx={{ minWidth: 220, maxWidth: 320, justifySelf: { lg: "end" } }}
+            sx={{ minWidth: 220, maxWidth: 320, justifySelf: { lg: "end" }, display: { xs: "block", md: "none" } }}
           >
             {professionals.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
           </TextField>
+          <Button
+            variant={showMore ? "contained" : "outlined"}
+            onClick={() => setShowMore((v) => { const next = !v; try { localStorage.setItem("dentalpos.agenda.showMore", next ? "1" : "0"); } catch { /* sem armazenamento */ } return next; })}
+            sx={{ justifySelf: { lg: "end" } }}
+          >
+            {showMore ? "Ocultar opções" : "Mais opções"}
+          </Button>
         </Box>
 
+      </Paper>}
+      <Collapse in={showMore} unmountOnExit>
+        <Box sx={{ mb: 2 }}>
+      <AgendaPatientSearch
+        patients={backendPatients}
+        appointments={items}
+        onSchedule={(patient) => openNew({ patientName: patient.fullName, patientPhone: patient.phone || "", dateISO: date })}
+        onGoToDate={(dateISO) => { setDate(dateISO); setView("day"); }}
+        onOpenFile={(patient) => navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}`)}
+      />
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+        <Button variant="outlined" onClick={() => setAbsenceOpen(true)}>Pacientes ausentes: convidar para retorno</Button>
+      </Box>
+      <AbsenceRecallBanner />
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
         <Box sx={{ display: "flex", gap: 1, justifyContent: { xs: "center", lg: "flex-end" }, flexWrap: "wrap", mt: 1.25 }}>
           <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
           <Button onClick={() => void openOnlineSlots()}>Horários online</Button>
+          <Button color="warning" variant="outlined" onClick={() => setCloseAgendaOpen(true)}>Fechar agenda</Button>
           <Button onClick={() => setAvailabilitySettingsOpen(true)}>Jornada / bloqueios</Button>
           <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Inteligência</Button>
         </Box>
@@ -1052,18 +1252,43 @@ export default function Agenda() {
             />
           ))}
         </Box>
-      </Paper>
+          </Paper>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
+          <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório e agenda ficam visíveis para a equipe.</Typography>
+          {alerts.length === 0 ? <Alert severity="success">Nenhuma pendência crítica agora.</Alert> : (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" }, gap: 1, maxHeight: 420, overflow: "auto" }}>
+              {alerts.map((alert) => (
+                <Alert key={alert.id} severity={alert.severity}><b>{alert.title}</b><br />{alert.description}</Alert>
+              ))}
+            </Box>
+          )}
+        </Paper>
+        </Box>
+      </Collapse>
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns:
-            view === "day"
-              ? "minmax(0,1fr)"
-              : { xs: "1fr", lg: "minmax(0,2.2fr) minmax(320px,1fr)" },
-          gap: view === "day" ? 0 : 2,
+          gridTemplateColumns: { xs: "minmax(0,1fr)", md: "250px minmax(0,1fr)" },
+          gap: 2,
           width: "100%",
+          alignItems: "start",
         }}
       >
+        <Paper variant="outlined" sx={{ display: { xs: "none", md: "block" }, p: 1.5, borderRadius: 3, position: "sticky", top: 8 }}>
+          <MiniMonthCalendar dateISO={date} view={view} onSelect={(day) => setDate(day)} markedDates={new Set(items.filter((a) => a.status !== "Cancelado").map((a) => a.dateISO))} />
+          <Typography sx={{ fontWeight: 900, fontSize: 14, mt: 2, mb: 0.5 }}>Profissionais</Typography>
+          <Box sx={{ display: "grid", gap: 0.25, maxHeight: 320, overflowY: "auto" }}>
+            {professionals.map((name) => (
+              <FormControlLabel
+                key={name}
+                sx={{ m: 0 }}
+                control={<Checkbox size="small" checked={professional === name} onChange={() => setProfessional(name)} />}
+                label={<Typography variant="body2" sx={{ fontWeight: professional === name ? 800 : 500 }}>{name}</Typography>}
+              />
+            ))}
+          </Box>
+        </Paper>
         <Paper
           variant="outlined"
           sx={{
@@ -1076,13 +1301,13 @@ export default function Agenda() {
         >
           <Box
             sx={{
+              display: isMobile ? "none" : "flex",
               px: 2,
               py: 1.25,
               bgcolor: "action.hover",
               borderBottom: 1,
               borderColor: "divider",
-              display: "flex",
-              alignItems: "center",
+ alignItems: "center",
               justifyContent: "space-between",
               gap: 2,
               position: view === "day" ? "sticky" : "static",
@@ -1104,12 +1329,14 @@ export default function Agenda() {
               </Button>
             ) : null}
           </Box>
+          <AgendaMarkersContext.Provider value={markerDots}>
           <AgendaCalendarBoard
             view={view}
             dateISO={date}
             items={filtered}
             professional={professional}
             professionalId={selectedBackendDoctorId}
+            professionalNames={professionals}
             scheduleBlocks={scheduleBlocks}
             agendaBlocks={agendaBlocks}
             recurringBreaks={recurringBreaks}
@@ -1126,18 +1353,100 @@ export default function Agenda() {
               setEditRequestedBy("Paciente");
               setEditSmartSuggestion(null);
             }}
+            maxHeight="calc(100vh - 190px)"
             onNew={(prefill) => openNew(prefill)}
+            onBlockClick={(block) => { if (!block.reason.startsWith("Compromisso")) return; if (window.confirm(`Excluir o compromisso "${block.reason.replace(/^Compromisso:\s*/, "")}"?`)) void (async () => { try { await deleteAgendaBlock(block.id); await refreshAgendaConfiguration(); toast.success("Compromisso excluído."); } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível excluir."); } })(); }}
+            onMove={(appointment, dateISO, time) => { if (appointment.dateISO === dateISO && appointment.time === time) return; setMoveReq({ appointment, dateISO, time }); setMoveReason(""); }}
+            onResize={async (appointment, durationMinutes) => {
+              if (!appointment.backendId) return;
+              await updateBackendAppointment(appointment.backendId, { durationMinutes, reason: "Duração ajustada na agenda (arrastando a borda)", requestedBy: backendRequestedBy("Clínica") });
+              const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
+              saveAppointments(refreshed);
+              setItems(refreshed);
+              toast.success(`Duração alterada para ${durationMinutes} min.`);
+            }}
           />
-        </Paper>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, display: view === "day" ? "none" : "block" }}>
-          <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
-          <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório e agenda ficam visíveis para a equipe.</Typography>
-          {alerts.length === 0 ? <Alert severity="success">Nenhuma pendência crítica agora.</Alert> : alerts.map((alert) => (
-            <Alert key={alert.id} severity={alert.severity} sx={{ mb: 1 }}><b>{alert.title}</b><br />{alert.description}</Alert>
-          ))}
+          </AgendaMarkersContext.Provider>
         </Paper>
       </Box>
 
+      <Dialog open={compOpen} onClose={() => !compBusy && setCompOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Novo compromisso</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "grid", gap: 1.5, mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary">Reserva o horário na agenda, sem paciente (reunião, curso, almoço, pessoal...). Ninguém consegue agendar nesse horário.</Typography>
+            <TextField size="small" label="Compromisso" placeholder="Ex.: Reunião com fornecedor" value={compTitle} onChange={(e) => setCompTitle(e.target.value)} autoFocus />
+            <TextField select size="small" label="Profissional" value={compDoctor} onChange={(e) => setCompDoctor(e.target.value)}>
+              <MenuItem value="">Toda a clínica</MenuItem>
+              {backendDoctors.map((d) => <MenuItem key={d.id} value={d.id}>{`${d.user.firstName} ${d.user.lastName}`.trim()}</MenuItem>)}
+            </TextField>
+            <TextField size="small" type="date" label="Data" value={compDate} onChange={(e) => setCompDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+              <TextField size="small" type="time" label="Início" value={compStart} onChange={(e) => setCompStart(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+              <TextField size="small" type="time" label="Fim" value={compEnd} onChange={(e) => setCompEnd(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} error={Boolean(compStart && compEnd && compEnd <= compStart)} />
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={compBusy} onClick={() => setCompOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={compBusy || compTitle.trim().length < 2 || !compDate || !compStart || !compEnd || compEnd <= compStart} onClick={async () => {
+            const start = new Date(`${compDate}T${compStart}:00`); const end = new Date(`${compDate}T${compEnd}:00`);
+            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) { toast.error("Data ou horário inválido."); return; }
+            const doc = backendDoctors.find((d) => d.id === compDoctor);
+            setCompBusy(true);
+            try {
+              await createAgendaBlock({ doctorId: compDoctor || null, startAt: start.toISOString(), endAt: end.toISOString(), reason: `Compromisso: ${compTitle.trim()}${doc ? ` (${`${doc.user.firstName} ${doc.user.lastName}`.trim()})` : ""}` });
+              await refreshAgendaConfiguration();
+              toast.success("Compromisso agendado.");
+              setCompOpen(false);
+            } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível salvar o compromisso."); }
+            finally { setCompBusy(false); }
+          }}>Salvar compromisso</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(moveReq)} onClose={() => !moveBusy && setMoveReq(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Mover agendamento</DialogTitle>
+        <DialogContent>
+          {moveReq ? (
+            <Box sx={{ display: "grid", gap: 1.5, mt: 0.5 }}>
+              <Typography sx={{ fontWeight: 800 }}>{moveReq.appointment.patientName}</Typography>
+              <Typography variant="body2">De <b>{new Date(`${moveReq.appointment.dateISO}T12:00:00`).toLocaleDateString("pt-BR")} às {moveReq.appointment.time}</b> para <b>{new Date(`${moveReq.dateISO}T12:00:00`).toLocaleDateString("pt-BR")} às {moveReq.time}</b></Typography>
+              <TextField size="small" label="Motivo da remarcação" value={moveReason} onChange={(e) => setMoveReason(e.target.value)} autoFocus />
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={moveBusy} onClick={() => setMoveReq(null)}>Cancelar</Button>
+          <Button variant="contained" disabled={moveBusy || moveReason.trim().length < 3} onClick={async () => {
+            if (!moveReq?.appointment.backendId) return;
+            const when = new Date(`${moveReq.dateISO}T${moveReq.time}:00`);
+            if (Number.isNaN(when.getTime())) { toast.error("Data ou horário inválido."); return; }
+            setMoveBusy(true);
+            try {
+              await updateBackendAppointment(moveReq.appointment.backendId, { scheduledAt: when.toISOString(), reason: moveReason.trim(), requestedBy: backendRequestedBy("Clínica") });
+              const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
+              saveAppointments(refreshed);
+              setItems(refreshed);
+              toast.success("Agendamento remarcado.");
+              setMoveReq(null);
+            } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível remarcar."); }
+            finally { setMoveBusy(false); }
+          }}>Confirmar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <LabServiceOrderDialog
+        open={Boolean(labOrderPrefill)}
+        prefill={labOrderPrefill || undefined}
+        onClose={() => setLabOrderPrefill(null)}
+        onCreated={(order) => {
+          setLabOrderPrefill(null);
+          toast.success(`Ordem ${order.protocol} gerada e enviada às pendências do laboratório.`);
+          printLabOrder(order);
+          if (window.confirm(`Imprimir também as etiquetas do protocolo ${order.protocol} para colar nas moldeiras e na mordida em cera?`)) printLabLabels(order);
+        }}
+      />
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>Novo agendamento</DialogTitle>
         <DialogContent sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2, pt: "12px!important" }}>
@@ -1211,7 +1520,8 @@ export default function Agenda() {
             procedure={form.procedure}
             onChange={(minutes) => setForm((current) => ({ ...current, durationMinutes: minutes }))}
           />
-          <Box sx={{ gridColumn: { md: "1/-1" } }}>
+          <Box sx={{ gridColumn: { md: "1/-1" }, display: "grid", gap: 1 }}>
+            <NextProcedureHint hint={nextHint} current={form.procedure} onUse={() => nextHint && setForm((cur) => ({ ...cur, procedure: nextHint.nextProcedure, durationMinutes: suggestDuration(nextHint.nextProcedure, cur.durationMinutes) }))} />
             <ProcedurePicker
               value={form.procedure}
               onChange={(name) => setForm((current) => ({ ...current, procedure: name, durationMinutes: suggestDuration(name, current.durationMinutes) }))}
@@ -1283,12 +1593,19 @@ export default function Agenda() {
       </Dialog>
 
       <Dialog open={Boolean(edit)} onClose={() => setEdit(null)} fullWidth maxWidth="md">
-        <DialogTitle>{edit?.patientName}</DialogTitle>
+        <DialogTitle sx={{ fontSize: { xs: 28, md: 34 }, fontWeight: 900, lineHeight: 1.15, color: "text.primary", pb: 0.5 }}>
+          {edit?.patientName}
+        </DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
           {edit ? (
             <>
+              <PatientAlertBanner patientId={edit.patientId} compact />
               <Typography><b>{edit.dateISO} às {edit.time}</b> • {edit.professionalName}</Typography>
-              <Typography>{edit.procedure}</Typography>
+              <Box sx={{ p: 1.5, borderRadius: 2, borderLeft: "6px solid", borderColor: "primary.main", bgcolor: "action.hover" }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: ".08em", color: "text.secondary" }}>O QUE O PACIENTE VAI FAZER NESTA CONSULTA</Typography>
+                <Typography sx={{ fontSize: { xs: 22, md: 26 }, fontWeight: 900, lineHeight: 1.2 }}>{edit.procedure || "Procedimento não informado"}</Typography>
+              </Box>
+              {edit.backendId && <AgendaMarkerPicker appointmentId={edit.backendId} defs={markerDefs} selected={markerLinks.get(edit.backendId) || []} onChange={(ids) => setMarkerLinks((cur) => new Map(cur).set(edit.backendId as string, ids))} onDefsChanged={() => void loadMarkerDefs()} />}
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
                 <TextField
                   select
@@ -1296,13 +1613,32 @@ export default function Agenda() {
                   value={edit.status}
                   onChange={(event) => setEdit({ ...edit, status: event.target.value as AppointmentStatus })}
                 >
-                  {["Agendado", "Confirmado", "Aguardando", "Sala em preparação", "Em atendimento", "Finalizado", "Cancelado", "Faltou"].map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+                  {["Agendado", "Confirmado", "Aguardando", "Sala em preparação", "Em atendimento", "Finalizado", "Desmarcado", "Cancelado", "Faltou"].map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
                 </TextField>
                 <DurationSelect
                   value={edit.durationMinutes || 30}
                   procedure={edit.procedure}
                   onChange={(minutes) => setEdit((current) => (current ? { ...current, durationMinutes: minutes } : current))}
                 />
+                <Box sx={{ gridColumn: { md: "1/-1" }, display: "grid", gap: 1.5 }}>
+                  <ProcedurePicker label="Procedimento (editar)" value={edit.procedure} onChange={(name) => setEdit((current) => (current ? { ...current, procedure: name } : current))} />
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr auto" }, gap: 1.5, alignItems: "center" }}>
+                    <ProcedurePicker label="Próximo procedimento" value={edit.nextProcedure} onChange={(name) => setEdit((current) => (current ? { ...current, nextProcedure: name } : current))} />
+                    <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { const d = new Date(`${edit.dateISO}T12:00:00`); d.setDate(d.getDate() + 7); scheduleNextReturn(edit, `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`); }}>Agendar próximo atendimento</Button>
+                  </Box>
+                </Box>
+                <TextField
+                  select
+                  label="Profissional (trocar dentista)"
+                  value={edit.professionalName}
+                  onChange={(event) => setEdit({ ...edit, professionalName: event.target.value })}
+                >
+                  {backendDoctors.map((doctor) => {
+                    const fullName = `${doctor.user.firstName} ${doctor.user.lastName}`.trim();
+                    return <MenuItem key={doctor.id} value={fullName}>{fullName}</MenuItem>;
+                  })}
+                  {!backendDoctors.some((d) => `${d.user.firstName} ${d.user.lastName}`.trim() === edit.professionalName) ? <MenuItem value={edit.professionalName}>{edit.professionalName}</MenuItem> : null}
+                </TextField>
                 <TextField
                   type="date"
                   label="Remarcar data"
@@ -1396,7 +1732,7 @@ export default function Agenda() {
             const patient = backendPatients.find((item) => item.fullName.toLowerCase() === edit.patientName.toLowerCase());
             return (
               <>
-                <Button disabled={!patient} onClick={() => patient && navigate(`/prontuario?patientId=${encodeURIComponent(patient.id)}`)}>Prontuário</Button>
+                <Button variant="contained" disabled={!patient} onClick={() => patient && navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}`)}>Ficha do paciente</Button><Button color="success" variant="contained" disabled={!patient} onClick={() => patient && navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}&aba=cobranca`)}>Gerar financeiro</Button><Button variant="contained" color="secondary" disabled={!patient} onClick={() => patient && navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}&aba=odontograma&profissional=${encodeURIComponent(edit.professionalName || "")}`)}>Prontuário e odontograma (registrar procedimento)</Button><Button disabled={!patient} onClick={() => patient && navigate(`/prontuario?patientId=${encodeURIComponent(patient.id)}`)}>Ficha clínica</Button>
                 <Button onClick={() => navigate(`/financeiro?paciente=${encodeURIComponent(edit.patientName)}`)}>Financeiro</Button><Button startIcon={<AddIcon />} onClick={() => { const current = edit; setEdit(null); if (current) openNew({ patientName: current.patientName, patientPhone: current.patientPhone || "", professionalName: current.professionalName, dateISO: date }); }}>Agendar novo</Button>
               </>
             );
@@ -1409,44 +1745,50 @@ export default function Agenda() {
                   variant="outlined"
                   onClick={async () => {
                     try {
-                      // Compareceu = chegada: o paciente entra na fila do Painel de Atendimento (sala de espera).
-                      await appointmentFlowAction(edit.backendId!, "ARRIVED");
+                      // Hoje: Compareceu = chegada (o paciente entra na sala de espera).
+                      // Dia anterior: o paciente já veio e já foi embora; registra como atendido para resolver a pendência.
+                      const pastDay = edit.dateISO < iso(new Date());
+                      await appointmentFlowAction(edit.backendId!, pastDay ? "ATTENDED" : "ARRIVED");
                       await refreshAfterQuickAction();
-                      toast.success("Chegada confirmada: o paciente entrou na sala de espera.");
+                      toast.success(pastDay ? "Comparecimento confirmado e atendimento registrado: pendência resolvida." : "Chegada confirmada: o paciente entrou na sala de espera.");
                     } catch (error) {
-                      window.alert(error instanceof Error ? error.message : "Não foi possível confirmar o comparecimento.");
+                      toast.error(error instanceof Error ? error.message : "Não foi possível confirmar o comparecimento.");
                     }
                   }}
                 >
                   Compareceu
                 </Button>
               ) : null}
-              {edit.backendId && ["Aguardando", "Sala em preparação", "Em atendimento"].includes(edit.status) ? (
+              {edit.backendId && ["Agendado", "Confirmado", "Aguardando", "Sala em preparação", "Em atendimento", "Faltou"].includes(edit.status) ? (
                 <Button
                   color="success"
                   variant="outlined"
                   onClick={async () => {
                     try {
-                      // Saiu = atendimento finalizado: sai da fila do Painel de Atendimento.
+                      // Atendido = paciente já foi embora: finaliza o atendimento, sai da fila do Painel e resolve a pendência da agenda.
+                      const attended = edit;
                       await appointmentFlowAction(edit.backendId!, "ATTENDED");
                       await refreshAfterQuickAction();
                       toast.success("Atendimento finalizado.");
+                      if (window.confirm("Este atendimento gerou trabalho para o laboratório? Abrir a ordem de serviço agora.")) {
+                        setLabOrderPrefill({ patientId: attended.patientId, patientName: attended.patientName, patientContact: attended.patientPhone, dentistName: attended.professionalName, appointmentId: attended.backendId });
+                      }
                     } catch (error) {
-                      window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o atendimento.");
+                      toast.error(error instanceof Error ? error.message : "Não foi possível finalizar o atendimento.");
                     }
                   }}
                 >
-                  Saiu / finalizar
+                  Atendido
                 </Button>
               ) : null}
-              {edit.backendId && edit.status !== "Cancelado" ? (
+              {edit.backendId && edit.status !== "Cancelado" && edit.status !== "Desmarcado" ? (
                 <Button
                   color="error"
                   variant="outlined"
                   onClick={async () => {
                     if (!window.confirm(`Confirmar que ${edit.patientName} desmarcou a consulta?`)) return;
                     try {
-                      await cancelBackendAppointment(edit.backendId!, editReason.trim() || "Paciente desmarcou", "PATIENT");
+                      await cancelBackendAppointment(edit.backendId!, editReason.trim() || "Paciente desmarcou", "PATIENT", true);
                       await refreshAfterQuickAction();
                       toast.success("Consulta desmarcada e registrada no histórico.");
                     } catch (error) {
@@ -1457,8 +1799,27 @@ export default function Agenda() {
                   Desmarcou
                 </Button>
               ) : null}
-              <Button color="warning" onClick={() => setEdit({ ...edit, status: "Faltou" })}>Marcar falta</Button>
+              <Button
+                color="warning"
+                onClick={async () => {
+                  // Com o agendamento já gravado, a falta é registrada na hora (como o Atendido), sem precisar salvar.
+                  if (!edit.backendId || !["Agendado", "Confirmado", "Aguardando", "Sala em preparação"].includes(edit.status)) {
+                    setEdit({ ...edit, status: "Faltou" });
+                    return;
+                  }
+                  try {
+                    await appointmentFlowAction(edit.backendId, "NO_SHOW");
+                    await refreshAfterQuickAction();
+                    toast.success("Falta registrada.");
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : "Não foi possível registrar a falta.");
+                  }
+                }}
+              >
+                Marcar falta
+              </Button>
               <Button color="error" onClick={() => setEdit({ ...edit, status: "Cancelado" })}>Cancelar consulta</Button>
+              <Button onClick={() => setLabOrderPrefill({ patientId: edit.patientId, patientName: edit.patientName, patientContact: edit.patientPhone, dentistName: edit.professionalName, appointmentId: edit.backendId })}>Ordem para o laboratório</Button>
             </>
           ) : null}
           <Button onClick={() => setEdit(null)}>Fechar</Button>
@@ -1467,6 +1828,10 @@ export default function Agenda() {
               variant="contained"
               onClick={async () => {
                 if (edit.backendId) {
+                  // Só marcador (ou nada alterado): não há o que justificar nem o que salvar; o marcador já foi gravado ao escolher.
+                  const original = items.find((i) => i.id === edit.id);
+                  const changed = !original || (["dateISO", "time", "professionalName", "procedure", "nextProcedure", "room", "status", "durationMinutes", "category"] as const).some((k) => String(original[k] ?? "") !== String(edit[k] ?? ""));
+                  if (!changed) { setEdit(null); return; }
                   if (!editReason.trim()) {
                     window.alert("Informe o motivo da alteração, remarcação, cancelamento ou falta.");
                     return;
@@ -1477,7 +1842,10 @@ export default function Agenda() {
                     return;
                   }
                   try {
+                    const nm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+                    const pickedDoctor = original && edit.professionalName !== original.professionalName ? backendDoctors.find((d) => nm(`${d.user.firstName} ${d.user.lastName}`) === nm(edit.professionalName)) : undefined;
                     await updateBackendAppointment(edit.backendId, {
+                      ...(pickedDoctor ? { doctorId: pickedDoctor.id } : {}),
                       scheduledAt: scheduledAt.toISOString(),
                       durationMinutes: Number(edit.durationMinutes || 30),
                       procedure: edit.procedure,

@@ -1,4 +1,5 @@
 import { EDU_ONLY } from "./appMode";
+import FaceRetouchingNaturalIcon from "@mui/icons-material/FaceRetouchingNatural";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import AssessmentIcon from "@mui/icons-material/Assessment";
@@ -14,12 +15,14 @@ import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import BadgeIcon from "@mui/icons-material/Badge";
 import DescriptionIcon from "@mui/icons-material/Description";
 // import DesignServicesIcon from "@mui/icons-material/DesignServices"; // DPD oculto
 import EventIcon from "@mui/icons-material/Event";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
+import ThreeDRotationIcon from "@mui/icons-material/ThreeDRotation";
 import GroupsIcon from "@mui/icons-material/Groups";
 import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
 import HubIcon from "@mui/icons-material/Hub";
@@ -59,7 +62,6 @@ import RequestPageIcon from "@mui/icons-material/RequestPage";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import WorkIcon from "@mui/icons-material/Work";
-import BadgeIcon from "@mui/icons-material/Badge";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import BeachAccessIcon from "@mui/icons-material/BeachAccess";
@@ -113,8 +115,10 @@ const allNavigationGroups:NavigationGroup[] = [
     items:alphabetical([
       item("Agenda","/agenda",<EventIcon/>),
       item("Agendamento online","/agendamento-online",<EventIcon/>),
+      item("Chegada por rosto","/chegada-por-rosto",<FaceRetouchingNaturalIcon/>),
       item("Equipe","/equipe",<GroupsIcon/>),
       item("Avaliação do Atendimento","/avaliacoes-atendimento",<RateReviewIcon/>),
+      item("Clube da clínica","/clube",<MonetizationOnIcon/>),
       item("Painel de Atendimentos","/painel-atendimentos",<GroupsIcon/>),
       item("Pacientes","/pacientes",<PeopleAltIcon/>),
       item("Jornada do Paciente","/jornada-paciente",<HubIcon/>),
@@ -126,12 +130,14 @@ const allNavigationGroups:NavigationGroup[] = [
     items:alphabetical([
       item("Prontuário","/prontuario",<FolderSharedIcon/>),
       item("Documentos Clínicos","/documentos-clinicos",<DescriptionIcon/>),
+      item("Escaneamentos","/escaneamentos",<ThreeDRotationIcon/>),
+      item("Kit da Clínica","/kit-clinica",<BadgeIcon/>),
       item("Orçamentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
       item("Equipe","/equipe",<GroupsIcon/>),
-      item("DentalPos AI","/ceo-ia",<AutoAwesomeIcon/>),
+      item("CompletoDonto AI","/ceo-ia",<AutoAwesomeIcon/>),
       item("Assistente de IA","/assistente-ia",<AutoAwesomeIcon/>),
       // DPD oculto do menu em 20/09 por decisao do Robson. Rota e dados preservados.
-            // item("DentalPos Design","/design",<DesignServicesIcon/>),
+            // item("CompletoDonto Design","/design",<DesignServicesIcon/>),
     ])
   },
   {
@@ -139,6 +145,7 @@ const allNavigationGroups:NavigationGroup[] = [
     icon:tile(<BiotechIcon/>,"#8B5CF6"),
     items:[
       item("Laboratório","/laboratorio",<BiotechIcon/>),
+      item("Ordens do laboratório","/ordens-laboratorio",<BiotechIcon/>),
     ]
   },
   {
@@ -149,7 +156,10 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Comunicações","/comunicacoes",<ChatIcon/>),
       item("Chatbot e IA","/revah-chatbot",<ChatIcon/>),
       item("Leads","/revah-leads",<PeopleAltIcon/>),
+      item("Prospecção","/prospeccao",<PeopleAltIcon/>),
+      item("Parceiros de estoque","/parceiros-estoque",<PeopleAltIcon/>),
       item("Recall e Reativação","/recall",<SendIcon/>),
+      item("Campanha de final de ano","/campanha-final-de-ano",<SendIcon/>),
       item("Central de Marketing","/marketing/central",<SendIcon/>),
       item("Disparos locais","/revah",<SendIcon/>),
       item("Canais de Envio","/canais-envio",<SettingsInputAntennaIcon/>),
@@ -163,8 +173,12 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Contas a Receber","/financeiro?tipo=Receita",<PaymentsIcon/>),
       item("Contas a Pagar","/financeiro?tipo=Despesa",<ReceiptLongIcon/>),
       item("Cobranças","/pagamentos",<CreditCardIcon/>),
+      item("Gerar financeiro","/pacientes?acao=financeiro",<PaymentsIcon/>),
       item("Recebimentos online","/recebimentos-online",<PaymentsIcon/>),
+      item("Assinatura do paciente","/assinaturas",<CreditCardIcon/>),
       item("Digitalizar Financeiro","/financeiro/digitalizar",<ReceiptLongIcon/>),
+      item("Fechamento de caixa","/fechamento-caixa",<PaymentsIcon/>),
+      item("Rateio do condomínio","/rateio-condominio",<AccountBalanceIcon/>),
     ]
   },
   {
@@ -178,7 +192,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Gestão Operacional","/operacional",<CleaningServicesIcon/>),
       item("Corpo Clínico","/corpo-clinico",<MedicalInformationIcon/>),
       item("RH e Gestão de Pessoas","/rh",<WorkIcon/>),
-      item("Registrar ponto","/rh?ponto=1",<FingerprintIcon/>),
+      item("Ponto por rosto (aparelho da clínica)","/ponto-facial",<FingerprintIcon/>),
     ])
   },
   {
@@ -196,7 +210,7 @@ const allNavigationGroups:NavigationGroup[] = [
     ])
   },
   {
-    label:"DentalPos Sales",
+    label:"CompletoDonto Sales",
     icon:tile(<ShoppingBagIcon/>,"#E0457B"),
     items:alphabetical([
       item("Loja e Vendas","/sales",<PointOfSaleIcon/>),
@@ -467,6 +481,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Integrações","/integracoes",<HubIcon/>),
       // No EduMaster a importação genérica grava "pacientes" (tela de clínica, fora do menu); a importação que aparece nas telas é a da carteira contábil.
       EDU_ONLY?item("Importar clientes (CSV)","/edu/contabil/carteira?aba=clientes",<UploadFileIcon/>,CARTEIRA_ROLES):item("Importar clientes e alunos","/importar-pacientes",<UploadFileIcon/>),
+      item("Importar dados","/importar-dados",<UploadFileIcon/>),
       item("Permissões","/permissoes",<AdminPanelSettingsIcon/>),
       item("Central LGPD","/edu/lgpd",<PrivacyTipIcon/>),
       item("Acesso por cargo","/edu/acesso-por-cargo",<AdminPanelSettingsIcon/>,["ADMIN","OWNER"]),

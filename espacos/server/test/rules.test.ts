@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addDays, computeGuestRefund, computePrice, overstayCharge, todayInZone, validateOccurrences, zonedToUtc } from '../../shared/rules.js';
+import { addDays, bookingPattern, brokerFee, spouseConsentRequired, computeGuestRefund, computePrice, overstayCharge, todayInZone, validateOccurrences, weekdayOf, zonedToUtc } from '../../shared/rules.js';
 import type { Listing } from '../../shared/types.js';
 
 const tz = 'America/Sao_Paulo';
+const NEW = new Date('2026-12-21T12:00:00Z');
 const listing: Listing = {
   id: 'l', hostId: 'h', title: 't', description: 'd', category: 'dental', countryCode: 'BR', city: 'São Paulo', timezone: tz,
   address: 'x', capacity: 3, amenities: [], equipment: '', photos: [], currency: 'BRL', pricePerHour: 100, minHours: 1,
@@ -14,19 +15,44 @@ const listing: Listing = {
 };
 const ctx = { existing: [], guestHoursLast30Days: 0, guestActiveSeries: 0 };
 const d = (n: number) => addDays(todayInZone(tz), n);
+const roundTo = (v: number) => Math.round(v * 100) / 100;
 
 test('fuso horário: São Paulo UTC-3', () => {
   assert.equal(zonedToUtc('2026-03-10', '09:00', tz).toISOString(), '2026-03-10T12:00:00.000Z');
 });
 
-test('preço: base + limpeza + taxa de serviço 15% + ISS 5% sobre a taxa', () => {
-  const p = computePrice(listing, [{ date: d(10), start: '09:00', end: '11:00' }]);
+test('preço (20/11/2026): locatário paga base + limpeza; anfitrião recebe 80%, SpaceHour fica com 20%', () => {
+  const p = computePrice(listing, [{ date: d(10), start: '09:00', end: '11:00' }], NEW);
   assert.equal(p.baseAmount, 200);
   assert.equal(p.cleaningFee, 20);
-  assert.equal(p.guestServiceFee, 33);
-  assert.equal(p.taxOnServiceFee, 1.65);
-  assert.equal(p.total, 254.65);
-  assert.equal(p.hostPayout, 209);
+  assert.equal(p.guestServiceFee, 0);
+  assert.equal(p.taxOnServiceFee, 0);
+  assert.equal(p.total, 220);
+  assert.equal(p.hostServiceFee, 44);
+  assert.equal(p.hostPayout, 176);
+  assert.equal(p.partners, undefined);
+});
+
+test('parceiros: corretor R$ 100 ou 10% do total da locação (uma vez por reserva) e zelador fixo por reserva, por fora da divisão', () => {
+  assert.equal(brokerFee(300, 'BRL'), 100);
+  assert.equal(brokerFee(1000, 'BRL'), 100);
+  assert.equal(brokerFee(3000, 'BRL'), 300);
+  // Exemplo do Robson: locação de R$ 1.000 em 10 dias; corretor 100, zelador 150 → locatário paga 1.250; anfitrião 800; SpaceHour 450 (repassa 250)
+  const withPartners = { ...listing, pricePerHour: 50, cleaningFee: 0, brokerId: 'usr_b', caretakerId: 'usr_c', caretakerFee: 150 };
+  const occ = [1, 2, 3, 4, 5].flatMap((n) => [{ date: d(n), start: '08:00', end: '10:00' }]).concat([8, 9, 10, 11, 12].map((n) => ({ date: d(n), start: '08:00', end: '10:00' })));
+  const p = computePrice(withPartners, occ, NEW);
+  assert.equal(p.baseAmount, 1000);
+  assert.equal(p.brokerFee, 100);
+  assert.equal(p.caretakerFee, 150);
+  assert.equal(p.total, 1250);
+  assert.equal(p.hostPayout, 800);
+  assert.equal(p.total - p.hostPayout, 450, 'SpaceHour recebe 200 + 250 dos parceiros e repassa 250');
+  // Locação pequena: mínimo de R$ 100
+  assert.equal(computePrice(withPartners, [{ date: d(10), start: '08:00', end: '10:00' }], NEW).brokerFee, 100);
+  // Cancelamento com devolução integral devolve também as taxas dos parceiros
+  const r = computeGuestRefund({ listing: withPartners, policy: 'flexible', occurrences: occ, price: p, bookedAt: new Date(Date.now() - 3600000) });
+  assert.equal(r.refundPartnerFees, 250);
+  assert.equal(r.total, 1250);
 });
 
 test('limites: sem pernoite, máx 12 h, granularidade 30 min', () => {
@@ -43,8 +69,9 @@ test('anti longo prazo: máx 5 dias seguidos e 12 semanas', () => {
   const weeks = Array.from({ length: 13 }, (_, i) => ({ date: d(1 + i * 7), start: '09:00', end: '10:00' }));
   const codes = validateOccurrences(listing, weeks, ctx).map((e) => e.code);
   assert.ok(codes.includes('max_recurring_weeks') || codes.includes('too_many_occurrences'));
-  const irregular = [d(1), d(3)].map((date) => ({ date, start: '09:00', end: '10:00' }));
-  assert.ok(validateOccurrences(listing, irregular, ctx).some((e) => e.code === 'invalid_pattern'));
+  // Datas soltas cabem num pacote (até 3 dias da semana, até 30 dias); passando de 30 dias, não
+  const irregular = [d(1), d(40)].map((date) => ({ date, start: '09:00', end: '10:00' }));
+  assert.ok(validateOccurrences(listing, irregular, ctx).some((e) => e.code === 'package_max_days'));
   assert.ok(validateOccurrences(listing, [{ date: d(2), start: '09:00', end: '19:00' }], { ...ctx, guestHoursLast30Days: 115 }).some((e) => e.code === 'monthly_cap'));
 });
 
@@ -86,8 +113,60 @@ test('direito de arrependimento no Brasil (7 dias) para consumidor', () => {
   assert.equal(pro.refundBase, 0);
 });
 
+test('arrependimento com o uso já iniciado: futuras voltam inteiras, a em andamento proporcional, a usada não volta', () => {
+  const occ = [{ date: '2026-10-20', start: '10:00', end: '12:00' }, { date: '2026-10-21', start: '10:00', end: '12:00' }, { date: '2026-10-22', start: '10:00', end: '12:00' }];
+  const price = computePrice(listing, occ); // 3 × (200 + 20 de limpeza)
+  const bookedAt = zonedToUtc('2026-10-19', '09:00', tz);
+  const now = zonedToUtc('2026-10-21', '11:00', tz); // 1ª usada, 2ª pela metade, 3ª futura
+  const r = computeGuestRefund({ listing, policy: 'strict', occurrences: occ, price, bookedAt, now, isConsumer: true });
+  assert.equal(r.rule, 'withdrawal');
+  assert.equal(r.refundBase, 300); // 100 (metade da 2ª) + 200 (3ª)
+  assert.equal(r.refundCleaning, 20); // só a da futura
+  assert.equal(r.refundServiceFee, roundTo(price.guestServiceFee * 300 / 600));
+  // passados os 7 dias, vale a política do anfitrião (estrita: nada da que está perto de começar)
+  const late = computeGuestRefund({ listing, policy: 'strict', occurrences: occ, price, bookedAt: zonedToUtc('2026-10-01', '09:00', tz), now, isConsumer: true });
+  assert.notEqual(late.rule, 'withdrawal');
+});
+
+test('fiador casado precisa da autorização do cônjuge, salvo separação convencional de bens', () => {
+  assert.equal(spouseConsentRequired('married', 'partial'), true);
+  assert.equal(spouseConsentRequired('married', 'separation_mandatory'), true);
+  assert.equal(spouseConsentRequired('married', 'separation_conventional'), false);
+  assert.equal(spouseConsentRequired('single'), false);
+  assert.equal(spouseConsentRequired('stable_union'), false);
+});
+
 test('atraso na saída: tolerância 10 min, depois blocos de 15 min', () => {
   assert.equal(overstayCharge(8, 100, 'BRL'), 0);
   assert.equal(overstayCharge(20, 100, 'BRL'), 75); // 2 blocos × 0,25 h × 100 × 1,5
   assert.equal(overstayCharge(40, 100, 'BRL'), 150); // 3 blocos × 0,25 h × 100 × 2
+});
+
+test('pacote recorrente: até 3 dias da semana, até 30 dias, desconto do anfitrião a partir de 2 semanas', () => {
+  let monday = d(3);
+  while (weekdayOf(monday) !== 1) monday = addDays(monday, 1);
+  const pkg = (days: number[], weeks: number) => Array.from({ length: Math.min(weeks * 7, 30) }, (_, i) => addDays(monday, i))
+    .filter((dt) => days.includes(weekdayOf(dt))).map((date) => ({ date, start: '14:00', end: '16:00' }));
+  const codes = (o: ReturnType<typeof pkg>) => validateOccurrences(listing, o, ctx).map((e) => e.code);
+
+  const four = pkg([1, 3, 5], 4); // seg, qua, sex por 4 semanas = 12 datas
+  assert.equal(four.length, 12);
+  assert.equal(bookingPattern(four), 'package');
+  assert.deepEqual(codes(four), []);
+  assert.ok(codes(pkg([1, 2, 3, 4], 2)).includes('package_max_weekdays'), 'no máximo 3 dias por semana');
+  const long = [...four, { date: addDays(monday, 35), start: '14:00', end: '16:00' }];
+  assert.ok(codes(long).includes('package_max_days'), 'no máximo 30 dias');
+  // Pacote conta como série: com 2 séries ativas no mesmo espaço, não dá para abrir outra
+  assert.ok(validateOccurrences(listing, four, { ...ctx, guestActiveSeries: 2 }).map((e) => e.code).includes('max_active_series'));
+  // Teto de 120 h em 30 dias continua valendo (3 dias × 12 h × 4 semanas passaria)
+  const heavy = four.map((o) => ({ ...o, start: '08:00', end: '20:00' }));
+  assert.ok(codes(heavy).includes('monthly_cap'));
+
+  // Desconto do anfitrião: só em pacotes de 2 semanas ou mais
+  const withDiscount = { ...listing, packageDiscountPct: 10 };
+  const p4 = computePrice(withDiscount, four);
+  assert.equal(p4.packageDiscount, 240); // 12 × 2 h × R$ 100 × 10%
+  assert.equal(p4.baseAmount, 2160);
+  assert.equal(computePrice(withDiscount, pkg([1, 3, 5], 1)).packageDiscount, undefined, '1 semana: sem desconto');
+  assert.equal(computePrice(listing, four).packageDiscount, undefined, 'anfitrião sem desconto');
 });

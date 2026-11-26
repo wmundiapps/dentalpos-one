@@ -126,7 +126,15 @@ export async function loadBackendAvailability(input: {
   return body.slots || [];
 }
 
+export interface NextProcedureHint { evolutionId: string; nextProcedure: string; fromProcedure: string; professionalName: string; teeth: string[]; createdAt: string }
+export async function loadNextProcedureHint(patientId: string): Promise<NextProcedureHint | null> {
+  const response = await fetch(`${API}/patients/${encodeURIComponent(patientId)}/next-procedure`, { headers: headers() });
+  if (!response.ok) return null;
+  return ((await response.json()) as { hint: NextProcedureHint | null }).hint;
+}
+
 export async function createBackendAppointment(input: {
+  evolutionId?: string;
   patientId: string;
   doctorId: string;
   procedure: string;
@@ -137,6 +145,9 @@ export async function createBackendAppointment(input: {
   durationMinutes?: number;
   reminderChannel?: ReminderChannel;
   reminders?: ReminderSelection;
+  // Pendência financeira: "Agendar mesmo assim" e aviso de que a pendência foi mostrada e regularizada antes de agendar.
+  scheduleAnyway?: boolean;
+  holdWasShown?: boolean;
 }) {
   const response = await fetch(`${API}/appointments`, {
     method: "POST",
@@ -146,12 +157,14 @@ export async function createBackendAppointment(input: {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(body?.error || `Erro HTTP ${response.status}`);
+    throw Object.assign(new Error(body?.error || `Erro HTTP ${response.status}`), { code: body?.code as string | undefined });
   }
 
   return response.json() as Promise<BackendAppointment>;
 }
+export const isFinancialHold = (e: unknown) => (e as { code?: string } | null)?.code === "FINANCIAL_HOLD";
 export async function updateBackendAppointment(id: string, input: {
+  doctorId?: string;
   scheduledAt?: string;
   durationMinutes?: number;
   status?: string;
@@ -177,7 +190,7 @@ export async function updateBackendAppointment(id: string, input: {
   return response.json() as Promise<BackendAppointment>;
 }
 
-export type FlowAction = "ARRIVED" | "PREPARE_ROOM" | "START" | "FINISH" | "ATTENDED";
+export type FlowAction = "ARRIVED" | "UNDO_ARRIVAL" | "PREPARE_ROOM" | "START" | "FINISH" | "ATTENDED" | "NO_SHOW";
 
 export async function appointmentFlowAction(id: string, action: FlowAction) {
   const response = await fetch(`${API}/appointment/${id}/flow`, {
@@ -192,11 +205,11 @@ export async function appointmentFlowAction(id: string, action: FlowAction) {
   return response.json() as Promise<BackendAppointment>;
 }
 
-export async function cancelBackendAppointment(id: string, reason: string, requestedBy = "PATIENT") {
+export async function cancelBackendAppointment(id: string, reason: string, requestedBy = "PATIENT", unscheduled = false) {
   const response = await fetch(`${API}/appointment/${id}`, {
     method: "DELETE",
     headers: headers(true),
-    body: JSON.stringify({ reason, requestedBy }),
+    body: JSON.stringify({ reason, requestedBy, unscheduled }),
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null);

@@ -10,6 +10,9 @@ process.env.CAMPAIGN_THROTTLE_MS = '0'
 process.env.ASAAS_API_KEY = 'asaas-test'
 process.env.ASAAS_BASE_URL = 'http://asaas.mock/v3'
 process.env.ASAAS_WEBHOOK_TOKEN = 'asaas-webhook-token'
+process.env.LEADS_INVITE_HOURS = '0-24'
+process.env.LEADS_INVITE_DAILY_CAP = '2'
+process.env.LEADS_EMAIL_DAILY_CAP = '2'
 
 // Asaas simulado (sem rede).
 const realFetch = globalThis.fetch
@@ -65,6 +68,9 @@ test('teste de 14 dias: forma de pagamento (Asaas), 20 contatos por campanha, co
   const { token, tenant } = await register('trial@revah.test', { phone: '44911112222' })
   await simulatedWhatsapp(token)
 
+  const dirty = await request(app).post('/campaigns').set(auth(token)).send({ name: 'Ruim', channel: 'WHATSAPP', template: 'Veja meus nudes', audience: { manual: manual(1) } })
+  assert.equal(dirty.status, 400)
+  assert.equal(dirty.body.code, 'CONTENT_BLOCKED')
   const c0 = await request(app).post('/campaigns').set(auth(token)).send({ name: 'Antes', channel: 'WHATSAPP', template: 'Oi', audience: { manual: manual(2) } })
   const blocked0 = await request(app).post(`/campaigns/${c0.body.id}/launch`).set(auth(token))
   assert.equal(blocked0.status, 402)
@@ -307,4 +313,161 @@ test('descadastro por link de e-mail', async () => {
   assert.equal((await request(app).get(path)).status, 200)
   assert.equal((await request(app).post(path)).status, 200)
   assert.ok(await prisma.suppression.findFirst({ where: { tenantId: tenant.id, channel: 'EMAIL', value: 'cliente@x.com' } }))
+})
+
+test('verificação em 2 etapas: ativar, login em dois passos, código reserva e painel da WMundi', async () => {
+  const { hotp, base32Decode } = await import('../src/services/twoFactor')
+  const codeAt = (key: string, offsetSteps = 0) => hotp(base32Decode(key), Math.floor(Date.now() / 30000) + offsetSteps)
+  const { token } = await register('admin@wmundi.com')
+
+  // Superadmin sem 2 etapas não abre o painel da WMundi.
+  const blocked = await request(app).get('/admin/tenants').set(auth(token))
+  assert.equal(blocked.status, 403)
+  assert.equal(blocked.body.code, 'TWO_FACTOR_REQUIRED')
+
+  const setup = await request(app).post('/auth/2fa/setup').set(auth(token))
+  assert.equal(setup.status, 200)
+  assert.match(setup.body.uri, /^otpauth:\/\/totp\/REVAH/)
+  assert.equal((await request(app).post('/auth/2fa/enable').set(auth(token)).send({ code: '000000' })).status, 400)
+  const en = await request(app).post('/auth/2fa/enable').set(auth(token)).send({ code: codeAt(setup.body.key) })
+  assert.equal(en.status, 200, JSON.stringify(en.body))
+  assert.equal(en.body.backupCodes.length, 8)
+
+  // Senha certa agora só devolve o bilhete.
+  const step1 = await request(app).post('/auth/login').send({ email: 'admin@wmundi.com', password: 'senha-forte-1' })
+  assert.equal(step1.body.twoFactorRequired, true)
+  assert.equal(step1.body.token, undefined)
+  assert.equal((await request(app).post('/auth/2fa/login').send({ ticket: step1.body.ticket, code: '123456' })).status, 401)
+  assert.equal((await request(app).post('/auth/2fa/login').send({ ticket: 'falso', code: codeAt(setup.body.key, 1) })).status, 401)
+  const step2 = await request(app).post('/auth/2fa/login').send({ ticket: step1.body.ticket, code: codeAt(setup.body.key, 1) })
+  assert.equal(step2.status, 200, JSON.stringify(step2.body))
+  assert.equal(step2.body.user.twoFactorEnabled, true)
+  // O mesmo código não vale duas vezes.
+  assert.equal((await request(app).post('/auth/2fa/login').send({ ticket: step1.body.ticket, code: codeAt(setup.body.key, 1) })).status, 401)
+
+  // Código reserva funciona uma única vez.
+  const backup = en.body.backupCodes[0]
+  const viaBackup = await request(app).post('/auth/2fa/login').send({ ticket: step1.body.ticket, code: backup })
+  assert.equal(viaBackup.status, 200)
+  assert.equal(viaBackup.body.backupCodesLeft, 7)
+  assert.equal((await request(app).post('/auth/2fa/login').send({ ticket: step1.body.ticket, code: backup })).status, 401)
+
+  // Com 2 etapas, o painel da WMundi abre.
+  assert.equal((await request(app).get('/admin/tenants').set(auth(step2.body.token))).status, 200)
+})
+
+test('REVAH Leads: público salvo por cliente, MEI, celular corrigido e "não quero receber" por cliente', async () => {
+  const { token, tenant } = await register('captacao@revah.test')
+  await prisma.tenant.update({ where: { id: tenant.id }, data: { plan: 'PRO', status: 'ACTIVE', leadsAddonActive: true } })
+  await request(app).post('/leads/terms/accept').set(auth(token)).send({ signerName: 'Dono Teste', signerDocument: '12345678901', agree: true })
+  await prisma.cnaeCode.upsert({ where: { code: '8630504' }, create: { code: '8630504', description: 'Atividade odontológica', searchNorm: 'atividade odontologica' }, update: {} })
+  const base = { basico: '', cnae: '8630504', uf: 'PR', cityCode: '7691', city: 'MARINGA', cityNorm: 'maringa', refMonth: '2026-09' }
+  await prisma.companyRecord.createMany({
+    data: [
+      { ...base, cnpj: '11111111000111', basico: '11111111', tradeName: 'Clínica MEI', isMei: true, phone: '5544999990001' },
+      { ...base, cnpj: '22222222000122', basico: '22222222', tradeName: 'Clínica LTDA', isMei: false, phone: '5544999990002', email: 'ltda@x.com' },
+    ],
+    skipDuplicates: true,
+  })
+
+  const aud = await request(app).post('/leads/audiences').set(auth(token)).send({ name: 'Dentistas Maringá', cnaes: ['8630504'], uf: 'PR', city: 'Maringá', meiFilter: 'ONLY', inviteText: 'Olá {{nome}}!' })
+  assert.equal(aud.status, 201, JSON.stringify(aud.body))
+  const list = await request(app).get('/leads/audiences').set(auth(token))
+  assert.equal(list.body[0].segments[0].description, 'Atividade odontológica')
+
+  const onlyMei = await request(app).post('/leads/search').set(auth(token)).send({ kind: 'SEGMENT', audienceId: aud.body.id })
+  assert.equal(onlyMei.status, 200, JSON.stringify(onlyMei.body))
+  assert.deepEqual(onlyMei.body.leads.map((l: any) => l.name), ['Clínica MEI'])
+  assert.equal(onlyMei.body.leads[0].isMei, true)
+
+  const ltda = await request(app).post('/leads/search').set(auth(token)).send({ kind: 'SEGMENT', cnaes: ['8630504'], uf: 'PR', mei: 'EXCLUDE' })
+  assert.equal(ltda.body.leads.length, 1)
+  const out = await request(app).post('/leads/optout').set(auth(token)).send({ ids: [ltda.body.leads[0].id] })
+  assert.equal(out.body.optedOut, 1)
+  const lead = await prisma.lead.findUnique({ where: { id: ltda.body.leads[0].id } })
+  assert.equal(lead.status, 'OPTED_OUT')
+  assert.equal(lead.phone, null)
+  assert.ok(await prisma.suppression.findFirst({ where: { tenantId: tenant.id, channel: 'EMAIL', value: 'ltda@x.com' } }))
+
+  // Mesmo numa base nova (lead apagado), a empresa não volta para este cliente…
+  await prisma.lead.deleteMany({ where: { tenantId: tenant.id } })
+  const again = await request(app).post('/leads/search').set(auth(token)).send({ kind: 'SEGMENT', cnaes: ['8630504'], uf: 'PR' })
+  assert.deepEqual(again.body.leads.map((l: any) => l.name), ['Clínica MEI'])
+
+  // …mas outro cliente do REVAH tem a própria lista e continua vendo a empresa.
+  const other = await register('outro-cliente@revah.test')
+  await prisma.tenant.update({ where: { id: other.tenant.id }, data: { plan: 'PRO', status: 'ACTIVE', leadsAddonActive: true } })
+  await request(app).post('/leads/terms/accept').set(auth(other.token)).send({ signerName: 'Outro Dono', signerDocument: '98765432100', agree: true })
+  const theirs = await request(app).post('/leads/search').set(auth(other.token)).send({ kind: 'SEGMENT', cnaes: ['8630504'], uf: 'PR' })
+  assert.equal(theirs.body.leads.length, 2)
+})
+
+test('REVAH Leads: planilha com WhatsApp de um clique, um convite por pessoa, limite do dia e "não quero receber"', async () => {
+  const { token, tenant } = await register('planilha@revah.test')
+  await prisma.tenant.update({ where: { id: tenant.id }, data: { plan: 'PRO', status: 'ACTIVE', leadsAddonActive: true, name: 'Agência Sol' } })
+  await request(app).post('/leads/terms/accept').set(auth(token)).send({ signerName: 'Dono Teste', signerDocument: '12345678901', agree: true })
+  const aud = await prisma.leadAudience.create({ data: { tenantId: tenant.id, name: 'Dentistas', cnaes: ['8630504'], inviteText: 'Oi {{primeiro_nome}}, aqui é da {{minha_empresa}}!' } })
+  const mk = (n: number, extra: any = {}) => ({ tenantId: tenant.id, name: `CLINICA ${n}`, phone: `55449999900${n}0`, category: 'Atividade odontológica', origin: 'cnpj_public', originRef: `x${n}`, audienceId: aud.id, ...extra })
+  await prisma.lead.createMany({ data: [mk(1, { isMei: true }), mk(2), mk(3), mk(4, { phone: '554430301010' })] })
+
+  const xlsx = await request(app).get('/leads/export.xlsx').set(auth(token)).buffer(true).parse((res: any, cb: any) => {
+    const chunks: Buffer[] = []
+    res.on('data', (c: Buffer) => chunks.push(c))
+    res.on('end', () => cb(null, Buffer.concat(chunks)))
+  })
+  assert.equal(xlsx.status, 200)
+  assert.match(xlsx.headers['content-type'], /spreadsheetml/)
+  const ExcelJS = (await import('exceljs')).default
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.load(xlsx.body)
+  const links = (wb.getWorksheet('Leads')!.getColumn(7).values as any[]).filter((v) => v?.hyperlink).map((v) => v.hyperlink as string)
+  assert.equal(links.length, 3, 'só celulares viram link de WhatsApp')
+
+  const path = (u: string) => new URL(u).pathname
+  const first = await request(app).get(path(links[0]))
+  assert.equal(first.status, 302)
+  assert.match(first.headers.location, /^https:\/\/wa\.me\/55449999900\d0\?text=Oi%20Clinica%2C%20aqui%20%C3%A9%20da%20Ag%C3%AAncia%20Sol!/)
+  assert.match(decodeURIComponent(first.headers.location), /\/c\/sair\/[0-9a-f]{32}/)
+  // Um convite por pessoa.
+  const again = await request(app).get(path(links[0]))
+  assert.equal(again.status, 409)
+  assert.match(again.text, /Já convidado/)
+  // Limite do dia (2 no teste).
+  assert.equal((await request(app).get(path(links[1]))).status, 302)
+  const cap = await request(app).get(path(links[2]))
+  assert.equal(cap.status, 409)
+  assert.match(cap.text, /Limite do dia/)
+
+  // Quem recebe pode sair pelo link; a planilha antiga passa a respeitar.
+  const tok = path(links[2]).split('/').pop()
+  assert.equal((await request(app).get(`/c/sair/${tok}`)).status, 200)
+  const out = await request(app).post(`/c/sair/${tok}`)
+  assert.match(out.text, /não vai receber mais mensagens de Agência Sol/)
+  await prisma.lead.updateMany({ where: { tenantId: tenant.id }, data: { invitedAt: null } })
+  const blocked = await request(app).get(path(links[2]))
+  assert.match(blocked.text, /Pediu para não receber/)
+
+  // Amostra por segmento: só quem ainda não foi convidado e tem WhatsApp, MEI primeiro.
+  const sample = await request(app).get('/leads/export.xlsx?porSegmento=1').set(auth(token))
+  assert.equal(sample.status, 200)
+})
+
+test('e-mail para contatos da captação: limite diário por cliente, o resto vai para o dia seguinte', async () => {
+  const { token, tenant } = await register('frios@revah.test')
+  await activate(tenant.id)
+  const ch = await request(app).post('/channels').set(auth(token)).send({ channel: 'EMAIL', provider: 'RESEND', label: 'Caixa', address: 'contato@agencia.test', credentials: { simulated: true } })
+  assert.equal(ch.status, 201, JSON.stringify(ch.body))
+  const ids: string[] = []
+  for (let i = 1; i <= 3; i++) ids.push((await prisma.contact.create({ data: { tenantId: tenant.id, name: `Frio ${i}`, email: `frio${i}@x.com`, source: 'LEADS' } })).id)
+  ids.push((await prisma.contact.create({ data: { tenantId: tenant.id, name: 'Cliente', email: 'cliente@x.com', source: 'MANUAL' } })).id)
+  const c = await request(app).post('/campaigns').set(auth(token)).send({ name: 'Frios', channel: 'EMAIL', subject: 'Oi', template: 'Olá {{nome}}', audience: { contactIds: ids } })
+  assert.equal(c.status, 201, JSON.stringify(c.body))
+  assert.equal((await request(app).post(`/campaigns/${c.body.id}/launch`).set(auth(token))).status, 200)
+  await processDueJobs({ maxMs: 10_000 })
+  const recips = await prisma.campaignRecipient.findMany({ where: { campaignId: c.body.id } })
+  assert.equal(recips.filter((r: any) => r.status === 'SENT').length, 3, '2 frios + o cliente da base')
+  const waiting = await prisma.job.findMany({ where: { tenantId: tenant.id, type: 'CAMPAIGN_SEND', status: 'PENDING' } })
+  assert.equal(waiting.length, 1)
+  assert.ok(waiting[0].runAt.getTime() > Date.now() + 60 * 60_000, 'remarcado para o dia seguinte')
+  assert.match(waiting[0].lastError, /Limite diário/)
 })

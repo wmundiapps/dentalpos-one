@@ -1,8 +1,10 @@
+import { formatPersonName } from '../lib/personName'
 import { Response } from 'express'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { isStage } from '../services/treatmentStageService'
 
 function ctx(req: AuthRequest) {
   if (!req.user) throw new Error('Usu\u00e1rio n\u00e3o autenticado')
@@ -42,10 +44,18 @@ function buildPatientData(body: Record<string, unknown>, partial: boolean) {
     if (parsed === 'invalid') return { error: 'Data de nascimento inv\u00e1lida.' }
     data.birthDate = parsed
   }
+  if ('treatmentStage' in body) {
+    const stage = body.treatmentStage
+    if (stage === null || stage === '') data.treatmentStage = null
+    else if (isStage(stage)) data.treatmentStage = stage
+    else return { error: 'Fase inválida. Use BUDGET (orçamento) ou TREATMENT (tratamento confirmado).' }
+    data.treatmentStageAt = new Date()
+  }
   if ('isActive' in body && typeof body.isActive === 'boolean') data.isActive = body.isActive
   for (const list of ['photos', 'xrays'] as const) {
     if (Array.isArray(body[list])) data[list] = (body[list] as unknown[]).map(String)
   }
+  if (typeof data.fullName === 'string') data.fullName = formatPersonName(data.fullName)
   if (!partial || 'fullName' in data) {
     if (!data.fullName || String(data.fullName).length < 2) return { error: 'Informe o nome do paciente.' }
   }
@@ -125,7 +135,9 @@ export async function bulkImport(req: AuthRequest, res: Response) {
     const norm = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
     const existing = await prisma.patient.findMany({ where: { clinicId, tenantId }, select: { fullName: true, phone: true, cpf: true } })
     // Familiares costumam dividir o mesmo telefone: a duplicidade é telefone + nome, ou CPF.
-    const existingKeys = new Set(existing.map((p) => `${p.phone.replace(/\D/g, '')}|${norm(p.fullName)}`))
+    // Telefone comparado sem o código do país (+55): o mesmo número pode vir com ou sem ele.
+    const phoneKey = (v: unknown) => { const d = String(v || '').replace(/\D/g, ''); return d.length >= 12 && d.startsWith('55') ? d.slice(2) : d }
+    const existingKeys = new Set(existing.map((p) => `${phoneKey(p.phone)}|${norm(p.fullName)}`))
     const existingCpfs = new Set(existing.map((p) => (p.cpf || '').replace(/\D/g, '')).filter(Boolean))
 
     const toCreate: Array<Record<string, unknown>> = []
@@ -135,7 +147,7 @@ export async function bulkImport(req: AuthRequest, res: Response) {
       const built = buildPatientData(rows[i] || {}, false)
       if ('error' in built) { skipped.push({ row: i + 1, reason: built.error as string }); continue }
       const data = built.data as { fullName: string; phone: string; cpf?: string | null }
-      const key = `${String(data.phone || '').replace(/\D/g, '')}|${norm(data.fullName)}`
+      const key = `${phoneKey(data.phone)}|${norm(data.fullName)}`
       const cpfDigits = String(data.cpf || '').replace(/\D/g, '')
       if (existingKeys.has(key)) { skipped.push({ row: i + 1, reason: 'Paciente já cadastrado (mesmo nome e telefone).' }); continue }
       if (cpfDigits && existingCpfs.has(cpfDigits)) { skipped.push({ row: i + 1, reason: 'CPF já cadastrado.' }); continue }

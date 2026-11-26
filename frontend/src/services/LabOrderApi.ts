@@ -48,3 +48,15 @@ export async function archiveLabOrder(localId: string): Promise<void> {
 export async function restoreLabOrder(localId: string): Promise<void> {
   await parse(await fetch(`${API}/lab-orders/${encodeURIComponent(localId)}/restore`, { method: "POST", headers: headers(true), body: "{}" }));
 }
+
+export interface DeliveryCodeResult { code: string; receivedBy: string; receivedAt: string; message: string }
+
+// Quem recebe o serviço (dentista, recepção, gestor ou admin) gera o código de entrega.
+export async function issueDeliveryCode(localId: string, receivedBy: string): Promise<DeliveryCodeResult> {
+  return parse(await fetch(`${API}/lab-orders/${encodeURIComponent(localId)}/delivery-code`, { method: "POST", headers: headers(true), body: JSON.stringify({ receivedBy }) }));
+}
+
+// O laboratório digita o código para dar baixa (o trabalho só sai da fila assim).
+export async function deliverLabOrder(localId: string, code: string): Promise<void> {
+  await parse(await fetch(`${API}/lab-orders/${encodeURIComponent(localId)}/deliver`, { method: "POST", headers: headers(true), body: JSON.stringify({ code }) }));
+}

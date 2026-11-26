@@ -1,10 +1,10 @@
 import { APP_NAME, EDU_ONLY } from "../config/appMode";
 import { lazy, Suspense } from "react";
+import AppErrorBoundary from "../components/AppErrorBoundary";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { readSessionUser } from "../services/DemoAccess";
 import { Box, Typography } from "@mui/material";
 
-import Academic from "../pages/Academic";
 const EduReitoria = lazy(() => import("../pages/edu/EduReitoria"));
 const EduMinhaMesa = lazy(() => import("../pages/edu/EduMinhaMesa"));
 const EduReitoriaGestao = lazy(() => import("../pages/edu/EduReitoriaGestao"));
@@ -65,72 +65,89 @@ const EduAcessoPolos = lazy(() => import("../pages/edu/EduAcessoPolos"));
 const AccountSecurity = lazy(() => import("../pages/AccountSecurity"));
 const SecurityEvents = lazy(() => import("../pages/SecurityEvents"));
 const EduIdentity = lazy(() => import("../pages/EduIdentity"));
-
-import Accounting from "../pages/Accounting";
-import Agenda from "../pages/Agenda";
-import Backup from "../pages/Backup";
-import Backoffice from "../pages/Backoffice";
-import Benchmark from "../pages/Benchmark";
-import BusinessIntelligence from "../pages/BusinessIntelligence";
-import ClinicHealth from "../pages/ClinicHealth";
-import Clinics from "../pages/Clinics";
-import ClinicalDocuments from "../pages/ClinicalDocuments";
-import ClinicalRecord from "../pages/ClinicalRecord";
-import PatientFile from "../pages/PatientFile";
-import WmundiStaffOnly from "../components/WmundiStaffOnly";
-import ClinicalFiles from "../pages/ClinicalFiles";
-import OdontogramPeriodontogram from "../pages/OdontogramPeriodontogram";
-import SurgeryImplantProsthesis from "../pages/SurgeryImplantProsthesis";
-import SpecializedClinical from "../pages/SpecializedClinical";
-import CommandCenter from "../pages/CommandCenter";
-import Commercial from "../pages/Commercial";
-import Communications from "../pages/Communications";
-import CRM from "../pages/CRM";
-import CRMKanban from "../pages/CRMKanban";
-import Dashboard from "../pages/Dashboard";
-import ExecutiveAssistant from "../pages/ExecutiveAssistant";
-import ExecutiveDashboard from "../pages/ExecutiveDashboard";
-import Feedback from "../pages/Feedback";
-import ClinicalTeam from "../pages/ClinicalTeam";
-import Channels from "../pages/Channels";
-import AiAssistant from "../pages/AiAssistant";
-import Credits from "../pages/Credits";
-import Financial from "../pages/Financial";
-import FinancialScanner from "../pages/FinancialScanner";
-import FiscalAutomation from "../pages/FiscalAutomation";
-import HumanResources from "../pages/HumanResources";
-import Laboratory from "../pages/Laboratory";
-import Marketing from "../pages/Marketing";
-import MarketingHub from "../pages/MarketingHub";
-import Notifications from "../pages/Notifications";
-import Operations from "../pages/Operations";
-import OperationalEvidence from "../pages/OperationalEvidence";
-import PatientFlow from "../pages/PatientFlow";
-import PatientJourney from "../pages/PatientJourney";
-import PaymentCenter from "../pages/PaymentCenter";
-import Revah from "../pages/Revah";
-import RevahChatbot from "../pages/RevahChatbot";
-import Patients from "../pages/Patients";
-import ProfitIntelligence from "../pages/ProfitIntelligence";
-import Recall from "../pages/Recall";
-import Reports from "../pages/Reports";
-import ServiceEvaluations from "../pages/ServiceEvaluations";
-import Sales from "../pages/Sales";
-import Settings from "../pages/Settings";
-import EduSegurancaCertificacoes from "../pages/edu/EduSegurancaCertificacoes";
+const EduSegurancaCertificacoes = lazy(() => import("../pages/edu/EduSegurancaCertificacoes"));
 const EduDispositivos = lazy(() => import("../pages/edu/EduDispositivos"));
-import Stock from "../pages/Stock";
-import TreatmentPlanning from "../pages/TreatmentPlanning";
-import PlatformAdministration from "../pages/PlatformAdministration";
-import LeadDiscovery from "../pages/LeadDiscovery";
-import Integrations from "../pages/Integrations";
-import ImportPatients from "../pages/ImportPatients";
-import Team from "../pages/Team";
-import Permissions from "../pages/Permissions";
-import OnlineReceipts from "../pages/OnlineReceipts";
-import Homologation from "../pages/Homologation";
 
-import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
+const Academic = lazy(() => import("../pages/Academic"));
+const FacialReception = lazy(() => import("../pages/FacialReception"));
+const StockPartners = lazy(() => import("../pages/StockPartners"));
+const DailyCash = lazy(() => import("../pages/DailyCash"));
+const Club = lazy(() => import("../pages/Club"));
+const CondoSplit = lazy(() => import("../pages/CondoSplit"));
+const Accounting = lazy(() => import("../pages/Accounting"));
+const Agenda = lazy(() => import("../pages/Agenda"));
+const Backup = lazy(() => import("../pages/Backup"));
+const Backoffice = lazy(() => import("../pages/Backoffice"));
+const Benchmark = lazy(() => import("../pages/Benchmark"));
+const BusinessIntelligence = lazy(() => import("../pages/BusinessIntelligence"));
+const ClinicHealth = lazy(() => import("../pages/ClinicHealth"));
+const Clinics = lazy(() => import("../pages/Clinics"));
+const ClinicalDocuments = lazy(() => import("../pages/ClinicalDocuments"));
+const BrandKit = lazy(() => import("../pages/BrandKit"));
+const ClinicalRecord = lazy(() => import("../pages/ClinicalRecord"));
+const PatientFile = lazy(() => import("../pages/PatientFile"));
+import WmundiStaffOnly from "../components/WmundiStaffOnly";
+const ClinicalFiles = lazy(() => import("../pages/ClinicalFiles"));
+const Scans = lazy(() => import("../pages/Scans"));
+const AlertDetail = lazy(() => import("../pages/AlertDetail"));
+const OdontogramPeriodontogram = lazy(() => import("../pages/OdontogramPeriodontogram"));
+const SurgeryImplantProsthesis = lazy(() => import("../pages/SurgeryImplantProsthesis"));
+const SpecializedClinical = lazy(() => import("../pages/SpecializedClinical"));
+const CommandCenter = lazy(() => import("../pages/CommandCenter"));
+const Commercial = lazy(() => import("../pages/Commercial"));
+const Communications = lazy(() => import("../pages/Communications"));
+const CRM = lazy(() => import("../pages/CRM"));
+const CRMKanban = lazy(() => import("../pages/CRMKanban"));
+const Dashboard = lazy(() => import("../pages/Dashboard"));
+const ExecutiveAssistant = lazy(() => import("../pages/ExecutiveAssistant"));
+const ExecutiveDashboard = lazy(() => import("../pages/ExecutiveDashboard"));
+const Feedback = lazy(() => import("../pages/Feedback"));
+const ClinicalTeam = lazy(() => import("../pages/ClinicalTeam"));
+const Channels = lazy(() => import("../pages/Channels"));
+const AiAssistant = lazy(() => import("../pages/AiAssistant"));
+const Credits = lazy(() => import("../pages/Credits"));
+const Financial = lazy(() => import("../pages/Financial"));
+const FinancialScanner = lazy(() => import("../pages/FinancialScanner"));
+const FiscalAutomation = lazy(() => import("../pages/FiscalAutomation"));
+const HumanResources = lazy(() => import("../pages/HumanResources"));
+const MyTimeclock = lazy(() => import("../pages/MyTimeclock"));
+const FacePunchKiosk = lazy(() => import("../pages/FacePunchKiosk"));
+const Laboratory = lazy(() => import("../pages/Laboratory"));
+const Marketing = lazy(() => import("../pages/Marketing"));
+const MarketingHub = lazy(() => import("../pages/MarketingHub"));
+const Notifications = lazy(() => import("../pages/Notifications"));
+const Operations = lazy(() => import("../pages/Operations"));
+const OperationalEvidence = lazy(() => import("../pages/OperationalEvidence"));
+const PatientFlow = lazy(() => import("../pages/PatientFlow"));
+const PatientJourney = lazy(() => import("../pages/PatientJourney"));
+const PaymentCenter = lazy(() => import("../pages/PaymentCenter"));
+const Revah = lazy(() => import("../pages/Revah"));
+const RevahChatbot = lazy(() => import("../pages/RevahChatbot"));
+const Patients = lazy(() => import("../pages/Patients"));
+const ProfitIntelligence = lazy(() => import("../pages/ProfitIntelligence"));
+const Recall = lazy(() => import("../pages/Recall"));
+const YearEndCampaign = lazy(() => import("../pages/YearEndCampaign"));
+const Reports = lazy(() => import("../pages/Reports"));
+const ServiceEvaluations = lazy(() => import("../pages/ServiceEvaluations"));
+const Sales = lazy(() => import("../pages/Sales"));
+const Settings = lazy(() => import("../pages/Settings"));
+const Stock = lazy(() => import("../pages/Stock"));
+const TreatmentPlanning = lazy(() => import("../pages/TreatmentPlanning"));
+const PlatformAdministration = lazy(() => import("../pages/PlatformAdministration"));
+const LeadDiscovery = lazy(() => import("../pages/LeadDiscovery"));
+const Prospecting = lazy(() => import("../pages/Prospecting"));
+const Integrations = lazy(() => import("../pages/Integrations"));
+const ImportPatients = lazy(() => import("../pages/ImportPatients"));
+const ImportData = lazy(() => import("../pages/ImportData"));
+const LabServiceOrders = lazy(() => import("../pages/LabServiceOrders"));
+const Team = lazy(() => import("../pages/Team"));
+const Permissions = lazy(() => import("../pages/Permissions"));
+const OnlineReceipts = lazy(() => import("../pages/OnlineReceipts"));
+const Membership = lazy(() => import("../pages/Membership"));
+const Homologation = lazy(() => import("../pages/Homologation"));
+
+// Design oculto (sigilo): import preservado para retomar depois.
+// import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
 import {
   getDemoModuleStatus,
   moduleForPath,
@@ -178,6 +195,7 @@ export default function AppRoutes() {
   }
 
   return (
+    <AppErrorBoundary resetKey={location.pathname}>
     <Suspense fallback={<Box sx={{ p: 4 }}><Typography color="text.secondary">Carregando…</Typography></Box>}>
     <Routes>
       <Route path="/" element={EDU_ONLY ? <Navigate to="/edu" replace /> : <Dashboard />} />
@@ -323,6 +341,11 @@ export default function AppRoutes() {
         element={<ClinicalDocuments />}
       />
 
+      <Route
+        path="/kit-clinica"
+        element={<BrandKit />}
+      />
+
       <Route path="/estoque" element={<Stock />} />
 
       <Route
@@ -340,6 +363,11 @@ export default function AppRoutes() {
         path="/indice-saude-clinica"
         element={<ClinicHealth />}
       />
+
+      <Route path="/chegada-por-rosto" element={<FacialReception />} />
+      <Route path="/fechamento-caixa" element={<DailyCash />} />
+      <Route path="/clube" element={<Club />} />
+      <Route path="/rateio-condominio" element={<CondoSplit />} />
 
       <Route
         path="/inteligencia-financeira"
@@ -399,6 +427,8 @@ export default function AppRoutes() {
       />
       <Route path="/odontograma-periodontograma" element={<OdontogramPeriodontogram />} />
       <Route path="/arquivos-exames-clinicos" element={<ClinicalFiles />} />
+      <Route path="/escaneamentos" element={<Scans />} />
+      <Route path="/alerta/:id" element={<AlertDetail />} />
       <Route path="/cirurgia-implantes-protese" element={<SurgeryImplantProsthesis />} />
       <Route path="/clinico-especializado" element={<SpecializedClinical />} />
 
@@ -407,10 +437,13 @@ export default function AppRoutes() {
         <Route path="/assistente-ia" element={<AiAssistant />} />
         <Route path="/creditos" element={<Credits />} />
       <Route path="/recall" element={<Recall />} />
+      <Route path="/campanha-final-de-ano" element={<YearEndCampaign />} />
 
       <Route path="/relatorios" element={<Reports />} />
 
       <Route path="/rh" element={<HumanResources />} />
+      <Route path="/meu-ponto" element={<MyTimeclock />} />
+      <Route path="/ponto-facial" element={<FacePunchKiosk />} />
 
       <Route
         path="/sugestoes-problemas"
@@ -419,16 +452,21 @@ export default function AppRoutes() {
 
       <Route path="/plataforma-saas" element={<PlatformAdministration />} />
       <Route path="/revah-leads" element={<LeadDiscovery />} />
+      <Route path="/parceiros-estoque" element={<WmundiStaffOnly><StockPartners /></WmundiStaffOnly>} />
+      <Route path="/prospeccao" element={<WmundiStaffOnly><Prospecting /></WmundiStaffOnly>} />
       <Route path="/integracoes" element={<Integrations />} />
       <Route path="/importar-pacientes" element={<ImportPatients />} />
+      <Route path="/importar-dados" element={<ImportData />} />
+      <Route path="/ordens-laboratorio" element={<LabServiceOrders />} />
       <Route path="/equipe" element={<Team />} />
       <Route path="/permissoes" element={<Permissions />} />
       <Route path="/recebimentos-online" element={<OnlineReceipts />} />
+      <Route path="/assinaturas" element={<Membership />} />
       <Route path="/homologacao" element={<WmundiStaffOnly><Homologation /></WmundiStaffOnly>} />
 
       <Route
         path="/design"
-        element={<DentalPosDesign />}
+        element={<Navigate to="/" replace />}
       />
 
       <Route
@@ -437,5 +475,6 @@ export default function AppRoutes() {
       />
     </Routes>
     </Suspense>
+    </AppErrorBoundary>
   );
 }

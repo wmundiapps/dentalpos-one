@@ -302,7 +302,7 @@ export const taxObligations: TaxObligation[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     name: "DARF previdenciário",
-    entityName: "DentalPos Clínica",
+    entityName: "CompletoDonto Clínica",
     legalEntity: "Pessoa Jurídica",
     regime: "Lucro Presumido",
     competence: "07/2026",
@@ -315,7 +315,7 @@ export const taxObligations: TaxObligation[] = !DEMO_DATA_ON ? [] : [
   {
     id: 2,
     name: "FGTS Digital",
-    entityName: "DentalPos Clínica",
+    entityName: "CompletoDonto Clínica",
     legalEntity: "Pessoa Jurídica",
     regime: "Lucro Presumido",
     competence: "07/2026",
@@ -328,7 +328,7 @@ export const taxObligations: TaxObligation[] = !DEMO_DATA_ON ? [] : [
   {
     id: 3,
     name: "IRRF sobre folha e pró-labore",
-    entityName: "DentalPos Clínica",
+    entityName: "CompletoDonto Clínica",
     legalEntity: "Pessoa Jurídica",
     regime: "Lucro Presumido",
     competence: "07/2026",
@@ -341,7 +341,7 @@ export const taxObligations: TaxObligation[] = !DEMO_DATA_ON ? [] : [
   {
     id: 4,
     name: "IRPJ e CSLL",
-    entityName: "DentalPos Clínica",
+    entityName: "CompletoDonto Clínica",
     legalEntity: "Pessoa Jurídica",
     regime: "Lucro Presumido",
     competence: "3º trimestre/2026",
@@ -354,7 +354,7 @@ export const taxObligations: TaxObligation[] = !DEMO_DATA_ON ? [] : [
   {
     id: 5,
     name: "ISS",
-    entityName: "DentalPos Clínica",
+    entityName: "CompletoDonto Clínica",
     legalEntity: "Pessoa Jurídica",
     regime: "Lucro Presumido",
     competence: "07/2026",

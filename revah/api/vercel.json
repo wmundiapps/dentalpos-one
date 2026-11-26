@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- .",
   "buildCommand": "npm run vercel-build && mkdir -p public && echo REVAH API > public/index.txt",
   "functions": {
     "api/index.ts": {

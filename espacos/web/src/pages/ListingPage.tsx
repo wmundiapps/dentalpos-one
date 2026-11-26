@@ -18,10 +18,17 @@ import type { DictKey } from '../i18n';
 
 type Detail = { listing: ListingSummary; host: PublicUser; reviews: Review[] };
 type Quote = { price: PriceBreakdown; errors: Array<{ code: string; params?: Record<string, string | number> }>; guarantorRequired: boolean; guarantorLiabilityCap: number };
-type Mode = 'single' | 'consecutive' | 'weekly';
+type Mode = 'single' | 'consecutive' | 'weekly' | 'package';
 
-export function buildOccurrences(mode: Mode, date: string, start: string, end: string, count: number): Occurrence[] {
+export function buildOccurrences(mode: Mode, date: string, start: string, end: string, count: number, days: number[] = []): Occurrence[] {
   if (!date) return [];
+  if (mode === 'package') {
+    // Pacote: os dias da semana escolhidos, a partir da data, por N semanas (no máximo 30 dias)
+    const span = Math.min(Math.max(1, count) * 7, BOOKING_LIMITS.maxPackageDays);
+    return Array.from({ length: span }, (_, i) => addDays(date, i))
+      .filter((d) => days.includes(new Date(`${d}T12:00:00Z`).getUTCDay()))
+      .map((d) => ({ date: d, start, end }));
+  }
   const n = mode === 'single' ? 1 : Math.max(1, count);
   const step = mode === 'weekly' ? 7 : 1;
   return Array.from({ length: n }, (_, i) => ({ date: addDays(date, i * step), start, end }));
@@ -40,6 +47,10 @@ export default function ListingPage() {
   const [start, setStart] = useState('09:00');
   const [end, setEnd] = useState('11:00');
   const [count, setCount] = useState(2);
+  // Pacote recorrente: dias da semana (até 3) e datas puladas por estarem ocupadas
+  const [pkgDays, setPkgDays] = useState<number[]>([]);
+  const [skip, setSkip] = useState<string[]>([]);
+  const renewal = params.get('pacote') === '1';
   const [guests, setGuests] = useState(1);
   const [quote, setQuote] = useState<Quote | null>(null);
 
@@ -63,7 +74,28 @@ export default function ListingPage() {
     }).catch(() => setNotFound(true));
   }, [id]);
 
-  const occurrences = useMemo(() => buildOccurrences(mode, date, start, end, count), [mode, date, start, end, count]);
+  // Renovação de pacote (link do aviso): mesmos dias e horários, começando depois do último dia
+  useEffect(() => {
+    if (!renewal || !data) return;
+    const days = (params.get('dias') ?? '').split(',').map(Number).filter((n) => n >= 0 && n <= 6).slice(0, BOOKING_LIMITS.maxPackageWeekdays);
+    if (!days.length) return;
+    setMode('package'); setPkgDays(days);
+    setCount(Math.min(4, Math.max(1, Number(params.get('semanas')) || 4)));
+    if (params.get('inicio')) setStart(params.get('inicio')!);
+    if (params.get('fim')) setEnd(params.get('fim')!);
+    const from = params.get('de');
+    if (from && /^\d{4}-\d{2}-\d{2}$/.test(from)) setDate(from);
+  }, [renewal, data, params]);
+
+  const occurrences = useMemo(() => buildOccurrences(mode, date, start, end, count, pkgDays).filter((o) => mode !== 'package' || !skip.includes(o.date)),
+    [mode, date, start, end, count, pkgDays, skip]);
+  const busyDates = useMemo(() => [...new Set((quote?.errors ?? [])
+    .filter((e) => ['conflict', 'date_blocked', 'outside_availability'].includes(e.code) && e.params?.date)
+    .map((e) => String(e.params!.date)))], [quote]);
+  function togglePkgDay(d: number) {
+    setSkip([]);
+    setPkgDays((cur) => cur.includes(d) ? cur.filter((x) => x !== d) : cur.length >= BOOKING_LIMITS.maxPackageWeekdays ? cur : [...cur, d].sort());
+  }
 
   useEffect(() => {
     if (!data || !occurrences.length) { setQuote(null); return; }
@@ -221,23 +253,50 @@ export default function ListingPage() {
             <p><strong className="big-price">{money(l.pricePerHour, l.currency, locale)}</strong> / {t('common.hour')}
               {l.pricePerDay && <span className="muted small"> · {money(l.pricePerDay, l.currency, locale)} / {t('common.day')}</span>}</p>
             <div className="seg" role="radiogroup">
-              {(['single', 'consecutive', 'weekly'] as Mode[]).map((m) => (
-                <button key={m} role="radio" aria-checked={mode === m} className={mode === m ? 'active' : ''} onClick={() => setMode(m)}>{t(`book.mode.${m}` as DictKey)}</button>
+              {(['single', 'consecutive', 'weekly', 'package'] as Mode[]).map((m) => (
+                <button key={m} role="radio" aria-checked={mode === m} className={mode === m ? 'active' : ''} onClick={() => { setMode(m); setSkip([]); if (m === 'package') setCount((c) => Math.min(4, c)); }}>{t(`book.mode.${m}` as DictKey)}</button>
               ))}
             </div>
+            {mode === 'package' && (
+              <div className="package-days">
+                <p className="small">{t('book.packageDays', { max: BOOKING_LIMITS.maxPackageWeekdays })}</p>
+                <div className="chips">
+                  {[1, 2, 3, 4, 5, 6, 0].map((d) => (
+                    <button key={d} type="button" className={`chip ${pkgDays.includes(d) ? 'on' : ''}`} aria-pressed={pkgDays.includes(d)}
+                      disabled={!pkgDays.includes(d) && pkgDays.length >= BOOKING_LIMITS.maxPackageWeekdays} onClick={() => togglePkgDay(d)}>
+                      {t(`weekday.${d}` as DictKey).slice(0, 3)}
+                    </button>
+                  ))}
+                </div>
+                <p className="muted small">{t('book.packageHint', { days: BOOKING_LIMITS.maxPackageDays })}{l.packageDiscountPct ? ` ${t('book.packageDiscount', { pct: l.packageDiscountPct })}` : ''}</p>
+              </div>
+            )}
             <div className="form-grid">
               <label className="span2">{t('search.date')}<input type="date" value={date} min={todayInZone(l.timezone)} max={addDays(todayInZone(l.timezone), BOOKING_LIMITS.maxAdvanceDays)} onChange={(e) => setDate(e.target.value)} /></label>
               <label>{t('search.from')}<select value={start} onChange={(e) => setStart(e.target.value)}>{slots.map((s) => <option key={s}>{s}</option>)}</select></label>
               <label>{t('search.to')}<select value={end} onChange={(e) => setEnd(e.target.value)}>{slots.map((s) => <option key={s}>{s}</option>)}</select></label>
-              {mode !== 'single' && (
+              {mode !== 'single' && mode !== 'package' && (
                 <label className="span2">{mode === 'weekly' ? t('book.weeks') : t('book.days')}
                   <input type="number" min={2} max={mode === 'weekly' ? BOOKING_LIMITS.maxRecurringWeeks : BOOKING_LIMITS.maxConsecutiveDays} value={count} onChange={(e) => setCount(Number(e.target.value))} />
+                </label>
+              )}
+              {mode === 'package' && (
+                <label className="span2">{t('book.packageWeeks')}
+                  <select value={Math.min(4, count)} onChange={(e) => { setCount(Number(e.target.value)); setSkip([]); }}>
+                    {[1, 2, 3, 4].map((w) => <option key={w} value={w}>{t('book.packageWeeksN', { n: w })}</option>)}
+                  </select>
                 </label>
               )}
               <label className="span2">{t('search.people')}<input type="number" min={1} max={l.capacity} value={guests} onChange={(e) => setGuests(Number(e.target.value))} /></label>
             </div>
             <DayTimeline listingId={l.id} date={date} selection={{ start, end }} />
             {mode !== 'single' && occurrences.length > 0 && <p className="small muted">{occurrences.map((o) => formatDate(o.date, locale, { day: 'numeric', month: 'short' })).join(', ')}</p>}
+            {mode === 'package' && busyDates.length > 0 && (
+              <button type="button" className="btn btn-outline small block" onClick={() => setSkip((cur) => [...new Set([...cur, ...busyDates])])}>
+                {t('book.skipBusy', { n: busyDates.length })}
+              </button>
+            )}
+            {mode === 'package' && skip.length > 0 && <p className="muted small">{t('book.skipped', { dates: skip.map((d) => formatDate(d, locale, { day: 'numeric', month: 'short' })).join(', ') })}</p>}
             {quote && quote.errors.length > 0 && (
               <ul className="errors small">{quote.errors.map((e, i) => <li key={i}>{t(`val.${e.code}` as DictKey, e.params)}</li>)}</ul>
             )}

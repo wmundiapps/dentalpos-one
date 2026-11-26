@@ -70,7 +70,7 @@ export const serviceEvaluations: ServiceEvaluation[] = !DEMO_DATA_ON ? [] : [
     id: 5,
     patientName: "Avaliação anônima",
     patientCode: "ANON",
-    professionalName: "Equipe DentalPos",
+    professionalName: "Equipe CompletoDonto",
     appointmentDate: "01/08/2026",
     procedure: "Atendimento clínico",
     channel: "QR Code",

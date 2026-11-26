@@ -5,8 +5,11 @@
 //   npm run receita:import -- --ufs=PR --cnaes=8630,4781        (prefixos de CNAE)
 //   npm run receita:import -- --all                              (Brasil inteiro: dezenas de GB no banco)
 //   npm run receita:import -- --dir=C:\receita --ufs=PR          (zips já baixados manualmente)
+// Roda em qualquer PC com Node 20+ (o site da Receita só aceita conexões do Brasil):
+//   pacote pronto em revah/tools/receita-import (npm run receita:bundle gera o importar.cjs).
 // Opções: --month=AAAA-MM (padrão: o mais recente), --url=<link do compartilhamento>,
-//         --files=0,1 (só alguns Estabelecimentos), --dry-run (só conta), --keep-without-contact.
+//         --files=0,1 (só alguns Estabelecimentos), --dry-run (só conta), --keep-without-contact,
+//         --sem-cache (apaga cada zip depois de ler; por padrão ficam em %LOCALAPPDATA%\RevahReceita\<mês>).
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -15,7 +18,8 @@ import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
 import zlib from 'node:zlib'
 import { config } from '../config'
-import { prisma } from '../lib/prisma'
+import crypto from 'node:crypto'
+import { Client } from 'pg'
 import { digits, normalizeEmail, normalizePhone, searchText } from '../lib/normalize'
 
 type Args = Record<string, string | boolean>
@@ -27,6 +31,22 @@ function parseArgs(argv: string[]): Args {
     if (m) out[m[1]] = m[2] ?? true
   }
   return out
+}
+
+// Conexão direta com o Postgres (sem Prisma, para o script rodar sozinho fora do projeto).
+let db: Client
+
+export function pgConfig(url: string) {
+  const u = new URL(url)
+  for (const k of ['sslmode', 'connection_limit', 'pgbouncer', 'schema']) u.searchParams.delete(k)
+  const local = ['localhost', '127.0.0.1'].includes(u.hostname)
+  // O pooler do Supabase usa certificado próprio: conexão criptografada, sem validar a cadeia (mesmo padrão do Prisma).
+  return { connectionString: u.toString(), ssl: local ? false : { rejectUnauthorized: false } }
+}
+
+async function sql(text: string, params: unknown[] = []) {
+  const r = await db.query(text, params)
+  return r.rowCount ?? 0
 }
 
 const list = (v: unknown) => (typeof v === 'string' ? v.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean) : [])
@@ -108,11 +128,19 @@ export function splitRow(line: string) {
   return s.split('";"').map((v) => v.trim())
 }
 
+// A Receita guarda muito celular antigo sem o 9 (DDD + 8 dígitos começando em 6–9): corrige antes de gravar.
+export function fixOldMobile(national: string) {
+  return national.length === 10 && '6789'.includes(national[2]) ? `${national.slice(0, 2)}9${national.slice(2)}` : national
+}
+
 function phoneOf(ddd: string, num: string) {
   const d = digits(ddd)
   const n = digits(num)
-  return d && n ? normalizePhone(d + n) : null
+  return d && n ? normalizePhone(fixOldMobile(d + n)) : null
 }
+
+// Natureza jurídica 2135 = empresário individual (MEI).
+export const isMeiNature = (code: string) => digits(code) === '2135'
 
 // Converte uma linha de ESTABELECIMENTOS em registro (ou null se não passar nos filtros).
 export function establishmentRecord(f: string[], o: { ufs: string[]; cnaes: string[]; requireContact: boolean; cities: Map<string, string>; month: string }) {
@@ -165,17 +193,26 @@ async function upsertBatch(batch: Rec[]) {
   })
   const cols = COLS.map((c) => `"${c}"`).join(',')
   const updates = COLS.filter((c) => c !== 'cnpj').map((c) => `"${c}"=EXCLUDED."${c}"`).join(',')
-  await prisma.$executeRawUnsafe(`INSERT INTO "CompanyRecord" (${cols},"updatedAt") VALUES ${values.join(',')} ON CONFLICT ("cnpj") DO UPDATE SET ${updates},"updatedAt"=NOW()`, ...params)
+  await sql(`INSERT INTO "CompanyRecord" (${cols},"updatedAt") VALUES ${values.join(',')} ON CONFLICT ("cnpj") DO UPDATE SET ${updates},"updatedAt"=NOW()`, params)
 }
 
-async function updateLegalNames(rows: [string, string, string | null][]) {
+async function updateLegalNames(rows: [string, string, string | null, boolean][]) {
   if (!rows.length) return
   const params: unknown[] = []
-  const values = rows.map(([b, l, s]) => {
-    params.push(b, l, s)
-    return `($${params.length - 2},$${params.length - 1},$${params.length})`
+  const values = rows.map(([b, l, s, m]) => {
+    params.push(b, l, s, m)
+    return `($${params.length - 3},$${params.length - 2},$${params.length - 1},$${params.length}::boolean)`
   })
-  await prisma.$executeRawUnsafe(`UPDATE "CompanyRecord" c SET "legalName"=v.l,"size"=v.s FROM (VALUES ${values.join(',')}) AS v(b,l,s) WHERE c."basico"=v.b`, ...params)
+  await sql(`UPDATE "CompanyRecord" c SET "legalName"=v.l,"size"=v.s,"isMei"=v.m FROM (VALUES ${values.join(',')}) AS v(b,l,s,m) WHERE c."basico"=v.b`, params)
+}
+
+// Os zips ficam guardados por mês (a segunda carga do mês, ou a retomada depois de uma queda, não baixa de novo).
+export function cacheDir(month: string) {
+  const base = process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'RevahReceita') : path.join(os.homedir(), '.cache', 'revah-receita')
+  fs.mkdirSync(path.join(base, month), { recursive: true })
+  // Apaga meses velhos.
+  for (const d of fs.readdirSync(base)) if (d !== month && /^\d{4}-\d{2}$/.test(d)) fs.rmSync(path.join(base, d), { recursive: true, force: true })
+  return path.join(base, month)
 }
 
 async function main() {
@@ -196,7 +233,8 @@ async function main() {
   if (!month) month = new Date().toISOString().slice(0, 7)
   console.log(`Base de ${month} — filtros: UF=${ufs.join(',') || 'todas'} CNAE=${cnaes.join(',') || 'todos'}${dryRun ? ' (simulação)' : ''}`)
 
-  const work = localDir || fs.mkdtempSync(path.join(os.tmpdir(), 'revah-cnpj-'))
+  const keepCache = !args['sem-cache']
+  const work = localDir || (keepCache ? cacheDir(month) : fs.mkdtempSync(path.join(os.tmpdir(), 'revah-cnpj-')))
   const remote = localDir ? [] : await listDir(share, month).catch(() => [])
   const fileFor = async (name: string) => {
     const local = path.join(work, name)
@@ -204,14 +242,20 @@ async function main() {
     if (localDir) throw new Error(`Arquivo ${name} não encontrado em ${localDir}.`)
     if (remote.length && !remote.includes(name)) throw new Error(`Arquivo ${name} não existe em ${month}.`)
     console.log(`Baixando ${name}...`)
-    await download(share, month!, name, local)
+    // Baixa num arquivo .part e só renomeia quando termina: um download interrompido nunca é reaproveitado.
+    await download(share, month!, name, `${local}.part`)
+    await fs.promises.rename(`${local}.part`, local)
     return local
   }
   const done = async (file: string) => {
-    if (!localDir) await fs.promises.rm(file, { force: true })
+    if (!localDir && !keepCache) await fs.promises.rm(file, { force: true })
   }
 
-  const job = dryRun ? null : await prisma.companyImport.create({ data: { refMonth: month, filters: { ufs, cnaes, requireContact } } })
+  if (!process.env.DATABASE_URL && !dryRun) throw new Error('Defina DATABASE_URL com o endereço do banco do REVAH.')
+  db = new Client(pgConfig(process.env.DATABASE_URL || 'postgresql://localhost/revah'))
+  if (!dryRun) await db.connect()
+  const jobId = dryRun ? null : 'imp_' + crypto.randomBytes(10).toString('hex')
+  if (jobId) await sql(`INSERT INTO "CompanyImport" ("id","refMonth","filters","status","rows","startedAt") VALUES ($1,$2,$3,'RUNNING',0,NOW())`, [jobId, month, JSON.stringify({ ufs, cnaes, requireContact })])
   try {
     // Tabelas auxiliares
     const cities = new Map<string, string>()
@@ -231,7 +275,9 @@ async function main() {
     if (!dryRun) {
       for (let i = 0; i < cnaeRows.length; i += 500) {
         const chunk = cnaeRows.slice(i, i + 500)
-        await prisma.$transaction(chunk.map((c) => prisma.cnaeCode.upsert({ where: { code: c.code }, create: c, update: c })))
+        const params = chunk.flatMap((c) => [c.code, c.description, c.searchNorm])
+        const values = chunk.map((_, j) => `($${j * 3 + 1},$${j * 3 + 2},$${j * 3 + 3})`).join(',')
+        await sql(`INSERT INTO "CnaeCode" ("code","description","searchNorm") VALUES ${values} ON CONFLICT ("code") DO UPDATE SET "description"=EXCLUDED."description","searchNorm"=EXCLUDED."searchNorm"`, params)
       }
     }
     console.log(`${cities.size} municípios, ${cnaeRows.length} CNAEs.`)
@@ -266,11 +312,11 @@ async function main() {
     if (!dryRun && basicos.size) {
       for (let i = 0; i <= 9; i++) {
         const file = await fileFor(`Empresas${i}.zip`)
-        let batch: [string, string, string | null][] = []
+        let batch: [string, string, string | null, boolean][] = []
         for await (const line of await zipLines(file)) {
           const f = splitRow(line)
           if (!basicos.has(f[0])) continue
-          batch.push([f[0], f[1], f[5] || null])
+          batch.push([f[0], f[1], f[5] || null, isMeiNature(f[2])])
           if (batch.length >= 1000) {
             await updateLegalNames(batch)
             batch = []
@@ -291,25 +337,27 @@ async function main() {
         where.push(`"uf" = ANY($${params.length})`)
       }
       if (!cnaes.length) {
-        const removed = await prisma.$executeRawUnsafe(`DELETE FROM "CompanyRecord" WHERE ${where.join(' AND ')}`, ...params)
+        const removed = await sql(`DELETE FROM "CompanyRecord" WHERE ${where.join(' AND ')}`, params)
         console.log(`${removed} empresas inativas removidas.`)
       }
     }
 
-    if (job) await prisma.companyImport.update({ where: { id: job.id }, data: { status: 'DONE', rows: kept, finishedAt: new Date() } })
+    if (jobId) await sql(`UPDATE "CompanyImport" SET "status"='DONE',"rows"=$2,"finishedAt"=NOW() WHERE "id"=$1`, [jobId, kept])
     console.log(`Concluído: ${kept.toLocaleString('pt-BR')} empresas ativas ${dryRun ? 'encontradas' : 'na base'}.`)
   } catch (e: any) {
-    if (job) await prisma.companyImport.update({ where: { id: job.id }, data: { status: 'FAILED', error: String(e?.message || e).slice(0, 1000), finishedAt: new Date() } })
+    if (jobId) await sql(`UPDATE "CompanyImport" SET "status"='FAILED',"error"=$2,"finishedAt"=NOW() WHERE "id"=$1`, [jobId, String(e?.message || e).slice(0, 1000)]).catch(() => 0)
     throw e
   } finally {
-    if (!localDir) await fs.promises.rm(work, { recursive: true, force: true })
-    await prisma.$disconnect()
+    if (!localDir && !keepCache) await fs.promises.rm(work, { recursive: true, force: true })
+    if (!dryRun) await db.end().catch(() => undefined)
   }
 }
 
 if (require.main === module) {
   main().catch((e) => {
-    console.error(e?.message || e)
+    // "fetch failed" esconde o motivo real (DNS, TLS, conexão recusada): mostra a causa.
+    const cause = e?.cause ? ` — causa: ${e.cause.code || ''} ${e.cause.message || e.cause}`.trimEnd() : ''
+    console.error(`${e?.message || e}${cause}`)
     process.exit(1)
   })
 }

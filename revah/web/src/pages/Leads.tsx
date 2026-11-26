@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Briefcase, Building2, FileSignature, Megaphone, MapPin, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react'
-import { ApiError, del, get, post } from '../lib/api'
+import { Briefcase, Building2, Download, FileSignature, Megaphone, MapPin, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react'
+import { ApiError, del, downloadFile, get, post, put } from '../lib/api'
 import { fmtPhone } from '../lib/format'
 import { useAuthed } from '../lib/session'
 import type { Lead } from '../lib/types'
@@ -150,9 +150,24 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
   const [uf, setUf] = useState('')
   const [segments, setSegments] = useState<Segment[]>([])
   const [limit, setLimit] = useState(50)
+  const [mei, setMei] = useState<MeiFilter>('ALL')
+  const audiences = useLoad(() => get<Audience[]>('/leads/audiences'))
+  const [audienceId, setAudienceId] = useState('')
+  const [saveOpen, setSaveOpen] = useState(false)
+  const { canManage } = useAuthed()
+
+  function pickAudience(id: string) {
+    setAudienceId(id)
+    const a = audiences.data?.find((x) => x.id === id)
+    if (!a) return
+    setSegments(a.segments)
+    setUf(a.uf || '')
+    setCity(a.city || '')
+    setMei(a.meiFilter)
+  }
   const [searching, setSearching] = useState(false)
   const [results, setResults] = useState<Lead[] | null>(null)
-  const [statusFilter, setStatusFilter] = useState<'NEW' | 'IMPORTED' | 'DISCARDED' | ''>('NEW')
+  const [statusFilter, setStatusFilter] = useState<'NEW' | 'IMPORTED' | 'DISCARDED' | 'OPTED_OUT' | ''>('NEW')
   const saved = useLoad(() => get<Lead[]>('/leads', { status: statusFilter }), [statusFilter])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [tags, setTags] = useState('')
@@ -186,7 +201,7 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
         kind === 'COMPANY'
           ? { kind, documents: docs.split(/[\s,;]+/).map((d) => d.trim()).filter(Boolean) }
           : kind === 'SEGMENT'
-            ? { kind, cnaes: segments.map((s) => s.code), uf: uf || undefined, city: city.trim() || undefined, limit }
+            ? { kind, cnaes: segments.map((s) => s.code), uf: uf || undefined, city: city.trim() || undefined, limit, mei }
             : { kind, query: query.trim(), city: city.trim() || undefined, limit: 60 }
       const r = await post<{ leads: Lead[] }>('/leads/search', body)
       setResults(r.leads)
@@ -207,6 +222,32 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
         tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
       })
       fb.success(`${r.imported} lead(s) importado(s) para o CRM${r.skipped ? ` · ${r.skipped} sem telefone/e-mail ou já importados` : ''}.`)
+      setSelected(new Set())
+      await syncResults()
+    } catch (e) {
+      handle(e)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function exportXlsx(perSegment?: number) {
+    setBusy(perSegment ? 'sample' : 'export')
+    try {
+      await downloadFile('/leads/export.xlsx', { status: statusFilter, audienceId: audienceId || undefined, porSegmento: perSegment }, `revah-leads-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch (e) {
+      handle(e)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function optOutSel() {
+    if (!confirm('Marcar como "não quer receber"? Estas empresas nunca mais aparecem nas suas buscas e entram na sua lista de bloqueio.')) return
+    setBusy('optout')
+    try {
+      const r = await post<{ optedOut: number }>('/leads/optout', { ids: [...selected] })
+      fb.success(`${r.optedOut} lead(s) bloqueado(s). Eles não aparecem mais nas suas buscas.`)
       setSelected(new Set())
       await syncResults()
     } catch (e) {
@@ -247,6 +288,18 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
         />
         {kind === 'SEGMENT' ? (
           <div className="stack">
+            {(audiences.data?.length || 0) > 0 && (
+              <Field label="Meus públicos">
+                <select value={audienceId} onChange={(e) => pickAudience(e.target.value)}>
+                  <option value="">Escolha um público salvo (opcional)</option>
+                  {audiences.data!.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
             <SegmentPicker value={segments} onChange={setSegments} />
             <div className="grid-search">
               <Field label="Estado">
@@ -262,6 +315,13 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
               <Field label="Cidade (opcional)">
                 <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="ex.: Maringá" onKeyDown={(e) => e.key === 'Enter' && search()} />
               </Field>
+              <Field label="MEI">
+                <select value={mei} onChange={(e) => setMei(e.target.value as MeiFilter)}>
+                  <option value="ALL">Todos</option>
+                  <option value="ONLY">Só MEI</option>
+                  <option value="EXCLUDE">Sem MEI</option>
+                </select>
+              </Field>
               <Field label="Quantidade">
                 <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
                   {[20, 50, 100, 200].map((n) => (
@@ -275,7 +335,26 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
                 Buscar
               </Button>
             </div>
-            <p className="small muted">Somente empresas ativas com telefone ou e-mail. Empresas que você já recebeu não aparecem de novo.</p>
+            <div className="row wrap gap-sm between">
+              <p className="small muted">Somente empresas ativas com telefone ou e-mail. Quem você já recebeu ou pediu para não receber não aparece de novo.</p>
+              {canManage && segments.length > 0 && (
+                <Button size="sm" variant="ghost" onClick={() => setSaveOpen(true)}>
+                  Salvar como público
+                </Button>
+              )}
+            </div>
+            {saveOpen && (
+              <SaveAudience
+                current={audiences.data?.find((a) => a.id === audienceId) || null}
+                draft={{ cnaes: segments.map((s) => s.code), uf: uf || null, city: city.trim() || null, meiFilter: mei }}
+                onClose={() => setSaveOpen(false)}
+                onSaved={(id) => {
+                  setSaveOpen(false)
+                  audiences.reload(true)
+                  setAudienceId(id)
+                }}
+              />
+            )}
           </div>
         ) : kind === 'LOCAL' ? (
           <div className="grid-search">
@@ -311,12 +390,21 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
               Ver leads salvos
             </Button>
           ) : (
+            <div className="row wrap gap-xs">
+            <Button size="sm" variant="ghost" icon={<Download size={14} />} onClick={() => exportXlsx()} loading={busy === 'export'} title="Planilha com WhatsApp de um clique: o convite abre pronto, um por pessoa, das 8h às 21h">
+              Baixar planilha
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => exportXlsx(3)} loading={busy === 'sample'} title="Até 3 por segmento, ainda não convidados e com WhatsApp, MEI primeiro">
+              Amostra (3 por segmento)
+            </Button>
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
               <option value="NEW">Novos</option>
               <option value="IMPORTED">Importados</option>
               <option value="DISCARDED">Descartados</option>
+              <option value="OPTED_OUT">Pediram para não receber</option>
               <option value="">Todos</option>
             </select>
+            </div>
           )
         }
         pad={false}
@@ -330,6 +418,9 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
             </Button>
             <Button size="sm" variant="ghost" onClick={discardSel} loading={busy === 'discard'}>
               Descartar
+            </Button>
+            <Button size="sm" variant="ghost" onClick={optOutSel} loading={busy === 'optout'}>
+              Não quer receber
             </Button>
           </div>
         )}
@@ -379,7 +470,11 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
                     <td>
                       <div className="strong">{l.name}</div>
                       {l.company && l.company !== l.name && <div className="small muted">{l.company}</div>}
-                      {l.document && <div className="small muted">CNPJ {l.document}</div>}
+                      {l.document && (
+                        <div className="small muted">
+                          CNPJ {l.document} {l.isMei && <Badge tone="blue">MEI</Badge>}
+                        </div>
+                      )}
                       {l.website && (
                         <a className="small" href={/^https?:/.test(l.website) ? l.website : `https://${l.website}`} target="_blank" rel="noreferrer">
                           site
@@ -404,6 +499,10 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
                         )
                       ) : l.status === 'DISCARDED' ? (
                         <Badge tone="gray">Descartado</Badge>
+                      ) : l.status === 'OPTED_OUT' ? (
+                        <Badge tone="red">Não quer receber</Badge>
+                      ) : l.invitedAt ? (
+                        <Badge tone="blue">Convidado</Badge>
                       ) : (
                         <Badge tone="indigo">Novo</Badge>
                       )}
@@ -577,6 +676,65 @@ function AdSources() {
           ) : d ? (
             <p className="small muted">Conexão com o LinkedIn em liberação. Em breve disponível.</p>
           ) : null)}
+      </div>
+    </Card>
+  )
+}
+
+type MeiFilter = 'ALL' | 'ONLY' | 'EXCLUDE'
+
+interface Audience {
+  id: string
+  name: string
+  cnaes: string[]
+  segments: Segment[]
+  uf: string | null
+  city: string | null
+  meiFilter: MeiFilter
+  inviteText: string | null
+}
+
+// Público salvo: os segmentos (CNAE), o local e o texto de convite que este cliente usa.
+function SaveAudience({ current, draft, onClose, onSaved }: { current: Audience | null; draft: { cnaes: string[]; uf: string | null; city: string | null; meiFilter: MeiFilter }; onClose: () => void; onSaved: (id: string) => void }) {
+  const fb = useFeedback()
+  const [name, setName] = useState(current?.name || '')
+  const [inviteText, setInviteText] = useState(current?.inviteText || '')
+  const [saving, setSaving] = useState(false)
+  async function save(asNew: boolean) {
+    setSaving(true)
+    try {
+      const body = { ...draft, name: name.trim(), inviteText: inviteText.trim() || null }
+      const r = current && !asNew ? await put<Audience>(`/leads/audiences/${current.id}`, body) : await post<Audience>('/leads/audiences', body)
+      fb.success('Público salvo.')
+      onSaved(r.id)
+    } catch (e) {
+      fb.fail(e)
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <Card title={current ? `Público: ${current.name}` : 'Novo público'}>
+      <div className="stack">
+        <Field label="Nome do público">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="ex.: Dentistas de Maringá" maxLength={80} />
+        </Field>
+        <Field label="Texto de convite (opcional)" hint="Usado no convite por WhatsApp. Use {{nome}} para o nome da empresa.">
+          <textarea rows={3} value={inviteText} onChange={(e) => setInviteText(e.target.value)} maxLength={1000} placeholder="Olá, {{nome}}! Aqui é da ..." />
+        </Field>
+        <div className="row end gap-sm">
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          {current && (
+            <Button variant="secondary" onClick={() => save(true)} loading={saving} disabled={name.trim().length < 2}>
+              Salvar como novo
+            </Button>
+          )}
+          <Button variant="primary" onClick={() => save(false)} loading={saving} disabled={name.trim().length < 2}>
+            Salvar
+          </Button>
+        </div>
       </div>
     </Card>
   )

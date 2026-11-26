@@ -5,7 +5,10 @@ import Layout from "./components/Layout";
 import AppRoutes from "./routes/AppRoutes";
 import Login from "./pages/Login";
 import PublicBooking from "./pages/PublicBooking";
-import DemoLanding from "./pages/DemoLanding";
+import SignupTrial from "./pages/SignupTrial";
+import ProfessionalFinder from "./pages/ProfessionalFinder";
+import TalkToUs from "./pages/TalkToUs";
+import Privacy from "./pages/Privacy";
 import PasswordReset from "./pages/PasswordReset";
 import CookieBanner from "./lgpd/CookieBanner";
 import PoliticaPrivacidade from "./lgpd/PoliticaPrivacidade";
@@ -14,6 +17,9 @@ import PortalTitular from "./lgpd/PortalTitular";
 import RastreioPublico from "./pages/edu/RastreioPublico";
 import SitePublico from "./pages/public/SitePublico";
 import Descadastro from "./pages/public/Descadastro";
+import EmployeePortal from "./pages/EmployeePortal";
+import PoloPunch from "./pages/PoloPunch";
+import PatientSurveyPublic from "./pages/PatientSurveyPublic";
 import {
   clearClientSession,
   demoSalesUrl,
@@ -102,15 +108,53 @@ function AppShell() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/redefinir-senha" && !PUBLIC_LGPD.includes(appPath) && !isPublicMkt(appPath)) void validateSession();
+    if (
+      appPath !== "/agendamento-online" &&
+      appPath !== "/demo" &&
+      appPath !== "/experience" &&
+      appPath !== "/cadastro" &&
+      appPath !== "/profissionais" &&
+      appPath !== "/falar" &&
+      appPath !== "/privacidade" &&
+      appPath !== "/redefinir-senha" &&
+      appPath !== "/colaborador" &&
+      !appPath.startsWith("/ponto/") &&
+      !appPath.startsWith("/avaliar/") &&
+      !PUBLIC_LGPD.includes(appPath) &&
+      !isPublicMkt(appPath)
+    ) void validateSession();
   }, [appPath]);
+
+  if (appPath.startsWith("/avaliar/")) {
+    return <PatientSurveyPublic token={decodeURIComponent(appPath.slice("/avaliar/".length))} />;
+  }
+
+  if (appPath.startsWith("/ponto/")) {
+    return <PoloPunch slug={decodeURIComponent(appPath.slice("/ponto/".length)).toLowerCase()} />;
+  }
+
+  if (appPath === "/colaborador") {
+    return <EmployeePortal />;
+  }
 
   if (appPath === "/agendamento-online") {
     return <PublicBooking />;
   }
 
-  if (appPath === "/demo" || appPath === "/experience") {
-    return <DemoLanding />;
+  if (appPath === "/demo" || appPath === "/experience" || appPath === "/cadastro") {
+    return <SignupTrial />;
+  }
+
+  if (appPath === "/privacidade") {
+    return <Privacy />;
+  }
+
+  if (appPath === "/falar") {
+    return <TalkToUs />;
+  }
+
+  if (appPath === "/profissionais") {
+    return <ProfessionalFinder />;
   }
 
   if (appPath === "/redefinir-senha") {

@@ -1,0 +1,663 @@
+import { randomUUID } from 'crypto'
+import { prisma } from '../lib/prisma'
+import { comparePassword } from './userService'
+import { writeAudit } from './auditService'
+import { cleanDataUrl, UploadRejected } from '../lib/uploadSafety'
+import { verifyByCpf, savePunchPhoto, enrollFace, findByCpf, hasFace, validVector } from './hrFaceService'
+import { dispatchRevah } from './revahProviderService'
+
+// Ponto eletrônico: batida com senha, IP e localização; resumo mensal, banco de horas e justificativas de falta.
+// Datas e horas são calculadas no horário de Brasília (UTC-3, sem horário de verão).
+
+export type TimeCtx = { clinicId: string; tenantId: string; userId: string; email: string; employeeId?: string }
+
+const FLAG_KEY = 'HR_TIMECLOCK'
+const BRT_MS = 3 * 60 * 60 * 1000
+export const KINDS = ['ENTRADA', 'SAIDA_ALMOCO', 'VOLTA_ALMOCO', 'SAIDA'] as const
+
+// Qual batida é esta? Segue a jornada do colaborador: se esqueceu alguma, a batida vai para o horário mais próximo
+// entre as que ainda faltam (sempre depois da última já registrada), em vez de só seguir a ordem.
+export function pickKind(
+  emp: { workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null },
+  nowMin: number,
+  doneKinds: string[],
+  fallback: { startTime: string; dailyHours: number } = { startTime: '08:00', dailyHours: 8 },
+): (typeof KINDS)[number] | null {
+  const tm = (t?: string | null) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null }
+  const ws = tm(emp.workStart) ?? tm(fallback.startTime) ?? 480
+  // Turno curto sem almoço cadastrado (até 6 h): só duas batidas, entrada e saída.
+  const wsRaw = tm(emp.workStart), weRaw = tm(emp.workEnd)
+  if ((tm(emp.lunchStart) === null || tm(emp.lunchEnd) === null) && wsRaw !== null && weRaw !== null && weRaw > wsRaw && weRaw - wsRaw <= 360) {
+    if (doneKinds.includes('SAIDA')) return null
+    return doneKinds.includes('ENTRADA') ? 'SAIDA' : 'ENTRADA'
+  }
+  const ls = tm(emp.lunchStart) ?? 720
+  const le = tm(emp.lunchEnd) ?? Math.max(ls + 60, 780)
+  const we = tm(emp.workEnd) ?? ws + Math.round(fallback.dailyHours * 60) + (le - ls)
+  // Faixas de horário de cada batida (limite superior). A saída para o almoço vale até 30 min antes da volta prevista;
+  // a volta do almoço vai até 2 h depois do retorno previsto (ou 1h30 antes da saída); depois disso é a saída.
+  const ub1 = Math.max(ls, le - 30)
+  const ub = [ls, ub1, Math.max(ub1 + 1, Math.min(le + 120, we - 90)), Infinity]
+  const lastIdx = doneKinds.reduce((mx, k) => Math.max(mx, KINDS.indexOf(k as (typeof KINDS)[number])), -1)
+  // Tolerância de 10 minutos: bateu até 10 min antes/depois do horário previsto de uma batida que ainda falta, é essa batida
+  // (as anteriores que não foram feitas ficam puladas). Fora da tolerância, vale a faixa de horário acima.
+  const marks = [ws, ls, le, we]
+  for (let i = lastIdx + 1; i < KINDS.length; i++) {
+    if (Math.abs(nowMin - marks[i]) <= 10) return KINDS[i]
+  }
+  for (let i = lastIdx + 1; i < KINDS.length; i++) {
+    if (nowMin < ub[i]) return KINDS[i]
+  }
+  return lastIdx + 1 < KINDS.length ? KINDS[KINDS.length - 1] : null
+}
+const KIND_LABEL: Record<string, string> = { ENTRADA: 'Entrada', SAIDA_ALMOCO: 'Saída para o almoço', VOLTA_ALMOCO: 'Volta do almoço', SAIDA: 'Saída' }
+const JUSTIFIED_STATUS = ['atestado', 'férias', 'ferias', 'folga', 'falta abonada', 'abonada', 'home office']
+
+export class HrError extends Error {
+  status: number
+  extra?: Record<string, unknown>
+  constructor(status: number, message: string, extra?: Record<string, unknown>) { super(message); this.status = status; this.extra = extra }
+}
+
+export type TimeSettings = {
+  dailyHours: number
+  saturdayHours: number
+  startTime: string
+  toleranceMinutes: number
+  requireLocation: boolean
+  blockOutside: boolean
+  allowedIps: string[]
+  latitude: number | null
+  longitude: number | null
+  radiusMeters: number
+  assiduityBonus: number
+}
+
+const DEFAULTS: TimeSettings = {
+  dailyHours: 8, saturdayHours: 0, startTime: '08:00', toleranceMinutes: 10, requireLocation: true, blockOutside: false,
+  allowedIps: [], latitude: null, longitude: null, radiusMeters: 150, assiduityBonus: 0,
+}
+
+const num = (v: unknown, fallback: number, min = 0, max = 1e9) => { const n = Number(v); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback }
+
+export async function getTimeSettings(clinicId: string): Promise<TimeSettings> {
+  const row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: FLAG_KEY } } })
+  const m = (row?.metadata || {}) as Partial<TimeSettings>
+  return {
+    dailyHours: num(m.dailyHours, DEFAULTS.dailyHours, 0, 24),
+    saturdayHours: num(m.saturdayHours, DEFAULTS.saturdayHours, 0, 24),
+    startTime: /^\d{2}:\d{2}$/.test(String(m.startTime)) ? String(m.startTime) : DEFAULTS.startTime,
+    toleranceMinutes: num(m.toleranceMinutes, DEFAULTS.toleranceMinutes, 0, 120),
+    requireLocation: m.requireLocation === undefined ? DEFAULTS.requireLocation : Boolean(m.requireLocation),
+    blockOutside: Boolean(m.blockOutside),
+    allowedIps: Array.isArray(m.allowedIps) ? m.allowedIps.map((x) => String(x).trim()).filter(Boolean).slice(0, 20) : [],
+    latitude: m.latitude === null || m.latitude === undefined ? null : num(m.latitude, 0, -90, 90),
+    longitude: m.longitude === null || m.longitude === undefined ? null : num(m.longitude, 0, -180, 180),
+    radiusMeters: num(m.radiusMeters, DEFAULTS.radiusMeters, 20, 5000),
+    assiduityBonus: num(m.assiduityBonus, 0, 0, 100000),
+  }
+}
+
+export async function saveTimeSettings(c: { clinicId: string; tenantId: string; actorId?: string }, body: any) {
+  const lat = body?.latitude === '' || body?.latitude === null || body?.latitude === undefined ? null : Number(body.latitude)
+  const lng = body?.longitude === '' || body?.longitude === null || body?.longitude === undefined ? null : Number(body.longitude)
+  const ips = (Array.isArray(body?.allowedIps) ? body.allowedIps : String(body?.allowedIps || '').split(/[\s,;]+/)).map((x: unknown) => String(x).trim()).filter(Boolean)
+  const next = await (async () => {
+    const cur = await getTimeSettings(c.clinicId)
+    return {
+      ...cur,
+      dailyHours: num(body?.dailyHours, cur.dailyHours, 0, 24),
+      saturdayHours: num(body?.saturdayHours, cur.saturdayHours, 0, 24),
+      startTime: /^\d{2}:\d{2}$/.test(String(body?.startTime)) ? String(body.startTime) : cur.startTime,
+      toleranceMinutes: num(body?.toleranceMinutes, cur.toleranceMinutes, 0, 120),
+      requireLocation: body?.requireLocation === undefined ? cur.requireLocation : Boolean(body.requireLocation),
+      blockOutside: body?.blockOutside === undefined ? cur.blockOutside : Boolean(body.blockOutside),
+      allowedIps: ips.slice(0, 20),
+      latitude: lat !== null && Number.isFinite(lat) ? Math.min(90, Math.max(-90, lat)) : null,
+      longitude: lng !== null && Number.isFinite(lng) ? Math.min(180, Math.max(-180, lng)) : null,
+      radiusMeters: num(body?.radiusMeters, cur.radiusMeters, 20, 5000),
+      assiduityBonus: num(body?.assiduityBonus, cur.assiduityBonus, 0, 100000),
+    } as TimeSettings
+  })()
+  await prisma.tenantFeatureFlag.upsert({
+    where: { clinicId_key: { clinicId: c.clinicId, key: FLAG_KEY } },
+    update: { enabled: true, metadata: next as any },
+    create: { clinicId: c.clinicId, tenantId: c.tenantId, key: FLAG_KEY, enabled: true, rolloutStage: 'GA', metadata: next as any },
+  })
+  await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.actorId, module: 'hr', action: 'TIMECLOCK_SETTINGS', summary: 'Regras do ponto eletrônico atualizadas.' }).catch(() => undefined)
+  return next
+}
+
+// ---------- datas (Brasília) ----------
+// Datas e horas no fuso do colaborador: Brasília (-180 min) por padrão; polos de outros fusos (ex.: Mato Grosso do Sul, -240) usam o horário local do polo.
+const BRT_OFF = -180
+export const dayKey = (d: Date, off = BRT_OFF) => new Date(d.getTime() + off * 60000).toISOString().slice(0, 10)
+const dayStartUtc = (key: string, off = BRT_OFF) => new Date(new Date(`${key}T00:00:00.000Z`).getTime() - off * 60000)
+const minutesOfDay = (d: Date, off = BRT_OFF) => { const b = new Date(d.getTime() + off * 60000); return b.getUTCHours() * 60 + b.getUTCMinutes() }
+const hhmm = (d: Date, off = BRT_OFF) => { const b = new Date(d.getTime() + off * 60000); return `${String(b.getUTCHours()).padStart(2, '0')}:${String(b.getUTCMinutes()).padStart(2, '0')}` }
+const offCache = new Map<string, { off: number; until: number }>()
+export async function offsetOf(workplaceId?: string | null): Promise<number> {
+  if (!workplaceId) return BRT_OFF
+  const hit = offCache.get(workplaceId)
+  if (hit && hit.until > Date.now()) return hit.off
+  const w = await prisma.hRWorkplace.findUnique({ where: { id: workplaceId }, select: { utcOffsetMinutes: true } })
+  const off = w?.utcOffsetMinutes ?? BRT_OFF
+  offCache.set(workplaceId, { off, until: Date.now() + 60000 })
+  return off
+}
+const toMin = (t?: string | null) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null }
+const weekday = (key: string) => new Date(`${key}T12:00:00Z`).getUTCDay()
+
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371000, rad = (x: number) => (x * Math.PI) / 180
+  const a = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lon2 - lon1) / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(a))
+}
+
+// ---------- vínculo usuário -> colaborador (pelo e-mail de login) ----------
+export async function employeeForUser(c: TimeCtx) {
+  if (c.employeeId) {
+    const own = await prisma.hREmployee.findFirst({ where: { id: c.employeeId, clinicId: c.clinicId, tenantId: c.tenantId } })
+    return own && !['TERMINATED', 'Desligado'].includes(own.status) ? own : null
+  }
+  const rows = await prisma.hREmployee.findMany({ where: { clinicId: c.clinicId, tenantId: c.tenantId, email: { equals: c.email, mode: 'insensitive' } } })
+  return rows.find((e) => !['TERMINATED', 'Desligado'].includes(e.status)) || null
+}
+
+async function mustEmployee(c: TimeCtx) {
+  const emp = await employeeForUser(c)
+  if (!emp) throw new HrError(404, 'Seu e-mail de login ainda não está cadastrado no RH. Peça ao RH para cadastrar o colaborador com o mesmo e-mail que você usa para entrar.')
+  return emp
+}
+
+// ---------- batida ----------
+const failures = new Map<string, { count: number; until: number }>()
+
+export async function punch(c: TimeCtx, meta: { ip: string; userAgent: string }, body: any) {
+  const emp = await mustEmployee(c)
+  const lock = failures.get(c.userId)
+  if (lock && lock.until > Date.now()) throw new HrError(429, 'Muitas tentativas de senha. Aguarde alguns minutos.')
+  const user = await prisma.user.findUnique({ where: { id: c.userId }, select: { password: true } })
+  if (!user || !(await comparePassword(String(body?.password || ''), user.password))) {
+    const f = failures.get(c.userId) || { count: 0, until: 0 }
+    f.count += 1
+    if (f.count >= 5) { f.until = Date.now() + 10 * 60 * 1000; f.count = 0 }
+    failures.set(c.userId, f)
+    throw new HrError(401, 'Senha incorreta.')
+  }
+  failures.delete(c.userId)
+
+  return recordPunch(emp, c, meta, body, 'PASSWORD')
+}
+
+// Registra a batida (senha ou rosto): confere local/IP, ordem das 4 batidas e intervalo mínimo.
+export type Place = { id: string; name: string; latitude: number; longitude: number; radiusMeters: number; pending?: boolean; calibrating?: boolean; utcOffsetMinutes?: number; approxLocation?: boolean }
+// Polo: o ponto só vale dentro do raio do local cadastrado do polo (localização obrigatória e bloqueio fora do raio).
+function assertWorkplace(emp: { workplaceId?: string | null }, place?: Place) {
+  if (place) { if (emp.workplaceId !== place.id) throw new HrError(403, `Você não está cadastrado no polo ${place.name}. Fale com o RH.`) }
+  else if (emp.workplaceId) throw new HrError(403, 'O seu ponto é registrado no celular do seu polo, pelo link do polo. Fale com o RH se precisar de ajuda.')
+}
+
+// Precisão máxima do GPS aceita para bater ponto no polo (metros). Mais que isso o local não é confiável.
+const PUNCH_MAX_ACCURACY = 200
+// Polos liberados para localização aproximada (RH autorizou): aceita qualquer precisão e conta a imprecisão do aparelho no raio (máx. 5 km).
+const APPROX_CAP = 5000
+const accOf = (body: any) => (Number.isFinite(Number(body?.accuracy)) ? Math.min(Math.max(Number(body.accuracy), 0), APPROX_CAP) : 0)
+const radiusFor = (place: Place, body: any) => (place.approxLocation ? place.radiusMeters + accOf(body) : place.radiusMeters)
+
+// Trava do polo: depois que o local foi confirmado no primeiro acesso, NADA do ponto funciona fora do raio dele
+// (consultar CPF, cadastrar rosto ou bater ponto). Enquanto a calibragem está liberada o local ainda está sendo definido, então não trava.
+function assertInsidePlace(place: Place | undefined, body: any) {
+  if (!place || place.calibrating) return
+  if (place.pending) throw new HrError(409, `O local do polo ${place.name} ainda não foi definido. A pessoa responsável pelo polo precisa confirmar o local pelo celular do polo (calibragem liberada pelo RH).`)
+  const lat = body?.latitude === undefined || body?.latitude === null ? NaN : Number(body.latitude)
+  const lng = body?.longitude === undefined || body?.longitude === null ? NaN : Number(body.longitude)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new HrError(400, 'Ative a localização do aparelho: o ponto só funciona dentro do polo.')
+  if (!place.approxLocation && Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > PUNCH_MAX_ACCURACY) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
+  const distance = haversine(place.latitude, place.longitude, lat, lng)
+  if (distance > radiusFor(place, body)) throw new HrError(403, `Você está a ${Math.round(distance)} m do polo ${place.name}. O ponto só funciona a até ${place.radiusMeters} m do local confirmado do polo.`)
+}
+
+async function recordPunch(emp: { id: string; name: string; workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null }, c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, method: 'PASSWORD' | 'FACE', extraNote?: string, place?: Place) {
+  if (place?.pending) throw new HrError(409, `O local do polo ${place.name} ainda não foi definido. A pessoa responsável pelo polo precisa confirmar o local pelo celular do polo (calibragem liberada pelo RH).`)
+  const base = await getTimeSettings(c.clinicId)
+  const s = place ? { ...base, latitude: place.latitude, longitude: place.longitude, radiusMeters: radiusFor(place, body), requireLocation: true, blockOutside: true, allowedIps: [] as string[] } : base
+  if (place && !place.approxLocation && Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > PUNCH_MAX_ACCURACY) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
+  const lat = body?.latitude === undefined || body?.latitude === null ? null : Number(body.latitude)
+  const lng = body?.longitude === undefined || body?.longitude === null ? null : Number(body.longitude)
+  const hasGeo = lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng)
+  if (s.requireLocation && !hasGeo) throw new HrError(400, 'Ative a localização do aparelho para registrar o ponto.')
+
+  const ipOk = s.allowedIps.length ? s.allowedIps.includes(meta.ip) : null
+  let geoOk: boolean | null = null
+  let distance: number | null = null
+  if (s.latitude !== null && s.longitude !== null && hasGeo) {
+    distance = haversine(s.latitude, s.longitude, lat as number, lng as number)
+    geoOk = distance <= s.radiusMeters
+  }
+  const checks = [ipOk, geoOk].filter((x) => x !== null) as boolean[]
+  const inside: boolean | null = checks.length ? checks.some(Boolean) : null
+  const note = [
+    ipOk === null ? null : `IP ${ipOk ? 'autorizado' : 'fora da lista'}`,
+    geoOk === null ? (s.latitude === null ? null : 'sem localização') : `${Math.round(distance as number)} m do local (${geoOk ? 'dentro' : 'fora'} do raio)`,
+    Number.isFinite(Number(body?.accuracy)) ? `precisão do GPS ±${Math.round(Number(body.accuracy))} m` : null,
+  ].concat(place ? [`Polo ${place.name}`] : []).concat(extraNote ? [extraNote] : []).filter(Boolean).join(' · ') || null
+  if (s.blockOutside && inside === false) throw new HrError(403, place ? `Você está a ${Math.round(distance ?? 0)} m do polo ${place.name}. O ponto só pode ser batido a até ${place.radiusMeters} m do polo.` : 'O ponto só pode ser registrado no ambiente de trabalho.')
+
+  const now = new Date()
+  const off = place?.utcOffsetMinutes ?? BRT_OFF
+  const today = dayKey(now, off)
+  const todays = await prisma.hRTimePunch.findMany({ where: { employeeId: emp.id, punchedAt: { gte: dayStartUtc(today, off), lt: new Date(dayStartUtc(today, off).getTime() + 86400000) } }, orderBy: { punchedAt: 'asc' } })
+  if (todays.length >= KINDS.length || todays.some((p) => p.kind === 'SAIDA')) throw new HrError(409, 'A saída de hoje já foi registrada. Para corrigir, peça ajuste ao RH.')
+  const last = todays[todays.length - 1]
+  if (last && now.getTime() - last.punchedAt.getTime() < 60000) throw new HrError(409, 'Ponto registrado há instantes. Aguarde 1 minuto.')
+  // A jornada (entrada, almoço, saída) vem do cadastro do colaborador; o objeto recebido pode trazer só id e nome.
+  const sched = await prisma.hREmployee.findUnique({ where: { id: emp.id }, select: { workStart: true, lunchStart: true, lunchEnd: true, workEnd: true } })
+  const kind = pickKind(sched || emp, minutesOfDay(now, off), todays.map((p) => p.kind), { startTime: base.startTime, dailyHours: base.dailyHours })
+  if (!kind) throw new HrError(409, 'Não há mais batidas para registrar hoje. Para corrigir, peça ajuste ao RH.')
+  const row = await prisma.hRTimePunch.create({
+    data: { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, employeeId: emp.id, userId: c.userId, kind, punchedAt: now, ip: meta.ip || null, latitude: hasGeo ? lat : null, longitude: hasGeo ? lng : null, accuracyMeters: body?.accuracy !== undefined && Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null, insideWorkplace: inside, workplaceNote: note, method, userAgent: meta.userAgent.slice(0, 200) },
+  })
+  await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.userId, module: 'hr', action: 'TIME_PUNCH', entityType: 'HRTimePunch', entityId: row.id, summary: `${emp.name}: ${KIND_LABEL[kind]} às ${hhmm(now, off)}${inside === false ? ' (fora do local)' : ''}.` }).catch(() => undefined)
+  return { id: row.id, kind, label: KIND_LABEL[kind], time: hhmm(now, off), insideWorkplace: inside, note }
+}
+
+// Ponto pelo rosto, no celular/tablet fixo da clínica: o colaborador digita o CPF, a câmera confere o rosto com o cadastro e a foto fica como comprovante.
+const faceFailures = new Map<string, { count: number; until: number }>()
+// Comprovante da batida por e-mail para o colaborador (se tiver e-mail no cadastro). Falha de envio nunca impede o ponto.
+async function emailConfirmation(clinicId: string, emp: { name: string; email: string | null }, r: { label: string; time: string; insideWorkplace: boolean | null }, off = BRT_OFF) {
+  const to = String(emp.email || '').trim()
+  const apiKey = String(process.env.RESEND_API_KEY || '').trim()
+  if (!to || !apiKey) return
+  const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { name: true } }).catch(() => null)
+  const date = dayKey(new Date(), off).split('-').reverse().join('/')
+  const message = `Olá, ${emp.name.split(' ')[0]}!\n\nSeu ponto foi registrado:\n${r.label} em ${date} às ${r.time}${r.insideWorkplace === false ? ' (fora do local da clínica)' : ''}.\n\nSe você não reconhece esta batida, avise o RH.`
+  await dispatchRevah('EMAIL', to, message, { apiKey, subject: `Ponto registrado: ${r.label} às ${r.time}${clinic?.name ? ` — ${clinic.name}` : ''}` }, 'CompletoDonto <contato@dentalpos.com.br>').catch((e: unknown) => console.error('Comprovante de ponto falhou:', e))
+}
+
+export async function facePunch(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, place?: Place) {
+  assertInsidePlace(place, body)
+  const key = `${c.clinicId}:${String(body?.cpf || '').replace(/\D/g, '')}`
+  const lock = faceFailures.get(key)
+  if (lock && lock.until > Date.now()) throw new HrError(429, 'Muitas tentativas. Aguarde alguns minutos ou fale com o RH.')
+  const m = await verifyByCpf(c.clinicId, c.tenantId, body?.cpf, body?.descriptor)
+  if (m.status === 'CPF') throw new HrError(400, 'Digite o CPF com 11 números.')
+  if (m.status === 'INVALID') throw new HrError(400, 'Captura do rosto inválida. Tente de novo.')
+  if (m.status === 'NOT_FOUND') throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores.')
+  assertWorkplace(m.employee, place)
+  if (m.status === 'NO_FACE') throw new HrError(404, 'Primeiro acesso: vamos cadastrar o seu rosto.', { code: 'NO_FACE', employeeName: m.employee.name })
+  if (m.status === 'MISMATCH') {
+    const f = faceFailures.get(key) || { count: 0, until: 0 }
+    f.count += 1
+    if (f.count >= 6) { f.until = Date.now() + 10 * 60 * 1000; f.count = 0 }
+    faceFailures.set(key, f)
+    throw new HrError(401, 'O rosto não confere com o CPF informado. Olhe de frente para a câmera, com boa luz.')
+  }
+  faceFailures.delete(key)
+  const emp = m.employee
+  const result = await recordPunch(emp, c, meta, body, 'FACE', `rosto conferido com o CPF (distância ${m.distance.toFixed(2)})`, place)
+  await savePunchPhoto(c, result.id, emp.id, body?.photo)
+  await emailConfirmation(c.clinicId, emp, result, place?.utcOffsetMinutes)
+  return { ...result, employeeName: emp.name }
+}
+
+export async function myToday(c: TimeCtx) {
+  const emp = await employeeForUser(c)
+  if (!emp) return { linked: false as const }
+  const off = await offsetOf(emp.workplaceId)
+  const today = dayKey(new Date(), off)
+  const start = dayStartUtc(today, off)
+  const rows = await prisma.hRTimePunch.findMany({ where: { employeeId: emp.id, punchedAt: { gte: start, lt: new Date(start.getTime() + 86400000) } }, orderBy: { punchedAt: 'asc' } })
+  const baseS = await getTimeSettings(c.clinicId)
+  const nextK = rows.some((r) => r.kind === 'SAIDA') ? null : pickKind(emp, minutesOfDay(new Date(), off), rows.map((r) => r.kind), { startTime: baseS.startTime, dailyHours: baseS.dailyHours })
+  return {
+    linked: true as const,
+    employee: { id: emp.id, name: emp.name, position: emp.position },
+    today,
+    punches: rows.map((r) => ({ id: r.id, kind: r.kind, label: KIND_LABEL[r.kind] || r.kind, time: hhmm(r.punchedAt, off), insideWorkplace: r.insideWorkplace })),
+    nextKind: nextK,
+    nextLabel: nextK ? KIND_LABEL[nextK] : null,
+  }
+}
+
+// ---------- resumo do mês ----------
+type DayRow = { date: string; status: string; punches: Array<{ kind: string; time: string; inside: boolean | null }>; workedMin: number; expectedMin: number; diffMin: number; lateMin: number; note?: string }
+
+function monthRange(ref: string) {
+  const m = /^(\d{4})-(\d{2})$/.exec(ref)
+  if (!m) throw new HrError(400, 'Mês inválido. Use AAAA-MM.')
+  const y = Number(m[1]), mo = Number(m[2])
+  const last = new Date(Date.UTC(y, mo, 0)).getUTCDate()
+  return { y, mo, last }
+}
+
+export function currentRef() { return dayKey(new Date()).slice(0, 7) }
+
+async function buildMonth(emp: { id: string; admissionDate: Date; terminationDate: Date | null; workplaceId?: string | null; workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null }, ref: string, s: TimeSettings, clinicId: string) {
+  const { last } = monthRange(ref)
+  const off = await offsetOf(emp.workplaceId)
+  const first = `${ref}-01`
+  const from = dayStartUtc(first, off)
+  const to = new Date(dayStartUtc(`${ref}-${String(last).padStart(2, '0')}`, off).getTime() + 86400000)
+  const [punches, attendance, requests] = await Promise.all([
+    prisma.hRTimePunch.findMany({ where: { employeeId: emp.id, punchedAt: { gte: from, lt: to } }, orderBy: { punchedAt: 'asc' } }),
+    prisma.hRAttendance.findMany({ where: { employeeId: emp.id, clinicId, date: { gte: new Date(from.getTime() - 86400000), lt: to } } }),
+    prisma.hRAbsenceRequest.findMany({ where: { employeeId: emp.id, absenceDate: { startsWith: ref }, status: 'ABONADA' } }),
+  ])
+  const byDay = new Map<string, typeof punches>()
+  for (const p of punches) { const k = dayKey(p.punchedAt, off); byDay.set(k, [...(byDay.get(k) || []), p]) }
+  const attByDay = new Map<string, (typeof attendance)[number]>()
+  for (const a of attendance) { const k = a.date.toISOString().slice(0, 10); if (k.startsWith(ref)) attByDay.set(k, a) }
+  const abonados = new Set(requests.map((r) => r.absenceDate))
+
+  const now = new Date()
+  const today = dayKey(now, off)
+  const nowMin = minutesOfDay(now, off)
+  // Jornada do próprio colaborador (entrada, almoço, volta, saída); sem ela vale a regra geral da clínica.
+  const ws = toMin(emp.workStart || ''), ls = toMin(emp.lunchStart || ''), le = toMin(emp.lunchEnd || ''), we = toMin(emp.workEnd || '')
+  const ownDayMin = ws !== null && ls !== null && le !== null && we !== null && ls > ws && le >= ls && we > le ? (ls - ws) + (we - le) : null
+  const startMin = ws ?? toMin(s.startTime) ?? 480
+  const admission = dayKey(emp.admissionDate)
+  const termination = emp.terminationDate ? dayKey(emp.terminationDate) : null
+  const days: DayRow[] = []
+  const t = { workedMin: 0, expectedMin: 0, balanceMin: 0, overtimeMin: 0, faltas: 0, atrasos: 0, lateMin: 0, incompletos: 0, abonadas: 0 }
+
+  for (let d = 1; d <= last; d++) {
+    const key = `${ref}-${String(d).padStart(2, '0')}`
+    if (key > today) break
+    const wd = weekday(key)
+    let expected = wd === 0 ? 0 : wd === 6 ? Math.round(s.saturdayHours * 60) : ownDayMin ?? Math.round(s.dailyHours * 60)
+    if (key < admission || (termination && key > termination)) expected = 0
+    const ps = byDay.get(key) || []
+    const att = attByDay.get(key)
+    const attStatus = String(att?.status || '').toLowerCase()
+    const justified = abonados.has(key) || JUSTIFIED_STATUS.includes(attStatus)
+    const row: DayRow = { date: key, status: 'OK', punches: ps.map((p) => ({ kind: p.kind, time: hhmm(p.punchedAt, off), inside: p.insideWorkplace })), workedMin: 0, expectedMin: expected, diffMin: 0, lateMin: 0 }
+
+    if (ps.length) {
+      const m = ps.map((p) => minutesOfDay(p.punchedAt, off))
+      const at = (k: string) => { const i = ps.findIndex((p) => p.kind === k); return i < 0 ? null : m[i] }
+      const e = at('ENTRADA'), sa = at('SAIDA_ALMOCO'), v = at('VOLTA_ALMOCO'), sd = at('SAIDA')
+      const lunchDur = ls !== null && le !== null && le > ls ? le - ls : 0
+      let worked = 0
+      if (e !== null && sa !== null && v !== null && sd !== null) worked = (sa - e) + (sd - v)
+      else if (e !== null && sa !== null && v === null && sd === null) worked = sa - e
+      else if (e !== null && sd !== null && sa === null && v === null) worked = sd - e - lunchDur // esqueceu o almoço: desconta o intervalo da jornada
+      else if (e !== null && sa !== null && sd !== null) worked = (sa - e) + (sd - Math.max(sa + lunchDur, sa)) // esqueceu a volta
+      else if (e !== null && v !== null && sd !== null) worked = ((ls !== null ? Math.min(Math.max(ls, e), v) : v) - e) + (sd - v) // esqueceu a saída para o almoço
+      else if (ps.length >= 4) worked = (m[1] - m[0]) + (m[3] - m[2])
+      else if (ps.length >= 2) worked = m[1] - m[0]
+      row.workedMin = Math.max(0, worked)
+      const noLunchShift = (ls === null || le === null) && ws !== null && we !== null && we > ws && we - ws <= 360
+      const missingKind = noLunchShift ? !(e !== null && sd !== null) : ps.length < 4 || new Set(ps.map((p) => p.kind)).size < 4
+      if ((noLunchShift ? missingKind : ps.length % 2 === 1 || missingKind) && !(key === today)) { row.status = 'INCOMPLETO'; t.incompletos++ }
+      const firstEntry = ps.find((p) => p.kind === 'ENTRADA')
+      if (firstEntry && expected > 0 && !justified) {
+        const late = minutesOfDay(firstEntry.punchedAt, off) - startMin
+        if (late > s.toleranceMinutes) { row.lateMin = late; if (row.status === 'OK') row.status = 'ATRASO'; t.atrasos++; t.lateMin += late }
+      }
+    } else if (att && toMin(att.clockIn) !== null && toMin(att.clockOut) !== null && !JUSTIFIED_STATUS.includes(attStatus) && attStatus !== 'falta') {
+      row.workedMin = Math.max(0, (toMin(att.clockOut) as number) - (toMin(att.clockIn) as number))
+      row.note = 'Lançamento manual do RH'
+    } else if (expected > 0) {
+      if (justified) { row.status = 'ABONADA'; row.workedMin = expected; t.abonadas++ }
+      else if (key < today || (key === today && nowMin > startMin + 12 * 60)) { row.status = 'FALTA'; t.faltas++ }
+      else row.status = 'AGUARDANDO'
+    } else if (justified) row.status = 'ABONADA'
+    else row.status = wd === 0 || wd === 6 ? 'FOLGA' : 'OK'
+
+    if (row.status !== 'FALTA' && row.status !== 'AGUARDANDO') {
+      row.diffMin = row.workedMin - expected
+      t.workedMin += row.workedMin
+      t.expectedMin += expected
+      t.balanceMin += row.diffMin
+      if (row.diffMin > 0) t.overtimeMin += row.diffMin
+    } else if (row.status === 'FALTA') t.expectedMin += 0
+    days.push(row)
+  }
+  return { days, totals: t }
+}
+
+export async function myMonth(c: TimeCtx, ref: string) {
+  const emp = await mustEmployee(c)
+  const s = await getTimeSettings(c.clinicId)
+  return { ref, ...(await buildMonth(emp, ref, s, c.clinicId)) }
+}
+
+export async function timesheet(c: { clinicId: string; tenantId: string }, ref: string) {
+  const s = await getTimeSettings(c.clinicId)
+  const emps = await prisma.hREmployee.findMany({ where: { clinicId: c.clinicId, tenantId: c.tenantId, status: { notIn: ['TERMINATED', 'Desligado'] } }, orderBy: { name: 'asc' } })
+  const rows: Array<{ employeeId: string; name: string; position: string; department: string; email: string | null; linkedLogin: boolean; totals: Awaited<ReturnType<typeof buildMonth>>['totals'] }> = []
+  for (const e of emps) {
+    const m = await buildMonth(e, ref, s, c.clinicId)
+    rows.push({ employeeId: e.id, name: e.name, position: e.position, department: e.department, email: e.email, linkedLogin: Boolean(e.email), totals: m.totals })
+  }
+  return { ref, settings: s, employees: rows }
+}
+
+// Conferência do dia para o RH: quem bateu o ponto, quem ainda não bateu e quem está justificado, por polo.
+// Cada colaborador usa o dia e o relógio do seu polo (ex.: Mato Grosso do Sul, -1 h).
+export async function dayReport(c: { clinicId: string; tenantId: string }, date: string, workplaceId?: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HrError(400, 'Data inválida.')
+  const s = await getTimeSettings(c.clinicId)
+  const wps = await prisma.hRWorkplace.findMany({ where: { clinicId: c.clinicId }, select: { id: true, name: true, utcOffsetMinutes: true } })
+  const wpName = new Map(wps.map((w) => [w.id, w.name]))
+  const offOf = (e: { workplaceId: string | null }) => (e.workplaceId ? wps.find((w) => w.id === e.workplaceId)?.utcOffsetMinutes ?? BRT_OFF : BRT_OFF)
+  const emps = (await prisma.hREmployee.findMany({
+    where: { clinicId: c.clinicId, tenantId: c.tenantId, status: { notIn: ['TERMINATED', 'Desligado'] }, ...(workplaceId === 'CLINICA' ? { workplaceId: null } : workplaceId ? { workplaceId } : {}) },
+    select: { id: true, name: true, position: true, workStart: true, workEnd: true, workplaceId: true, admissionDate: true, terminationDate: true }, orderBy: { name: 'asc' },
+  })).filter((e) => e.admissionDate.toISOString().slice(0, 10) <= date && (!e.terminationDate || e.terminationDate.toISOString().slice(0, 10) >= date))
+  const wd = new Date(`${date}T12:00:00Z`).getUTCDay()
+  const expectedHours = wd === 0 ? 0 : wd === 6 ? s.saturdayHours : s.dailyHours
+  const windowOf = (e: { workplaceId: string | null }) => { const start = new Date(Date.parse(`${date}T00:00:00Z`) - offOf(e) * 60000); return { start, end: new Date(start.getTime() + 86400000) } }
+  const ids = emps.map((e) => e.id)
+  const wide = { gte: new Date(Date.parse(`${date}T00:00:00Z`) - 4 * 3600000), lt: new Date(Date.parse(`${date}T00:00:00Z`) + 86400000 + 4 * 3600000) }
+  const [punches, attendance, requests, vacations] = ids.length ? await Promise.all([
+    prisma.hRTimePunch.findMany({ where: { employeeId: { in: ids }, punchedAt: wide }, orderBy: { punchedAt: 'asc' }, select: { employeeId: true, kind: true, punchedAt: true, insideWorkplace: true } }),
+    prisma.hRAttendance.findMany({ where: { employeeId: { in: ids }, clinicId: c.clinicId, date: { gte: new Date(`${date}T00:00:00.000Z`), lt: new Date(Date.parse(`${date}T00:00:00Z`) + 86400000) } }, select: { employeeId: true, status: true, clockIn: true } }),
+    prisma.hRAbsenceRequest.findMany({ where: { employeeId: { in: ids }, absenceDate: date, status: { not: 'RECUSADA' } }, select: { employeeId: true, status: true } }),
+    prisma.hRVacation.findMany({ where: { employeeId: { in: ids }, scheduledStart: { lte: new Date(`${date}T23:59:59.999Z`) }, scheduledEnd: { gte: new Date(`${date}T00:00:00.000Z`) }, status: { notIn: ['CANCELLED', 'CANCELED', 'CANCELADA', 'Cancelada'] } }, select: { employeeId: true } }),
+  ]) : [[], [], [], []]
+  const now = new Date()
+  const toMin = (t: string | null | undefined, fallback: string) => { const m = /^(\d{1,2}):(\d{2})/.exec(t || fallback); return m ? Number(m[1]) * 60 + Number(m[2]) : 480 }
+  const JUSTIFIED = ['atestado', 'férias', 'ferias', 'folga', 'falta abonada', 'abonada', 'home office', 'falta']
+
+  const rows = emps.map((e) => {
+    const off = offOf(e)
+    const w = windowOf(e)
+    const mine = punches.filter((p) => p.employeeId === e.id && p.punchedAt >= w.start && p.punchedAt < w.end)
+    const att = attendance.find((a) => a.employeeId === e.id)
+    const req = requests.find((r) => r.employeeId === e.id)
+    const todayLocal = dayKey(now, off)
+    const nowLocalMin = new Date(now.getTime() + off * 60000).getUTCHours() * 60 + new Date(now.getTime() + off * 60000).getUTCMinutes()
+    // Antes do horário de entrada: ainda não deu a hora. Até entrada + tolerância: dentro da tolerância. Depois disso sem batida: NÃO BATEU.
+    const startMin = toMin(e.workStart, s.startTime)
+    const limitMin = startMin + s.toleranceMinutes
+    let status: 'BATEU' | 'NAO_BATEU' | 'AINDA_NAO' | 'NA_TOLERANCIA' | 'JUSTIFICADO' | 'SEM_EXPEDIENTE' | 'FUTURO'
+    let detail = ''
+    if (mine.length) status = 'BATEU'
+    else if (vacations.some((v) => v.employeeId === e.id)) { status = 'JUSTIFICADO'; detail = 'Em férias' }
+    else if (att && (att.clockIn || JUSTIFIED.includes(String(att.status).toLowerCase()))) { status = 'JUSTIFICADO'; detail = String(att.status || 'Lançamento manual') }
+    else if (req) { status = 'JUSTIFICADO'; detail = req.status === 'PENDENTE' ? 'Justificativa enviada (aguardando decisão)' : 'Justificativa aprovada' }
+    else if (!(expectedHours > 0)) status = 'SEM_EXPEDIENTE'
+    else if (date > todayLocal) status = 'FUTURO'
+    else if (date === todayLocal && nowLocalMin < startMin) status = 'AINDA_NAO'
+    else if (date === todayLocal && nowLocalMin <= limitMin) { status = 'NA_TOLERANCIA'; detail = `Tolerância até ${String(Math.floor(limitMin / 60)).padStart(2, '0')}:${String(limitMin % 60).padStart(2, '0')}` }
+    else { status = 'NAO_BATEU'; if (date === todayLocal) detail = `Sem entrada há ${nowLocalMin - startMin} min (previsto ${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')})` }
+    return {
+      employeeId: e.id, name: e.name, position: e.position, workplace: e.workplaceId ? wpName.get(e.workplaceId) || 'Polo' : 'Clínica', workStart: e.workStart || s.startTime,
+      status, detail,
+      punches: mine.map((p) => ({ kind: p.kind, label: KIND_LABEL[p.kind] || p.kind, time: hhmm(p.punchedAt, off), inside: p.insideWorkplace })),
+      open: mine.length % 2 === 1 && date < todayLocal, // dia passado com número ímpar de batidas: faltou registrar a saída
+    }
+  })
+  const count = (st: string) => rows.filter((r) => r.status === st).length
+  return {
+    date, expectedDay: expectedHours > 0,
+    totals: { total: rows.length, bateu: count('BATEU'), naoBateu: count('NAO_BATEU'), ainda: count('AINDA_NAO') + count('NA_TOLERANCIA'), justificado: count('JUSTIFICADO'), semExpediente: count('SEM_EXPEDIENTE'), incompletas: rows.filter((r) => r.open).length },
+    rows,
+  }
+}
+
+export async function employeeMonth(c: { clinicId: string; tenantId: string }, employeeId: string, ref: string) {
+  const emp = await prisma.hREmployee.findFirst({ where: { id: employeeId, clinicId: c.clinicId, tenantId: c.tenantId } })
+  if (!emp) throw new HrError(404, 'Colaborador não encontrado.')
+  const s = await getTimeSettings(c.clinicId)
+  const m = await buildMonth(emp, ref, s, c.clinicId)
+  const off = await offsetOf(emp.workplaceId)
+  const punches = await prisma.hRTimePunch.findMany({
+    where: { employeeId, punchedAt: { gte: dayStartUtc(`${ref}-01`, off), lt: new Date(dayStartUtc(`${ref}-${String(monthRange(ref).last).padStart(2, '0')}`, off).getTime() + 86400000) } },
+    orderBy: { punchedAt: 'asc' },
+  })
+  return { ref, employee: { id: emp.id, name: emp.name, position: emp.position }, ...m, audit: punches.map((p) => ({ id: p.id, method: p.method, date: dayKey(p.punchedAt, off), time: hhmm(p.punchedAt, off), kind: KIND_LABEL[p.kind] || p.kind, ip: p.ip, inside: p.insideWorkplace, note: p.workplaceNote, latitude: p.latitude, longitude: p.longitude })) }
+}
+
+// Sugestões para a folha. O RH confere e lança; nada é lançado sozinho.
+export async function payrollSuggestions(c: { clinicId: string; tenantId: string }, ref: string) {
+  const s = await getTimeSettings(c.clinicId)
+  const emps = await prisma.hREmployee.findMany({ where: { clinicId: c.clinicId, tenantId: c.tenantId, status: { notIn: ['TERMINATED', 'Desligado'] } }, orderBy: { name: 'asc' } })
+  const out: Array<{ key: string; employeeId: string; employeeName: string; type: 'Provento' | 'Desconto'; description: string; value: number }> = []
+  const r2 = (v: number) => Math.round(v * 100) / 100
+  for (const e of emps) {
+    const base = Number(e.baseSalary)
+    if (!(base > 0)) continue
+    const hourly = base / Math.max(1, e.monthlyWorkload || 220)
+    const { totals } = await buildMonth(e, ref, s, c.clinicId)
+    if (totals.faltas > 0) out.push({ key: `${e.id}:falta`, employeeId: e.id, employeeName: e.name, type: 'Desconto', description: `Faltas não justificadas (${totals.faltas} dia(s)) — ${ref}`, value: r2((base / 30) * totals.faltas) })
+    if (totals.lateMin > 0) out.push({ key: `${e.id}:atraso`, employeeId: e.id, employeeName: e.name, type: 'Desconto', description: `Atrasos (${Math.round(totals.lateMin)} min) — ${ref}`, value: r2(hourly * (totals.lateMin / 60)) })
+    if (totals.overtimeMin > 0) out.push({ key: `${e.id}:extra`, employeeId: e.id, employeeName: e.name, type: 'Provento', description: `Horas extras 50% (${(totals.overtimeMin / 60).toFixed(1)} h) — ${ref}`, value: r2(hourly * 1.5 * (totals.overtimeMin / 60)) })
+    if (totals.faltas === 0 && totals.lateMin === 0 && s.assiduityBonus > 0) out.push({ key: `${e.id}:assiduidade`, employeeId: e.id, employeeName: e.name, type: 'Provento', description: `Prêmio de assiduidade — ${ref}`, value: r2(s.assiduityBonus) })
+  }
+  return out
+}
+
+// ---------- justificativas ----------
+type Attachment = { name: string; mime: string; dataUrl: string }
+
+async function cleanAttachments(input: unknown): Promise<Attachment[]> {
+  if (!Array.isArray(input)) return []
+  const out: Attachment[] = []
+  let total = 0
+  for (const a of input.slice(0, 3)) {
+    try {
+      const clean = await cleanDataUrl({ name: String(a?.name || 'arquivo').slice(0, 120), dataUrl: String(a?.dataUrl || '') })
+      total += clean.dataUrl.length
+      out.push(clean)
+    } catch (e) {
+      if (e instanceof UploadRejected) throw new HrError(400, e.message)
+      throw e
+    }
+  }
+  if (total > 1_500_000) throw new HrError(400, 'Os anexos estão grandes demais. Envie fotos menores ou um PDF mais leve (até 1 MB no total).')
+  return out
+}
+
+export async function createAbsenceRequest(c: TimeCtx, body: any) {
+  const emp = await mustEmployee(c)
+  const date = String(body?.date || '')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HrError(400, 'Informe a data da falta.')
+  if (date > dayKey(new Date())) { /* aviso antecipado de falta é permitido */ }
+  const type = ['FALTA', 'ATRASO', 'ATESTADO', 'OUTRO'].includes(String(body?.type)) ? String(body.type) : 'FALTA'
+  const reason = String(body?.reason || '').trim()
+  if (reason.length < 5) throw new HrError(400, 'Explique o motivo em poucas palavras.')
+  const attachments = await cleanAttachments(body?.attachments)
+  const row = await prisma.hRAbsenceRequest.create({ data: { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, employeeId: emp.id, userId: c.userId, absenceDate: date, type, reason: reason.slice(0, 2000), attachments: attachments as any, status: 'PENDENTE' } })
+  await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.userId, module: 'hr', action: 'ABSENCE_REQUEST', entityType: 'HRAbsenceRequest', entityId: row.id, summary: `${emp.name} enviou justificativa (${type}) para ${date}.` }).catch(() => undefined)
+  return { id: row.id }
+}
+
+const publicRequest = (r: any, withFiles: boolean) => ({
+  id: r.id, employeeId: r.employeeId, employeeName: r.employee?.name, absenceDate: r.absenceDate, type: r.type, reason: r.reason, status: r.status,
+  decisionNote: r.decisionNote, decidedAt: r.decidedAt, createdAt: r.createdAt,
+  attachmentCount: Array.isArray(r.attachments) ? r.attachments.length : 0,
+  ...(withFiles ? { attachments: Array.isArray(r.attachments) ? r.attachments : [] } : {}),
+})
+
+export async function myRequests(c: TimeCtx) {
+  const emp = await employeeForUser(c)
+  if (!emp) return []
+  const rows = await prisma.hRAbsenceRequest.findMany({ where: { employeeId: emp.id }, orderBy: { createdAt: 'desc' }, take: 50, include: { employee: { select: { name: true } } } })
+  return rows.map((r) => publicRequest(r, false))
+}
+
+export async function myRequest(c: TimeCtx, id: string) {
+  const emp = await mustEmployee(c)
+  const r = await prisma.hRAbsenceRequest.findFirst({ where: { id, employeeId: emp.id }, include: { employee: { select: { name: true } } } })
+  if (!r) throw new HrError(404, 'Justificativa não encontrada.')
+  return publicRequest(r, true)
+}
+
+export async function listRequests(c: { clinicId: string; tenantId: string }, status?: string) {
+  const rows = await prisma.hRAbsenceRequest.findMany({
+    where: { clinicId: c.clinicId, tenantId: c.tenantId, ...(status ? { status } : {}) },
+    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }], take: 200, include: { employee: { select: { name: true } } },
+  })
+  return rows.map((r) => publicRequest(r, false))
+}
+
+export async function getRequest(c: { clinicId: string; tenantId: string }, id: string) {
+  const r = await prisma.hRAbsenceRequest.findFirst({ where: { id, clinicId: c.clinicId, tenantId: c.tenantId }, include: { employee: { select: { name: true } } } })
+  if (!r) throw new HrError(404, 'Justificativa não encontrada.')
+  return publicRequest(r, true)
+}
+
+export async function decideRequest(c: { clinicId: string; tenantId: string; actorId: string }, id: string, body: any) {
+  const r = await prisma.hRAbsenceRequest.findFirst({ where: { id, clinicId: c.clinicId, tenantId: c.tenantId } })
+  if (!r) throw new HrError(404, 'Justificativa não encontrada.')
+  const decision = String(body?.decision || '')
+  if (!['ABONAR', 'NAO_ABONAR', 'SANCIONAR'].includes(decision)) throw new HrError(400, 'Escolha: abonar, não abonar ou aplicar sanção.')
+  const note = String(body?.note || '').trim().slice(0, 1000)
+  if (decision !== 'ABONAR' && note.length < 3) throw new HrError(400, 'Registre o motivo da decisão.')
+  const status = decision === 'ABONAR' ? 'ABONADA' : decision === 'SANCIONAR' ? 'SANCIONADA' : 'NAO_ABONADA'
+  await prisma.hRAbsenceRequest.update({ where: { id }, data: { status, decisionNote: note || null, decidedBy: c.actorId, decidedAt: new Date(), updatedAt: new Date() } })
+  const date = new Date(`${r.absenceDate}T12:00:00.000Z`)
+  if (decision === 'ABONAR') {
+    await prisma.hRAttendance.create({ data: { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, employeeId: r.employeeId, date, status: r.type === 'ATESTADO' ? 'Atestado' : 'Falta abonada', observation: note || 'Justificativa aceita pelo RH.' } })
+  }
+  if (decision === 'SANCIONAR') {
+    const type = ['Advertência verbal', 'Advertência escrita', 'Suspensão', 'Orientação'].includes(String(body?.sanctionType)) ? String(body.sanctionType) : 'Advertência verbal'
+    const days = type === 'Suspensão' ? Math.max(1, Math.min(30, Number(body?.daysSuspended) || 1)) : null
+    await prisma.hRDisciplinaryAction.create({ data: { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, employeeId: r.employeeId, type, date: new Date(), reason: `Falta de ${r.absenceDate}: ${note}`, daysSuspended: days, status: 'APPLIED' } })
+  }
+  await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.actorId, module: 'hr', action: `ABSENCE_${decision}`, entityType: 'HRAbsenceRequest', entityId: id, summary: `Justificativa de ${r.absenceDate}: ${status}.` }).catch(() => undefined)
+  return { ok: true, status }
+}
+
+// Primeiro acesso no aparelho da clínica: o próprio colaborador (que digitou o CPF) cadastra o rosto, com consentimento, e já bate o ponto.
+const enrollFailures = new Map<string, { count: number; until: number }>()
+export async function firstFaceEnroll(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, place?: Place) {
+  assertInsidePlace(place, body) // antes de gravar qualquer coisa do rosto
+  const key = `${c.clinicId}:${String(body?.cpf || '').replace(/\D/g, '')}`
+  const lock = enrollFailures.get(key)
+  if (lock && lock.until > Date.now()) throw new HrError(429, 'Muitas tentativas. Aguarde alguns minutos ou fale com o RH.')
+  enrollFailures.set(key, { count: (lock?.count || 0) + 1, until: (lock?.count || 0) + 1 >= 5 ? Date.now() + 10 * 60 * 1000 : 0 })
+  const emp = await findByCpf(c.clinicId, c.tenantId, body?.cpf)
+  if (!emp) throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores. Fale com o RH.')
+  assertWorkplace(emp, place)
+  if (await hasFace(c.clinicId, emp.id)) throw new HrError(409, 'Seu rosto já está cadastrado. Volte e bata o ponto normalmente; se mudou muito, fale com o RH.')
+  const samples = body?.samples
+  if (!Array.isArray(samples) || samples.length < 3 || samples.length > 5 || !samples.every(validVector)) throw new HrError(400, 'Captura do rosto inválida. Tente de novo, olhando de frente, com boa luz.')
+  if (typeof body?.photo !== 'string' || !body.photo) throw new HrError(400, 'Não foi possível guardar a foto. Tente de novo.')
+  const r = await enrollFace({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.userId }, emp.id, { consent: body?.consent === true, samples, photo: body.photo }) as { error?: string; status?: number }
+  if (r.error) throw new HrError(r.status || 400, r.error)
+  enrollFailures.delete(key)
+  const result = await facePunch(c, meta, { ...body, descriptor: samples[0] }, place)
+  return { ...result, enrolled: true }
+}
+
+// Primeira tela do ponto: o CPF já diz se a pessoa existe e se o rosto está cadastrado (evita abrir a câmera à toa).
+const cpfChecks = new Map<string, { count: number; reset: number }>()
+export async function cpfCheck(c: { clinicId: string; tenantId: string }, ip: string, body: any, place?: Place) {
+  const k = `${c.clinicId}:${ip}`
+  const cur = cpfChecks.get(k)
+  const now = Date.now()
+  const st = cur && cur.reset > now ? cur : { count: 0, reset: now + 10 * 60 * 1000 }
+  st.count += 1
+  cpfChecks.set(k, st)
+  if (st.count > 60) throw new HrError(429, 'Muitas consultas. Aguarde alguns minutos.')
+  assertInsidePlace(place, body)
+  const emp = await findByCpf(c.clinicId, c.tenantId, body?.cpf)
+  if (!emp) throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores. Fale com o RH.')
+  assertWorkplace(emp, place)
+  return { found: true, employeeName: emp.name, hasFace: await hasFace(c.clinicId, emp.id) }
+}

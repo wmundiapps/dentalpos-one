@@ -2,6 +2,7 @@ import { Response } from "express"
 import { AuthRequest } from "../middleware/auth"
 import { prisma } from "../lib/prisma"
 import * as fiscal from "../services/fiscalService"
+import * as receitaSaude from "../services/receitaSaudeExportService"
 
 const ctx = (req: AuthRequest) => ({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, actorId: req.user!.id })
 
@@ -81,4 +82,16 @@ export async function getRules(req: AuthRequest, res: Response) {
 
 export async function saveRules(req: AuthRequest, res: Response) {
   try { const r = await fiscal.saveRule(ctx(req), req.body); return res.json({ ...r, issRate: r.issRate === null ? null : Number(r.issRate) }) } catch (e) { return falha(res, e, "Erro ao salvar as regras.") }
+}
+// Receita Saude em lote: arquivo para o Carne-Leao Web (Escrituracao > Importar Escrituracao).
+export async function receitaSaudeProfessionals(req: AuthRequest, res: Response) {
+  try { return res.json(await receitaSaude.professionals(ctx(req))) } catch (e) { return falha(res, e, "Erro ao carregar os profissionais.") }
+}
+
+export async function receitaSaudePending(req: AuthRequest, res: Response) {
+  try { return res.json(await receitaSaude.pending(ctx(req))) } catch (e) { return falha(res, e, "Erro ao carregar os pagamentos.") }
+}
+
+export async function receitaSaudeExport(req: AuthRequest, res: Response) {
+  try { return res.json(await receitaSaude.exportFile(ctx(req), req.body)) } catch (e) { return falha(res, e, "Erro ao gerar o arquivo da Receita Saude.") }
 }

@@ -1,0 +1,5 @@
+{
+  "_sobre": "Mapa de CNAE do DentalPos usado na busca da Receita Federal (CNAE da subclasse, 7 dígitos). Cada categoria vira um segmento da prospecção. Para mudar, edite aqui e rode a busca de novo.",
+  "clinica-odontologica": { "segmento": "CLINICA", "cnaes": ["8630504"], "nome": "Clínicas e consultórios odontológicos (atividade odontológica)" },
+  "laboratorio-protese": { "segmento": "LABORATORIO", "cnaes": ["3250706"], "nome": "Laboratórios de prótese dentária" }
+}

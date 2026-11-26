@@ -1,3 +1,4 @@
+import { safeEqual } from "../lib/safeEqual"
 import { Request, Response } from "express"
 import { AuthRequest } from "../middleware/auth"
 import { prisma } from "../lib/prisma"
@@ -48,7 +49,9 @@ export async function purchases(req: AuthRequest, res: Response) {
 export async function webhook(req: Request, res: Response) {
   const esperado = String(process.env.ASAAS_WEBHOOK_TOKEN || "").trim()
   const recebido = String(req.get("asaas-access-token") || "").trim()
-  if (esperado && recebido !== esperado) return res.status(401).json({ error: "Token invalido." })
+  // Sem token configurado o webhook fica FECHADO (antes ficava aberto a qualquer pessoa).
+  if (!esperado) return res.status(503).json({ error: "Webhook ainda nao configurado." })
+  if (!recebido || !safeEqual(recebido, esperado)) return res.status(401).json({ error: "Token invalido." })
   try {
     const r = await handlePlatformWebhook(req.body)
     return res.json(r)

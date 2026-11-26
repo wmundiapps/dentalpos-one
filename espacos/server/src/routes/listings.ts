@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { canEditListing, onListingCreated } from '../partners.js';
 import { z } from 'zod';
 import { id, nowIso, pool, rows, withTx, type Db } from '../db.js';
 import * as repo from '../repo.js';
@@ -11,12 +12,16 @@ import { geoCity, geoState, hasGeo, rawGeo, stateTimezone } from '../geo.js';
 import { marketplaceEnabled } from '../payments/mpAccounts.js';
 import { MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
 import { type HostProvider, gatewayFor, hostProviders, payoutRequired, supportsHold } from '../payments/index.js';
+import { assertCleanText } from '../security.js';
 
 const MP_COUNTRIES: readonly string[] = MERCADOPAGO_COUNTRIES;
 import { getListing, quote } from '../bookings.js';
 import { COUNTRY_BY_CODE, getCity } from '../../../shared/countries.js';
 import { AMENITIES, BOOKING_LIMITS, CATEGORIES, FEES, toMinutes, validateOccurrences, weekdayOf } from '../../../shared/rules.js';
 import type { Listing, TimeRange, User } from '../../../shared/types.js';
+
+/** Textos livres do anúncio que passam pelo filtro de conteúdo impróprio. */
+const listingTexts = (d: Record<string, unknown>) => Object.values(d).flatMap((v) => typeof v === 'string' ? [v] : Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 
 export const listingsRouter = Router();
 
@@ -39,6 +44,7 @@ const listingSchema = z.object({
   photos: z.array(z.string().max(1000).refine((u) => /^https:\/\//.test(u) || /^\/api\/uploads\/[\w-]+$/.test(u), 'photo_url')).max(20).default([]),
   pricePerHour: z.number().positive(),
   pricePerDay: z.number().positive().optional(),
+  packageDiscountPct: z.number().min(0).max(BOOKING_LIMITS.maxPackageDiscountPct).optional(),
   minHours: z.number().int().min(1).max(BOOKING_LIMITS.maxHoursPerOccurrence),
   cleaningFee: z.number().min(0),
   securityDeposit: z.number().min(0),
@@ -48,6 +54,9 @@ const listingSchema = z.object({
   guarantorThreshold: z.number().positive().optional(),
   requiresLicense: z.boolean(),
   hostLicenseResponsibility: z.boolean().default(false),
+  // A que título o anfitrião ocupa o imóvel; quem não é proprietário declara a autorização do proprietário/locador
+  occupancy: z.enum(['owner', 'tenant', 'other']).optional(),
+  occupancyConsent: z.boolean().optional(),
   houseRules: z.string().min(10).max(5000),
   buildingRules: z.string().max(5000).optional(),
   allowedActivities: z.string().max(2000).optional(),
@@ -77,6 +86,9 @@ function checkListingRules(data: z.infer<typeof listingSchema>) {
   const dayRef = data.pricePerDay ?? data.pricePerHour * BOOKING_LIMITS.maxHoursPerOccurrence;
   if (data.securityDeposit > dayRef * FEES.maxDepositMultiple) throw new HttpError(422, 'deposit_too_high', { maxMultiple: FEES.maxDepositMultiple });
   if (data.guarantorPolicy === 'required_over_amount' && !data.guarantorThreshold) throw new HttpError(422, 'guarantor_threshold_required');
+  // Lei 8.245/91, art. 13: cessão do uso por quem não é proprietário depende de consentimento prévio e escrito do locador
+  if (!data.occupancy) throw new HttpError(422, 'occupancy_required');
+  if (data.occupancy !== 'owner' && !data.occupancyConsent) throw new HttpError(422, 'occupancy_consent_required');
   for (const ranges of Object.values(data.weeklyAvailability)) {
     for (const r of ranges as TimeRange[]) {
       if (toMinutes(r.start) < toMinutes(BOOKING_LIMITS.earliestStart) || toMinutes(r.end) > toMinutes(BOOKING_LIMITS.latestEnd)) {
@@ -84,7 +96,10 @@ function checkListingRules(data: z.infer<typeof listingSchema>) {
       }
     }
   }
-  return { currency: country.currency, timezone: city.tz, city: city.name, state: hasGeo(data.countryCode) ? data.state : undefined };
+  return {
+    currency: country.currency, timezone: city.tz, city: city.name, state: hasGeo(data.countryCode) ? data.state : undefined,
+    occupancyConsentAt: data.occupancy === 'owner' ? undefined : nowIso(),
+  };
 }
 
 /** Endereço completo só para o anfitrião e para quem tem reserva confirmada. */
@@ -113,11 +128,12 @@ export async function publicListings(db: Db, listings: Listing[], viewer?: User)
   const visible = await addressVisibleTo(db, listings, viewer);
   const canBook = await bookableHosts(listings);
   return listings.map((l) => {
-    const { address, ...rest } = l;
+    // Parceiros: só a existência (as taxas aparecem no orçamento), sem identificar quem é
+    const { address, brokerId, caretakerId, ...rest } = l;
     // Caução: pré-autorização no cartão quando o processador permite; senão, garantida por avalista
     const depositHold = l.securityDeposit > 0 ? supportsHold('card', gatewayFor(l.countryCode)) : undefined;
     // bookable=false: anfitrião ainda não conectou o Mercado Pago — aparece como "em breve", sem reserva
-    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, depositHold, ...canBook(l), ...ratings(l.id) };
+    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, depositHold, ...canBook(l), ...ratings(l.id), hasBroker: !!brokerId, hasCaretaker: !!caretakerId };
   });
 }
 
@@ -199,6 +215,7 @@ listingsRouter.post('/listings/:id/quote', optionalAuth, async (req: AuthedReque
 
 listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) => {
   const data = listingSchema.parse(req.body);
+  await assertCleanText(listingTexts(data), { userId: req.user!.id, ip: req.ip, where: 'listing' });
   const derived = checkListingRules(data);
   const user = req.user!;
   // Sem e-mail confirmado o anúncio fica salvo e entra no ar na confirmação (não perde o que foi preenchido)
@@ -214,6 +231,7 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
       await repo.updateUser(tx, user);
     }
     await repo.insertListing(tx, listing);
+    await onListingCreated(tx, user, listing); // veio pelo link de um corretor: vínculo aguardando o "sim" do anfitrião
     if (pendingEmail) await tx.query('UPDATE listings SET pending_email = true WHERE id = $1', [listing.id]);
     // Boas-vindas ao anúncio + convite para o SpaceHour ADS (destaque pago, em breve)
     const needsPayout = (payoutRequired(listing.countryCode) || (marketplaceEnabled() && MP_COUNTRIES.includes(listing.countryCode))) && !(await hostProviders([user.id])).get(user.id)?.length;
@@ -241,11 +259,13 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
 
 listingsRouter.put('/listings/:id', requireAuth, async (req: AuthedRequest, res) => {
   const data = listingSchema.parse(req.body);
+  await assertCleanText(listingTexts(data), { userId: req.user!.id, ip: req.ip, where: 'listing' });
   const derived = checkListingRules(data);
   await assertCepMatches(data as { countryCode: string; address: string; city: string; state?: string });
   const l = await withTx(async (tx) => {
     const cur = await getListing(tx, req.params.id, true);
-    if (cur.hostId !== req.user!.id) throw new HttpError(403, 'forbidden');
+    // Anfitrião ou parceiro ativo que o anfitrião autorizou a editar
+    if (cur.hostId !== req.user!.id && !(await canEditListing(tx, req.user!.id, cur.id))) throw new HttpError(403, 'forbidden');
     // Política de cancelamento das reservas existentes não muda (fica gravada na reserva)
     Object.assign(cur, data, derived);
     await repo.updateListing(tx, cur);

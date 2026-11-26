@@ -33,7 +33,7 @@ function loadSession(): Session | null {
   }
 }
 
-// ?embed=1 força o modo compacto (aberto dentro do DentalPos One) nesta aba.
+// ?embed=1 força o modo compacto (aberto dentro do DentalPos) nesta aba.
 function readEmbedFlag() {
   try {
     const q = new URLSearchParams(window.location.search)

@@ -54,7 +54,7 @@ export async function loadToothFromLibrary(
 
   if (!response.ok) {
     throw new Error(
-      `Arquivo ${tooth.fileName} não encontrado na biblioteca DentalPos.`
+      `Arquivo ${tooth.fileName} não encontrado na biblioteca CompletoDonto.`
     );
   }
 

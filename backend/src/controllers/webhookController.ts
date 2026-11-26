@@ -207,13 +207,13 @@ export async function stripe(req: Request, res: Response) {
     })
   }
 
-  if (identity.product && identity.product !== 'DENTALPOS') {
+  if (identity.product && identity.product !== 'COMPLETODONTO') {
     await prisma.integrationWebhookEvent.update({
       where: stripeEventWhere(id),
       data: {
         status: 'IGNORED',
         processedAt: new Date(),
-        error: `Evento destinado ao produto ${identity.product}; sem handler DentalPos para este produto.`
+        error: `Evento destinado ao produto ${identity.product}; sem handler CompletoDonto para este produto.`
       }
     })
     return res.json({ ok: true, ignored: true, type })
@@ -405,7 +405,7 @@ export async function stripe(req: Request, res: Response) {
         data: {
           status: 'FAILED',
           processedAt: new Date(),
-          error: 'PaymentIntent DentalPos sem correspondência local; aguardando retry do Stripe.',
+          error: 'PaymentIntent CompletoDonto sem correspondência local; aguardando retry do Stripe.',
           ...(resolvedClinicId ? { clinicId: resolvedClinicId } : {}),
           ...(resolvedTenantId ? { tenantId: resolvedTenantId } : {})
         }

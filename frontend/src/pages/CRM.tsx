@@ -97,7 +97,7 @@ export default function CRM() {
     <Box>
       <PageHeader
         title="CRM — REVAH"
-        description="Funil comercial central do REVAH. DentalPos Sales reutiliza estes mesmos leads; não existe CRM paralelo."
+        description="Funil comercial central do REVAH. CompletoDonto Sales reutiliza estes mesmos leads; não existe CRM paralelo."
         actionLabel="Novo lead"
         actionIcon={<AddIcon />}
         onAction={() => setDialogOpen(true)}

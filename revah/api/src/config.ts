@@ -19,6 +19,7 @@ export const config = {
   corsOrigins: list(process.env.CORS_ORIGINS),
   cronSecret: process.env.CRON_SECRET || '',
   superadminEmails: list(process.env.REVAH_SUPERADMIN_EMAILS).map((e) => e.toLowerCase()),
+  adminRequire2fa: process.env.REVAH_ADMIN_REQUIRE_2FA !== '0',
 
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY || '',
@@ -53,6 +54,12 @@ export const config = {
   leads: {
     googlePlacesKey: process.env.GOOGLE_PLACES_API_KEY || '',
     termsVersion: process.env.LEADS_TERMS_VERSION || '2026-09-v1',
+    // Convites por WhatsApp a partir da planilha do Leads: limite diário por cliente (o WhatsApp bloqueia números que convidam demais).
+    inviteDailyCap: Number(process.env.LEADS_INVITE_DAILY_CAP || 50),
+    // E-mails de campanha para contatos vindos da captação (frios): limite diário por cliente, para não queimar a caixa dele.
+    emailDailyCap: Number(process.env.LEADS_EMAIL_DAILY_CAP || 50),
+    // Janela dos convites no fuso do cliente (início-fim, horas inteiras).
+    inviteHours: (process.env.LEADS_INVITE_HOURS || '8-21').split('-').map(Number) as [number, number],
     // Dados abertos de CNPJ (compartilhamento público no Nextcloud da Receita Federal).
     cnpjDataUrl: (process.env.RECEITA_CNPJ_URL || 'https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9').replace(/\/$/, ''),
   },

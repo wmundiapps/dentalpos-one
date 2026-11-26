@@ -17,6 +17,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import type { ReactNode } from "react";
 
 import PageHeader from "../components/PageHeader";
+import LabReceiptNotices from "../components/LabReceiptNotices";
 import { notifications } from "../services/NotificationService";
 import type { Notification } from "../types/notification";
 
@@ -73,6 +74,8 @@ export default function Notifications() {
         actionLabel="Marcar todas como lidas"
         actionIcon={<DoneAllIcon />}
       />
+
+      <LabReceiptNotices />
 
       <Box
         sx={{

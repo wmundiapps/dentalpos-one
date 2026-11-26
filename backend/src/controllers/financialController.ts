@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { AsaasError, cancelAsaasPayment, loadAsaasConn } from '../services/asaasService'
 import { resolveFinancialAlertFromOperation } from '../services/financialAlertResolutionService'
 import { ensureRecurringEntries } from '../services/financialPlanningService'
 
@@ -29,7 +30,12 @@ export async function store(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = context(req)
     const b = req.body
     if (!b.description || !b.personName || !b.amount || !b.dueDate || !b.type) return res.status(400).json({ error: 'Descrição, pessoa, valor, vencimento e tipo são obrigatórios.' })
-    const row = await prisma.financialEntry.create({ data: { clinicId, tenantId, patientId: b.patientId || null, type: String(b.type), description: String(b.description), category: String(b.category || 'GERAL'), personName: String(b.personName), amount: Number(b.amount), dueDate: parseDay(b.dueDate), competenceDate: b.competenceDate ? parseDay(b.competenceDate) : null, status: String(b.status || 'PENDING'), paymentMethod: b.paymentMethod ? String(b.paymentMethod) : null, provider: b.provider ? String(b.provider) : null, origin: String(b.origin || 'MANUAL'), originId: b.originId ? String(b.originId) : null, installment: b.installment ? Number(b.installment) : null, installments: b.installments ? Number(b.installments) : null, notes: b.notes ? String(b.notes) : null, supplierId: b.supplierId || null, accountingAccountId: b.accountingAccountId || null, costCenterId: b.costCenterId || null, documentNumber: b.documentNumber ? String(b.documentNumber) : null, fiscalDocumentType: b.fiscalDocumentType ? String(b.fiscalDocumentType) : null, taxWithheld: Number(b.taxWithheld || 0), netAmount: b.netAmount !== undefined && b.netAmount !== null ? Number(b.netAmount) : Number(b.amount), accountingStatus: String(b.accountingStatus || 'PENDING'), accountantNotes: b.accountantNotes ? String(b.accountantNotes) : null, recurrence: b.recurrence ? String(b.recurrence) : null, autoDebit: Boolean(b.autoDebit), issuerEntity: String(b.issuerEntity || 'INSTITUTO_RAVEL') } })
+    const line = b.digitableLine ? String(b.digitableLine).replace(/\D/g, '').slice(0, 60) : null
+    if (line) {
+      const dup = await prisma.financialEntry.findFirst({ where: { clinicId, tenantId, digitableLine: line, status: { not: 'CANCELLED' } }, select: { id: true, description: true, dueDate: true } })
+      if (dup) return res.status(409).json({ error: `Este boleto já está lançado (${dup.description}).` })
+    }
+    const row = await prisma.financialEntry.create({ data: { clinicId, tenantId, patientId: b.patientId || null, barcode: b.barcode ? String(b.barcode).replace(/\D/g, '').slice(0, 60) : null, digitableLine: line, supplier: b.supplier ? String(b.supplier).slice(0, 160) : null, costCenter: b.costCenter ? String(b.costCenter).trim().slice(0, 60) : null, accountingMode: b.accountingMode ? String(b.accountingMode) : null, type: String(b.type), description: String(b.description), category: String(b.category || 'GERAL'), personName: String(b.personName), amount: Number(b.amount), dueDate: parseDay(b.dueDate), competenceDate: b.competenceDate ? parseDay(b.competenceDate) : null, status: String(b.status || 'PENDING'), paymentMethod: b.paymentMethod ? String(b.paymentMethod) : null, provider: b.provider ? String(b.provider) : null, origin: String(b.origin || 'MANUAL'), originId: b.originId ? String(b.originId) : null, installment: b.installment ? Number(b.installment) : null, installments: b.installments ? Number(b.installments) : null, notes: b.notes ? String(b.notes) : null, supplierId: b.supplierId || null, accountingAccountId: b.accountingAccountId || null, costCenterId: b.costCenterId || null, documentNumber: b.documentNumber ? String(b.documentNumber) : null, fiscalDocumentType: b.fiscalDocumentType ? String(b.fiscalDocumentType) : null, taxWithheld: Number(b.taxWithheld || 0), netAmount: b.netAmount !== undefined && b.netAmount !== null ? Number(b.netAmount) : Number(b.amount), accountingStatus: String(b.accountingStatus || 'PENDING'), accountantNotes: b.accountantNotes ? String(b.accountantNotes) : null, recurrence: b.recurrence ? String(b.recurrence) : null, autoDebit: Boolean(b.autoDebit), issuerEntity: String(b.issuerEntity || 'INSTITUTO_RAVEL') } })
     await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_CREATE', entityType: 'FinancialEntry', entityId: row.id, afterData: row, summary: `${row.type}: ${row.description}` })
     return res.status(201).json(row)
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao criar lançamento financeiro.' }) }
@@ -41,7 +47,7 @@ export async function update(req: AuthRequest, res: Response) {
     const existing = await prisma.financialEntry.findFirst({ where: { id, clinicId, tenantId } })
     if (!existing) return res.status(404).json({ error: 'Lançamento não encontrado.' })
     const b = req.body; const data: any = {}
-    for (const key of ['type','description','category','personName','status','paymentMethod','provider','origin','originId','notes','externalId','documentNumber','fiscalDocumentType','accountingStatus','accountantNotes','recurrence','issuerEntity']) if (b[key] !== undefined) data[key] = b[key]
+    for (const key of ['costCenter','type','description','category','personName','status','paymentMethod','provider','origin','originId','notes','externalId','documentNumber','fiscalDocumentType','accountingStatus','accountantNotes','recurrence','issuerEntity']) if (b[key] !== undefined) data[key] = b[key]
     for (const key of ['amount','taxWithheld','netAmount']) if (b[key] !== undefined) data[key] = b[key] == null ? null : Number(b[key])
     for (const key of ['installment','installments']) if (b[key] !== undefined) data[key] = b[key] == null ? null : Number(b[key])
     if (b.patientId !== undefined) data.patientId = b.patientId || null
@@ -57,6 +63,14 @@ export async function update(req: AuthRequest, res: Response) {
     await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_UPDATE', entityType: 'FinancialEntry', entityId: id, beforeData: existing, afterData: row, summary: `Lançamento ${row.description} atualizado.` })
     return res.json(row)
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao atualizar lançamento.' }) }
+}
+
+
+// Destino do dinheiro recebido: "CAIXA" (ficou no caixa) ou "CONTA" (enviado a uma conta). Sem informar: dinheiro fica no caixa, o resto vai para conta.
+export function cashDestinationOf(value: unknown, method: string | null | undefined) {
+  const v = String(value || '').toUpperCase()
+  if (v === 'CAIXA' || v === 'CONTA') return v
+  return /dinheiro|cash/i.test(String(method || '')) ? 'CAIXA' : 'CONTA'
 }
 
 export async function settle(req: AuthRequest, res: Response) {
@@ -75,6 +89,9 @@ export async function settle(req: AuthRequest, res: Response) {
     const row = await prisma.financialEntry.update({ where: { id }, data: {
       status: 'PAID', paidAt, settledById: actorId, settledByName,
       paymentMethod: typeof b.paymentMethod === 'string' && b.paymentMethod.trim() ? b.paymentMethod.trim().slice(0, 40) : existing.paymentMethod,
+      cashDestination: cashDestinationOf(b.cashDestination, typeof b.paymentMethod === 'string' && b.paymentMethod.trim() ? b.paymentMethod : existing.paymentMethod),
+      destinationAccount: typeof b.destinationAccount === 'string' && b.destinationAccount.trim() ? b.destinationAccount.trim().slice(0, 80) : null,
+      destinationAt: paidAt,
       paymentReceipt: typeof b.paymentReceipt === 'string' && b.paymentReceipt.trim() ? b.paymentReceipt.trim().slice(0, 120) : null,
       ...(note ? { notes: `${existing.notes ? existing.notes + '\n' : ''}[Baixa] ${note}` } : {}),
     } })
@@ -89,8 +106,24 @@ export async function remove(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = context(req); const id = String(req.params.id)
     const existing = await prisma.financialEntry.findFirst({ where: { id, clinicId, tenantId } })
     if (!existing) return res.status(404).json({ error: 'Lançamento não encontrado.' })
-    const row = await prisma.financialEntry.update({ where: { id }, data: { status: 'CANCELLED' } })
-    await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_CANCEL', entityType: 'FinancialEntry', entityId: id, beforeData: existing, afterData: row, summary: `Lançamento cancelado: ${row.description}` })
+    if (existing.status === 'PAID') return res.status(409).json({ error: 'Lançamento já recebido/pago: não pode ser cancelado.' })
+    const reasonText = String(req.body?.reason || '').trim().slice(0, 500)
+    // Cobrança (boleto/Pix) em aberto no Asaas é cancelada junto, para o paciente não pagar um boleto que o sistema já considera cancelado.
+    const openCharges = await prisma.receivableCharge.findMany({ where: { clinicId, financialEntryId: id, status: { notIn: ['PAGO', 'CANCELADO'] } } })
+    if (openCharges.length) {
+      const conn = await loadAsaasConn(clinicId)
+      if (!conn) return res.status(409).json({ error: 'Há boleto/Pix em aberto no Asaas e a conta Asaas não está conectada. Cancele a cobrança antes.' })
+      for (const charge of openCharges) {
+        try { await cancelAsaasPayment(conn, charge.externalId, charge.installmentId) }
+        catch (error) { if (!(error instanceof AsaasError && error.status === 404)) return res.status(422).json({ error: error instanceof Error ? error.message : 'Falha ao cancelar o boleto no Asaas.' }) }
+        await prisma.receivableCharge.update({ where: { id: charge.id }, data: { status: 'CANCELADO' } })
+        await prisma.paymentSplitLine.updateMany({ where: { chargeId: charge.id }, data: { status: 'CANCELADO' } }).catch(() => undefined)
+      }
+    }
+    const who = await prisma.user.findUnique({ where: { id: actorId }, select: { firstName: true, lastName: true, email: true } })
+    const stamp = `Cancelado em ${new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10).split('-').reverse().join('/')} por ${who ? `${who.firstName} ${who.lastName}`.trim() || who.email : 'usuário'}${reasonText ? `. Motivo: ${reasonText}` : ''}`
+    const row = await prisma.financialEntry.update({ where: { id }, data: { status: 'CANCELLED', notes: existing.notes ? `${existing.notes}\n${stamp}` : stamp } })
+    await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_CANCEL', entityType: 'FinancialEntry', entityId: id, beforeData: existing, afterData: row, summary: `Lançamento cancelado: ${row.description}${reasonText ? ` — ${reasonText}` : ''}` })
     const resolution = await resolveFinancialAlertFromOperation({clinicId,tenantId,actorId,ipAddress:req.ip,userAgent:req.get('user-agent')},{sourceEntityType:'FinancialEntry',sourceEntityId:id,action:'CANCELLATION',reason:String(req.body?.reason||'Cancelado no fluxo financeiro.')})
     return res.json({ ...row, resolutionProtocol:(resolution as any).protocol || null })
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao cancelar lançamento.' }) }
@@ -125,4 +158,21 @@ export async function purgeCancelled(req: AuthRequest, res: Response) {
     }
     return res.json({ deleted: removable.length, keptFiscal: blocked.size })
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao excluir lançamentos cancelados.' }) }
+}
+
+// Depois de recebido: registra que o valor foi enviado a uma conta (ex.: deposito do dinheiro) ou que voltou/ficou no caixa.
+export async function setDestination(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = context(req); const id = String(req.params.id)
+    const existing = await prisma.financialEntry.findFirst({ where: { id, clinicId, tenantId } })
+    if (!existing || existing.status !== 'PAID') return res.status(404).json({ error: 'Lançamento pago não encontrado.' })
+    const b = req.body || {}
+    const dest = String(b.cashDestination || '').toUpperCase()
+    if (dest !== 'CAIXA' && dest !== 'CONTA') return res.status(400).json({ error: 'Informe se o valor ficou no caixa ou foi enviado para uma conta.' })
+    const account = typeof b.destinationAccount === 'string' && b.destinationAccount.trim() ? b.destinationAccount.trim().slice(0, 80) : null
+    if (dest === 'CONTA' && !account) return res.status(400).json({ error: 'Informe o nome da conta que recebeu o valor.' })
+    const row = await prisma.financialEntry.update({ where: { id }, data: { cashDestination: dest, destinationAccount: dest === 'CONTA' ? account : null, destinationAt: new Date() } })
+    await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_DESTINATION', entityType: 'FinancialEntry', entityId: id, beforeData: { cashDestination: existing.cashDestination, destinationAccount: existing.destinationAccount }, afterData: { cashDestination: row.cashDestination, destinationAccount: row.destinationAccount }, summary: `Destino do valor: ${row.description}` })
+    return res.json({ ok: true })
+  } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao registrar o destino do valor.' }) }
 }

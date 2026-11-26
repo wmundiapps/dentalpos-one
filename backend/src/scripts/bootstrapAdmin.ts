@@ -4,7 +4,7 @@ import { createDefaultProfiles } from '../services/permissionService'
 
 async function main() {
   const tenantId = process.env.BOOTSTRAP_TENANT_ID || 'default'
-  const clinicName = process.env.BOOTSTRAP_CLINIC_NAME || 'DentalPos Clínica Piloto'
+  const clinicName = process.env.BOOTSTRAP_CLINIC_NAME || 'CompletoDonto Clínica Piloto'
   const cnpj = process.env.BOOTSTRAP_CLINIC_CNPJ || '00000000000000'
   const email = process.env.BOOTSTRAP_ADMIN_EMAIL
   const password = process.env.BOOTSTRAP_ADMIN_PASSWORD
@@ -20,7 +20,7 @@ async function main() {
 
   let user = await prisma.user.findUnique({ where: { clinicId_email: { clinicId: clinic.id, email } } })
   if (!user) {
-    user = await createUser({ clinicId: clinic.id, tenantId, firstName: 'Administrador', lastName: 'DentalPos', email, password, role: 'ADMIN', isActive: true })
+    user = await createUser({ clinicId: clinic.id, tenantId, firstName: 'Administrador', lastName: 'CompletoDonto', email, password, role: 'ADMIN', isActive: true })
   }
 
   const adminProfile = await prisma.accessProfile.findUnique({ where: { clinicId_code: { clinicId: clinic.id, code: 'ADMIN' } } })

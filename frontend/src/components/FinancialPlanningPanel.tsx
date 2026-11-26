@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Button, Chip, MenuItem, Paper, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { loadFinancialEntries, settleFinancialEntry, updateFinancialEntry, type FinancialEntry } from "../services/FinancialApi";
 import { deactivateRecurringBill, frequencyLabels, listRecurringBills, loadDebtors, loadForecast, loadReminders, updateRecurringBill, type Debtors, type Forecast, type RecurringBill, type Reminders } from "../services/FinancialPlanningApi";
 
 const money = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -10,12 +11,43 @@ const monthLabel = (ym: string) => { const [y, m] = ym.split("-").map(Number); r
 export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloadKey: number; onChanged: () => void }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
+  const [expanded, setExpanded] = useState(false);
   const [months, setMonths] = useState(6);
   const [reminders, setReminders] = useState<Reminders | null>(null);
   const [debtors, setDebtors] = useState<Debtors | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [bills, setBills] = useState<RecurringBill[]>([]);
   const [error, setError] = useState("");
+  const [view, setView] = useState<{ r: Reminders["items"][number]; entry: FinancialEntry | null; bill: RecurringBill | null; loading: boolean } | null>(null);
+  const [ed, setEd] = useState({ amount: "", dueDate: "", method: "PIX", paidAt: "", receipt: "", busy: false, err: "" });
+  const today = () => new Date().toLocaleDateString("sv-SE");
+  const parseMoney = (raw: string) => { const t = raw.replace(/[^\d.,]/g, ""); if (!t) return NaN; const sep = Math.max(t.lastIndexOf(","), t.lastIndexOf(".")); const tail = sep >= 0 ? t.slice(sep + 1) : ""; if (sep >= 0 && tail.length > 0 && tail.length <= 2) return Math.round(Number(`${t.slice(0, sep).replace(/[.,]/g, "")}.${tail}`) * 100) / 100; return Number(t.replace(/[.,]/g, "")); };
+  const initEdit = (e: FinancialEntry | null, r: Reminders["items"][number]) => setEd({ amount: String(e?.amount ?? r.amount).replace(".", ","), dueDate: String(e?.dueDate || r.dueDate).slice(0, 10), method: e?.paymentMethod || "PIX", paidAt: today(), receipt: "", busy: false, err: "" });
+  const saveEntry = async (settle: boolean) => {
+    const e = view?.entry; if (!e) return;
+    const amount = parseMoney(ed.amount);
+    if (!(amount > 0)) { setEd({ ...ed, err: "Informe um valor válido." }); return; }
+    if (settle) {
+      if (!ed.paidAt) { setEd({ ...ed, err: "Informe a data do pagamento." }); return; }
+      if (ed.paidAt > today()) { setEd({ ...ed, err: "A data do pagamento não pode ser futura." }); return; }
+      if (!["Dinheiro", "Permuta"].includes(ed.method) && !ed.receipt.trim()) { setEd({ ...ed, err: "Informe o número do comprovante." }); return; }
+    }
+    setEd({ ...ed, busy: true, err: "" });
+    try {
+      const changed = amount !== Number(e.amount) || ed.dueDate !== String(e.dueDate).slice(0, 10);
+      if (changed) await updateFinancialEntry(e.id, { amount, dueDate: ed.dueDate });
+      if (settle) await settleFinancialEntry(e.id, { paymentMethod: ed.method, paidAt: `${ed.paidAt}T12:00:00-03:00`, paymentReceipt: ed.receipt.trim() || undefined });
+      setView(null); onChanged(); void load();
+    } catch (err) { setEd((cur) => ({ ...cur, busy: false, err: err instanceof Error ? err.message : "Erro ao salvar." })); }
+  };
+  const openView = async (r: Reminders["items"][number]) => {
+    const bill = r.recurringBillId ? bills.find((b) => b.id === r.recurringBillId) || null : null;
+    setView({ r, entry: null, bill, loading: Boolean(r.entryId) });
+    initEdit(null, r);
+    if (!r.entryId) return;
+    try { const all = await loadFinancialEntries(); const entry = all.find((e) => e.id === r.entryId) || null; initEdit(entry, r); setView({ r, entry, bill, loading: false }); }
+    catch { setView({ r, entry: null, bill, loading: false }); }
+  };
 
   const load = async () => {
     setError("");
@@ -45,24 +77,27 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
   const high = reminders?.high || 0;
   return (
     <Paper variant="outlined" sx={{ mb: 2, borderRadius: 3, overflow: "hidden" }}>
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: "1px solid", borderColor: "divider", px: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", borderBottom: expanded ? "1px solid" : "none", borderColor: "divider" }}>
+      <Tabs value={tab} onChange={(_, v) => { setTab(v); setExpanded(true); }} variant="scrollable" scrollButtons="auto" sx={{ px: 1, minHeight: 38, flex: 1, "& .MuiTab-root": { minHeight: 38, py: 0.5, fontSize: 13 } }}>
         <Tab label={`Lembretes (${reminders?.total ?? 0})`} sx={{ color: high ? "error.main" : undefined, fontWeight: high ? 800 : undefined }} />
         <Tab label={`Quem est\u00e1 devendo (${debtors?.debtors ?? 0})`} />
         <Tab label={"Previs\u00e3o"} />
         <Tab label={`Contas recorrentes (${bills.filter((b) => b.isActive).length})`} />
       </Tabs>
+      <Button size="small" onClick={() => setExpanded(!expanded)} sx={{ mr: 1, whiteSpace: "nowrap" }}>{expanded ? "Recolher ▲" : "Ver mais ▼"}</Button>
+      </Box>
       {error && <Alert severity="error" sx={{ m: 2 }}>{error}</Alert>}
 
-      {tab === 0 && <Box sx={{ p: 2 }}>
+      {expanded && tab === 0 && <Box sx={{ p: 1.5, maxHeight: 320, overflow: "auto" }}>
         {!reminders ? <Typography color="text.secondary">Carregando...</Typography>
           : reminders.items.length === 0 ? <Alert severity="success">{"Nenhuma pend\u00eancia: as contas do m\u00eas est\u00e3o lan\u00e7adas e em dia."}</Alert>
           : <Box sx={{ display: "grid", gap: 1 }}>{reminders.items.map((r, i) => (
-            <Alert key={i} severity={r.severity === "HIGH" ? "error" : "warning"} action={<Button color="inherit" size="small" onClick={() => goTo(r.detail.split(" - ")[0])}>Ver</Button>}>
+            <Alert key={i} severity={r.severity === "HIGH" ? "error" : "warning"} sx={{ py: 0, "& .MuiAlert-message": { py: 0.5, fontSize: 13 } }} action={<Button color="inherit" size="small" onClick={() => void openView(r)}>Ver</Button>}>
               <b>{r.title}</b>{` \u2014 ${r.detail} \u2022 ${money(r.amount)} \u2022 venc. ${brDate(r.dueDate)}`}
             </Alert>))}</Box>}
       </Box>}
 
-      {tab === 1 && <Box sx={{ p: 2 }}>
+      {expanded && tab === 1 && <Box sx={{ p: 1.5, maxHeight: 320, overflow: "auto" }}>
         {!debtors ? <Typography color="text.secondary">Carregando...</Typography>
           : debtors.list.length === 0 ? <Alert severity="success">{"Nenhum paciente com parcela vencida."}</Alert>
           : <>
@@ -75,13 +110,13 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
                   <Box><Typography sx={{ fontWeight: 800 }}>{d.name}</Typography><Typography variant="body2" color="text.secondary">{`${d.count} parcela(s) \u2022 mais antiga ${brDate(d.oldestDueDate)}${d.phone ? ` \u2022 ${d.phone}` : ""}`}</Typography></Box>
                   <Typography sx={{ fontWeight: 800 }} color="error.main">{money(d.total)}</Typography>
                   <Chip size="small" color={d.daysOverdue > 60 ? "error" : d.daysOverdue > 30 ? "warning" : "default"} label={`${d.daysOverdue} dia(s) de atraso`} />
-                  <Box sx={{ display: "flex", gap: 0.5 }}><Button size="small" onClick={() => goTo(d.name)}>{"Lan\u00e7amentos"}</Button>{wa && <Button size="small" href={wa} target="_blank" rel="noopener">WhatsApp</Button>}</Box>
+                  <Box sx={{ display: "flex", gap: 0.5 }}>{d.patientId && <Button size="small" variant="outlined" onClick={() => navigate(`/ficha-paciente?patientId=${encodeURIComponent(d.patientId as string)}&aba=financeiro`)}>Painel do paciente</Button>}<Button size="small" onClick={() => goTo(d.name)}>{"Lan\u00e7amentos"}</Button>{wa && <Button size="small" href={wa} target="_blank" rel="noopener">WhatsApp</Button>}</Box>
                 </Box>);
             })}
           </>}
       </Box>}
 
-      {tab === 2 && <Box sx={{ p: 2 }}>
+      {expanded && tab === 2 && <Box sx={{ p: 1.5, maxHeight: 320, overflow: "auto" }}>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 1, flexWrap: "wrap" }}>
           <TextField select size="small" label="Horizonte" value={months} onChange={(e) => setMonths(Number(e.target.value))} sx={{ width: 160 }}>{[3, 6, 12].map((m) => <MenuItem key={m} value={m}>{`${m} meses`}</MenuItem>)}</TextField>
           <Typography variant="caption" color="text.secondary">{forecast ? `Inclui lan\u00e7amentos em aberto, contas recorrentes e estimativa pela ${forecast.basis.toLowerCase()}. Passe o mouse no valor para ver a composi\u00e7\u00e3o.` : ""}</Typography>
@@ -102,7 +137,7 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
           </Box>}
       </Box>}
 
-      {tab === 3 && <Box sx={{ p: 2 }}>
+      {expanded && tab === 3 && <Box sx={{ p: 1.5, maxHeight: 320, overflow: "auto" }}>
         {bills.length === 0 ? <Alert severity="info">{"Nenhuma conta recorrente. Em \u201cNovo lan\u00e7amento\u201d, marque \u201cConta recorrente\u201d para cadastrar aluguel, energia, sistemas etc."}</Alert>
           : bills.map((b) => (
             <Box key={b.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr auto" }, gap: 1, py: 1.25, borderBottom: "1px solid", borderColor: "divider", alignItems: "center", opacity: b.isActive ? 1 : 0.55 }}>
@@ -120,6 +155,56 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
               </Box> : <span />}
             </Box>))}
       </Box>}
+      <Dialog open={Boolean(view)} onClose={() => setView(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>{view?.r.title}</DialogTitle>
+        <DialogContent>
+          {view && (() => {
+            const e = view.entry; const b = view.bill;
+            const rows: Array<[string, string]> = [
+              ["Conta", e?.description || b?.description || view.r.detail],
+              ["Pessoa / fornecedor", e?.personName || b?.personName || "-"],
+              ["Valor", money(e?.amount ?? view.r.amount)],
+              ["Vencimento", brDate(e?.dueDate || view.r.dueDate)],
+              ["Situação", e ? (e.status === "PAID" ? "Paga" : e.status === "CANCELLED" ? "Cancelada" : "Em aberto") : "Ainda não lançada neste mês"],
+              ["Tipo", (e?.type || b?.type) === "INCOME" ? "A receber" : "A pagar"],
+              ["Categoria", e?.category || b?.category || "-"],
+              ["Forma de pagamento", e?.paymentMethod || b?.paymentMethod || "-"],
+              ...(b ? [["Recorrência", `${frequencyLabels[b.frequency as keyof typeof frequencyLabels] || b.frequency} • dia ${b.dueDay}${b.autoDebit ? " • débito automático" : ""}`] as [string, string]] : []),
+            ];
+            if (view.loading) return <Typography color="text.secondary">Carregando...</Typography>;
+            const open = Boolean(e && e.status === "PENDING");
+            return (
+              <>
+                <Box sx={{ display: "grid", gridTemplateColumns: "150px 1fr", gap: 1, mt: 0.5 }}>
+                  {rows.filter(([k]) => !(open && (k === "Valor" || k === "Vencimento"))).map(([k, v]) => (<><Typography key={`k${k}`} color="text.secondary" variant="body2">{k}</Typography><Typography key={`v${k}`} sx={{ fontWeight: 700 }}>{v}</Typography></>))}
+                </Box>
+                {open ? (
+                  <Box sx={{ display: "grid", gap: 1.5, mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+                    {view.bill?.amountIsVariable ? <Alert severity="warning">Conta de valor variável: informe o valor deste mês.</Alert> : null}
+                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+                      <TextField size="small" label="Valor (R$)" value={ed.amount} onChange={(x) => setEd({ ...ed, amount: x.target.value })} autoFocus={Boolean(view.bill?.amountIsVariable)} />
+                      <TextField size="small" type="date" label="Vencimento" value={ed.dueDate} onChange={(x) => setEd({ ...ed, dueDate: x.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+                    </Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Dar baixa (pagamento / recebimento)</Typography>
+                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+                      <TextField select size="small" label="Forma" value={ed.method} onChange={(x) => setEd({ ...ed, method: x.target.value })}>{["PIX", "Boleto", "Cartão", "Transferência", "Dinheiro", "Cheque", "Promissória", "Permuta"].map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}</TextField>
+                      <TextField size="small" type="date" label="Data do pagamento" value={ed.paidAt} onChange={(x) => setEd({ ...ed, paidAt: x.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+                    </Box>
+                    {!["Dinheiro", "Permuta"].includes(ed.method) ? <TextField size="small" label="Nº do comprovante" value={ed.receipt} onChange={(x) => setEd({ ...ed, receipt: x.target.value })} /> : null}
+                    {ed.err ? <Alert severity="error">{ed.err}</Alert> : null}
+                  </Box>
+                ) : null}
+              </>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setView(null)}>Fechar</Button>
+          {view?.entry && view.entry.status === "PENDING" ? <Button variant="outlined" disabled={ed.busy} onClick={() => void saveEntry(false)}>Salvar valor/data</Button> : null}
+          {view?.entry && view.entry.status === "PENDING" ? <Button variant="contained" color="success" disabled={ed.busy} onClick={() => void saveEntry(true)}>{ed.busy ? "Salvando…" : "Dar baixa"}</Button> : null}
+          <Button variant="contained" onClick={() => { const t = view?.entry?.description || view?.r.detail.split(" - ")[0] || ""; setView(null); goTo(t); }}>Abrir no financeiro</Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 }

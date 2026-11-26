@@ -7,7 +7,7 @@ export const inventoryItems: InventoryItem[] = !DEMO_DATA_ON ? [] : [
     code: "W48-CM-25",
     name: "Multiple W48 Cone Morse 2,5 mm",
     category: "Componentes",
-    supplier: "DentalPos Componentes",
+    supplier: "CompletoDonto Componentes",
     currentQuantity: 18,
     minimumQuantity: 20,
     unit: "unidades",

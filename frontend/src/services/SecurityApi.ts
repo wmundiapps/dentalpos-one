@@ -1,4 +1,4 @@
-// Cliente das APIs de segurança: 2FA (/auth/2fa e /security/2fa) e eventos de segurança.
+// Cliente das APIs de segurança: 2FA (/auth/2fa e /security/2fa), eventos de segurança e sessões ativas.
 const API = (import.meta.env.VITE_API_URL || "http://localhost:3000/api").replace(/\/$/, "");
 
 export class SecurityApiError extends Error {
@@ -87,3 +87,8 @@ export const securityApi = {
     return request<any>("GET", `/security/events${s ? `?${s}` : ""}`);
   },
 };
+
+export interface SessionRow { id: string; userName: string | null; current: boolean; device: string; place: string; ip: string | null; createdAt: string; lastSeenAt: string; anomaly: boolean }
+export const listSessions = (all = false) => request<{ canManage: boolean; sessions: SessionRow[]; unavailable?: boolean }>("GET", `/security/sessions${all ? "?all=1" : ""}`);
+export const revokeSession = (id: string) => request<{ ok: boolean }>("POST", `/security/sessions/${id}/revoke`, {});
+export const revokeOtherSessions = () => request<{ ok: boolean; revoked: number }>("POST", "/security/sessions/revoke-others", {});

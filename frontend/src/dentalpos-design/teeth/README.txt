@@ -1,6 +1,6 @@
-DENTALPOS DESIGN - BIBLIOTECA DENTAL 3D
+COMPLETODONTO DESIGN - BIBLIOTECA DENTAL 3D
 
-Esta pasta armazenará os arquivos STL da biblioteca anatômica DentalPos.
+Esta pasta armazenará os arquivos STL da biblioteca anatômica CompletoDonto.
 
 PADRÃO DOS ARQUIVOS:
 
@@ -51,6 +51,6 @@ Exemplo:
 36.stl = primeiro molar inferior esquerdo
 46.stl = primeiro molar inferior direito
 
-DentalPos Design
+CompletoDonto Design
 3D Core
 ALPHA

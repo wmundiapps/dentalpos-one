@@ -1,10 +1,10 @@
 # Normas de Conduta e Respeito aos Espaços
 
-Versão 2026-09-27 · Vigência a partir de 27/09/2026
+Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
 ## 1. Objeto
 
-1.1. Este documento integra os Termos de Uso e estabelece as normas de conduta que Locatários, seus assistentes, Clientes Finais e visitantes devem observar nos Espaços, bem como deveres de respeito recíproco entre Anfitriões e Locatários.
+1.1. Este documento integra os Termos de Uso (anexo "d") e estabelece as normas de conduta que Locatários, seus assistentes, Clientes Finais e visitantes devem observar nos Espaços, bem como deveres de respeito recíproco entre Anfitriões e Locatários.
 
 1.2. Aplicam-se, cumulativamente: (a) estas normas; (b) as **normas internas do Espaço** publicadas pelo Anfitrião no Anúncio; (c) as **normas do condomínio ou edifício** informadas no Anúncio; (d) a legislação e as normas profissionais e sanitárias aplicáveis. O Locatário declara conhecê-las e aceitá-las ao confirmar a Reserva.
 
@@ -36,7 +36,7 @@ Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 5.1. O Locatário deve seguir as regras de portaria, identificação, uso de elevadores, estacionamento, horários de funcionamento, circulação em áreas comuns e cadastro de visitantes do edifício.
 
-5.2. Multas aplicadas pelo condomínio ou pela administração do edifício em razão de conduta do Locatário, de seus assistentes ou Clientes Finais são repassadas ao Locatário, conforme Penalidades e Medidas.
+5.2. Multas aplicadas pelo condomínio ou pela administração do edifício em razão de conduta do Locatário, de seus assistentes ou Clientes Finais são ressarcidas pelo Locatário, mediante comprovação, conforme Penalidades e Medidas, cláusula 2.
 
 ## 6. Biossegurança em Espaços de saúde
 
@@ -44,9 +44,9 @@ Versão 2026-09-27 · Vigência a partir de 27/09/2026
 - (a) **Equipamentos de proteção individual (EPIs)**: utilizar e fornecer aos seus assistentes os EPIs exigidos para cada procedimento;
 - (b) **Esterilização**: utilizar instrumental próprio devidamente esterilizado, ou utilizar a autoclave do Espaço somente se autorizado e conforme o protocolo do Anfitrião, com registro dos ciclos quando exigido;
 - (c) **Desinfecção**: realizar a desinfecção de superfícies, cadeiras, macas e equipamentos após cada atendimento e ao final da Ocorrência, conforme protocolo sanitário;
-- (d) **Resíduos de serviços de saúde**: segregar e descartar resíduos infectantes, perfurocortantes, químicos e comuns nos recipientes próprios disponibilizados pelo Anfitrião, nos termos das normas sanitárias locais (no Brasil, RDC ANVISA nº 222/2018 e normas correlatas), sendo vedado deixar resíduos fora dos coletores ou levá-los para descarte comum;
+- (d) **Resíduos de serviços de saúde**: segregar e descartar resíduos infectantes, perfurocortantes, químicos e comuns nos recipientes próprios disponibilizados pelo Anfitrião, nos termos da RDC ANVISA nº 222/2018 e das normas sanitárias estaduais e municipais correlatas, sendo vedado deixar resíduos fora dos coletores ou levá-los para descarte comum;
 - (e) **Medicamentos e materiais controlados**: não armazenar no Espaço e observar a legislação específica;
-- (f) **Radiação**: operar equipamentos de raios X somente com habilitação e observando as normas de proteção radiológica (no Brasil, RDC ANVISA 611/2022).
+- (f) **Radiação**: operar equipamentos de raios X somente com habilitação e observando as normas de proteção radiológica (RDC ANVISA nº 611/2022).
 
 6.2. O Anfitrião deve disponibilizar as condições estruturais anunciadas (coletores de resíduos, pia, autoclave, quando anunciada), mas não responde pelos atos técnicos do Locatário.
 
@@ -60,7 +60,7 @@ Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 7.3. O Locatário que utilizar computador ou rede do Espaço deve encerrar suas sessões e não salvar dados de pacientes ou clientes em equipamentos do Anfitrião.
 
-7.4. O Locatário é o controlador dos dados pessoais de seus Clientes Finais e responde pelo seu tratamento conforme a legislação de proteção de dados aplicável.
+7.4. O Locatário é o controlador dos dados pessoais de seus Clientes Finais e responde pelo seu tratamento conforme a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018) e as normas de sigilo de sua profissão.
 
 ## 8. Uso de equipamentos
 
@@ -78,7 +78,7 @@ Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 9.3. É proibido assédio moral ou sexual, intimidação, ameaças ou violência. A violação é falta grave e leva à exclusão.
 
-9.4. **São proibidas agressões físicas ou verbais** — incluindo empurrões, xingamentos, ofensas, humilhações, gritos, ameaças e intimidação — contra funcionários do Anfitrião ou do edifício, Clientes Finais, outros Locatários, visitantes e quaisquer pessoas que estejam no ambiente. A violação é falta grave: a conta é excluída de imediato, a Plataforma colabora com as autoridades e o infrator responde civil e penalmente.
+9.4. **São proibidas agressões físicas ou verbais** — incluindo empurrões, xingamentos, ofensas, humilhações, gritos, ameaças e intimidação — contra funcionários do Anfitrião ou do edifício, Clientes Finais, outros Locatários, visitantes e quaisquer pessoas que estejam no ambiente. A violação é falta grave: após revisão humana, a conta é excluída, a Plataforma colabora com as autoridades quando requisitada ou nas condições de Penalidades e Medidas, cláusula 7, e o infrator responde civil e penalmente.
 
 ## 10. Segurança
 
@@ -96,7 +96,7 @@ Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 (e) fumar (inclusive cigarros eletrônicos), salvo em área expressamente designada.
 
-10.2.1. A violação das alíneas (a), (b) ou (c) é falta gravíssima: o Anfitrião pode encerrar a Ocorrência imediatamente, sem reembolso, a conta é excluída e a Plataforma comunica o fato às autoridades.
+10.2.1. A violação das alíneas (a), (b) ou (c) é falta gravíssima: o Anfitrião pode encerrar a Ocorrência imediatamente, sem reembolso da Ocorrência interrompida, e a conta é excluída após revisão humana. Em situação de risco atual, qualquer pessoa deve acionar imediatamente a polícia (190). A comunicação do fato às autoridades pela Plataforma observa Penalidades e Medidas, cláusula 7.
 
 10.3. O Locatário deve trancar o Espaço ao sair, conforme as instruções, e não compartilhar códigos de acesso.
 
@@ -122,7 +122,7 @@ Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 ## 15. Emergências
 
-15.1. Em emergência médica, incêndio ou outro risco, a prioridade é a segurança das pessoas: acione os serviços de emergência locais (no Brasil, SAMU 192, Bombeiros 193, Polícia 190), evacue se necessário e, em seguida, comunique o Anfitrião e a Plataforma.
+15.1. Em emergência médica, incêndio ou outro risco, a prioridade é a segurança das pessoas: acione os serviços de emergência locais (SAMU 192, Bombeiros 193, Polícia 190), evacue se necessário e, em seguida, comunique o Anfitrião e a Plataforma.
 
 15.2. O Locatário de Espaços de saúde deve estar preparado para prestar suporte básico de vida nos limites de sua habilitação.
 
@@ -134,10 +134,10 @@ Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 ## 17. Exercício legal da profissão
 
-17.1. Em Espaços destinados a atividades regulamentadas (saúde, advocacia e outras), somente pode atuar o profissional com **habilitação válida e ativa** no órgão competente do país do Espaço, dentro dos limites de sua habilitação. Assistentes e auxiliares também devem estar habilitados quando a lei exigir.
+17.1. Em Espaços destinados a atividades regulamentadas (saúde, advocacia e outras), somente pode atuar o profissional com **habilitação válida e ativa** no conselho ou na ordem profissional competente, dentro dos limites de sua habilitação. Assistentes e auxiliares também devem estar habilitados quando a lei exigir.
 
-17.2. A indicação de registro verificado resulta de **pré-triagem automatizada** pela Plataforma, com apoio de agente de inteligência artificial, e **não é garantia** de validade do registro. O Anfitrião confirma a habilitação antes de cada Reserva de Espaço regulado e pode recusar ou cancelar a Reserva, sem penalidade, em caso de dúvida fundada (Regras de Reserva e Uso, cláusula 8, e Obrigações do Anfitrião, cláusula 3).
+17.2. A indicação de registro verificado resulta de **pré-triagem automatizada** pela Plataforma, com apoio de sistema de inteligência artificial, e **não é garantia** de validade do registro. O Anfitrião confirma a habilitação antes do início do uso de Espaço regulado e pode recusar ou cancelar a Reserva, sem penalidade, em caso de dúvida fundada (Regras de Reserva e Uso, cláusula 8, e Obrigações do Anfitrião, cláusula 3).
 
 17.3. O Locatário deve apresentar ao Anfitrião, pela Plataforma ou no local, documento que comprove sua habilitação sempre que solicitado.
 
-17.4. O exercício de profissão sem habilitação, fora de seus limites ou com registro de terceiro é falta gravíssima. O Locatário responde integralmente, civil, administrativa e penalmente (no Brasil, por exemplo, Código Penal, art. 282, e Lei das Contravenções Penais, art. 47; nos demais países, as normas indicadas em Regras por País). A Plataforma **exclui definitivamente** a conta e **comunica o fato às autoridades** e ao órgão profissional competentes; o Anfitrião que o permitir conscientemente também tem a conta excluída (Penalidades e Medidas).
+17.4. O exercício de profissão sem habilitação, fora de seus limites ou com registro de terceiro é falta gravíssima. O Locatário responde integralmente, civil, administrativa e penalmente (por exemplo, Código Penal, art. 282, e Lei das Contravenções Penais, art. 47). Apurado o fato com evidências suficientes e após revisão humana, a Plataforma **exclui** a conta; a comunicação a autoridades ou ao conselho profissional ocorre somente quando houver fundamento jurídico, indício suficientemente consistente e revisão humana prévia (Penalidades e Medidas, cláusulas 4.6 e 7). O Anfitrião que o permitir conscientemente também tem a conta excluída.

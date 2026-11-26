@@ -1,4 +1,8 @@
-import { Box, Chip, Paper, Typography } from "@mui/material";
+import { MarkerDots } from "../contexts/AgendaMarkers";
+import { useEffect, useRef, useState } from "react";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import { Box, Chip, Paper, Tooltip, Typography, useMediaQuery } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 import type { IntegratedAppointment } from "../types/operationsHub";
 import type { AgendaBlock, BackendSchedule, RecurringBreak } from "../services/ScheduleApi";
 import { getLaboratoryWorks } from "../services/OperationsHubService";
@@ -19,6 +23,7 @@ interface Props {
   items: IntegratedAppointment[];
   professional: string;
   professionalId?: string;
+  professionalNames?: string[];
   scheduleBlocks?: BackendSchedule[];
   agendaBlocks?: AgendaBlock[];
   recurringBreaks?: RecurringBreak[];
@@ -26,6 +31,14 @@ interface Props {
   onDayOpen?: (dateISO: string) => void;
   onAppointmentClick: (appointment: IntegratedAppointment) => void;
   onNew: (prefill: AppointmentPrefill) => void;
+  // Arrastar a borda de baixo do agendamento muda a duração (como no Clinicorp). Deve lançar erro se não puder salvar.
+  onResize?: (appointment: IntegratedAppointment, durationMinutes: number) => Promise<void> | void;
+  // Arrastar o agendamento para outro dia/horário (pede o motivo e confirma na tela de quem usa).
+  onMove?: (appointment: IntegratedAppointment, dateISO: string, time: string) => void;
+  // Clicar num compromisso (bloco com horário) da grade.
+  onBlockClick?: (block: AgendaBlock) => void;
+  // Altura máxima da área rolável (o cabeçalho dos dias fica fixo no topo enquanto a grade rola).
+  maxHeight?: string | number;
   materialAlerts?: Map<string, string>;
   financialAlerts?: Map<string, { open: number; overdue: number }>;
 }
@@ -40,9 +53,45 @@ function iso(date: Date) {
   return copy.toISOString().slice(0, 10);
 }
 
+const PROFESSIONAL_COLORS = ["#1976d2", "#2e7d32", "#ed6c02", "#9c27b0", "#d32f2f", "#00838f", "#6d4c41", "#c2185b", "#5e35b1", "#827717"];
+// Cada dentista tem sempre a mesma cor: a posição dele na lista em ordem alfabética.
+export function professionalColorMap(names: string[]) {
+  const sorted = Array.from(new Set(names.map((n) => n.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const map = new Map<string, string>();
+  sorted.forEach((name, index) => map.set(name, PROFESSIONAL_COLORS[index % PROFESSIONAL_COLORS.length]));
+  return map;
+}
+
 function minuteOfDay(time: string) {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
+}
+
+// Atendimentos que se sobrepõem no mesmo dia ficam lado a lado (encaixe: até 2 por horário).
+function computeLanes(list: IntegratedAppointment[]) {
+  const lanes = new Map<string | number, { lane: number; count: number }>();
+  const sorted = list
+    .map((a) => ({ id: a.id as string | number, start: minuteOfDay(a.time), end: minuteOfDay(a.time) + Math.max(10, a.durationMinutes || 30) }))
+    .sort((x, y) => x.start - y.start || x.end - y.end);
+  let cluster: typeof sorted = [];
+  let clusterEnd = -1;
+  const flush = () => {
+    const laneEnds: number[] = [];
+    for (const it of cluster) {
+      let lane = laneEnds.findIndex((e) => e <= it.start);
+      if (lane < 0) { lane = laneEnds.length; laneEnds.push(it.end); } else laneEnds[lane] = it.end;
+      lanes.set(it.id, { lane, count: 0 });
+    }
+    for (const it of cluster) lanes.get(it.id)!.count = laneEnds.length;
+    cluster = [];
+  };
+  for (const it of sorted) {
+    if (cluster.length && it.start >= clusterEnd) { flush(); clusterEnd = -1; }
+    cluster.push(it);
+    clusterEnd = Math.max(clusterEnd, it.end);
+  }
+  if (cluster.length) flush();
+  return lanes;
 }
 
 function timeFromMinutes(value: number) {
@@ -52,6 +101,19 @@ function timeFromMinutes(value: number) {
 
 function endTime(appointment: IntegratedAppointment) {
   return timeFromMinutes(minuteOfDay(appointment.time) + Math.max(10, appointment.durationMinutes || 30) - 1);
+}
+
+// Balão ao passar o mouse (como no Clinicorp): nome completo, horário de início e fim e procedimento, mesmo quando o card é pequeno.
+function appointmentTip(appointment: IntegratedAppointment) {
+  const start = minuteOfDay(appointment.time);
+  const end = timeFromMinutes(start + Math.max(10, appointment.durationMinutes || 30));
+  return (
+    <Box sx={{ py: 0.2 }}>
+      <Typography sx={{ fontWeight: 900, fontSize: 13, lineHeight: 1.25 }}>{appointment.patientName}</Typography>
+      <Typography sx={{ fontSize: 12, lineHeight: 1.25 }}>{appointment.time} - {end}</Typography>
+      {appointment.procedure ? <Typography sx={{ fontSize: 12, lineHeight: 1.25, opacity: 0.9 }}>{appointment.procedure}</Typography> : null}
+    </Box>
+  );
 }
 
 function weekDates(dateISO: string) {
@@ -111,10 +173,12 @@ function operationalBadges(
 
 function statusColor(status: IntegratedAppointment["status"]): "success" | "error" | "warning" | "default" {
   if (status === "Confirmado" || status === "Finalizado") return "success";
-  if (status === "Faltou" || status === "Cancelado") return "error";
+  if (status === "Faltou" || status === "Cancelado" || status === "Desmarcado") return "error";
   if (status === "Aguardando" || status === "Em atendimento" || status === "Sala em preparação") return "warning";
   return "default";
 }
+
+const HOUR_GUTTER = 44;
 
 function AppointmentCard({
   appointment,
@@ -131,6 +195,7 @@ function AppointmentCard({
 }) {
   const badges = operationalBadges(appointment, materialAlerts, financialAlerts);
   return (
+    <Tooltip title={appointmentTip(appointment)} arrow enterDelay={150} placement="top">
     <Paper
       variant="outlined"
       onClick={(event) => {
@@ -142,13 +207,15 @@ function AppointmentCard({
         borderRadius: 1.5,
         cursor: "pointer",
         overflow: "hidden",
-        bgcolor: "background.paper",
+        bgcolor: appointment.status === "Desmarcado" ? "action.disabledBackground" : "background.paper",
+        opacity: appointment.status === "Desmarcado" ? 0.8 : 1,
         "&:hover": { boxShadow: 2 },
       }}
     >
-      <Typography variant={compact ? "caption" : "body2"} sx={{ fontWeight: 900, lineHeight: 1.2 }}>
-        {appointment.time}–{endTime(appointment)} • {appointment.patientName}
+      <Typography variant={compact ? "caption" : "body2"} sx={{ fontWeight: 900, lineHeight: 1.2, ...(appointment.status === "Desmarcado" ? { color: "text.disabled", textDecoration: "line-through" } : {}) }}>
+        {appointment.time}–{endTime(appointment)} • {appointment.patientName}<MarkerDots backendId={appointment.backendId} />
       </Typography>
+      {appointment.status === "Desmarcado" ? <Typography variant="caption" sx={{ display: "block", fontWeight: 800, color: "text.secondary" }}>Desmarcou</Typography> : null}
       {!compact ? (
         <>
           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", my: 0.6 }}>
@@ -166,6 +233,7 @@ function AppointmentCard({
         </>
       ) : null}
     </Paper>
+    </Tooltip>
   );
 }
 
@@ -281,18 +349,40 @@ function TimeGridView({
   items,
   professional,
   professionalId,
+  professionalNames = [],
   scheduleBlocks = [],
   agendaBlocks = [],
   recurringBreaks = [],
   onDayOpen,
   onAppointmentClick,
   onNew,
+  onResize,
+  onMove,
+  onBlockClick,
+  maxHeight,
   materialAlerts,
   financialAlerts,
 }: Omit<Props, "onDateChange">) {
-  const dates = view === "day" ? [dateISO] : weekDates(dateISO);
+  const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
+  // Redimensionando: duração provisória enquanto o dedo/mouse arrasta a borda de baixo.
+  const [resizing, setResizing] = useState<{ id: string | number; duration: number } | null>(null);
+  const drag = useRef<{ id: string | number; grabY: number } | null>(null);
+  const [dragOver, setDragOver] = useState<{ dayISO: string; top: number; label: string } | null>(null);
+  // Linha vermelha do horário de agora: desce sozinha com o passar do tempo.
+  const [nowTick, setNowTick] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowTick(new Date()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const colors = professionalColorMap([...professionalNames, ...items.map((item) => item.professionalName)]);
+  const colorOf = (name: string) => colors.get(name.trim()) || "#1976d2";
+  const weekAll = view === "day" ? [dateISO] : weekDates(dateISO);
+  // No celular o domingo é sobreposto ao sábado, para os outros dias ganharem largura.
+  const mergeSunday = view === "week" && isMobile;
+  const dates = mergeSunday ? weekAll.slice(0, 6) : weekAll;
+  const sundayISO = mergeSunday ? weekAll[6] : "";
   const hours = Array.from({ length: 15 }, (_, index) => 7 + index);
-  const gridTemplateColumns = `68px repeat(${dates.length}, minmax(${view === "day" ? "620px" : "155px"}, 1fr))`;
+  const gridTemplateColumns = `${HOUR_GUTTER}px repeat(${dates.length}, minmax(${view === "day" ? "620px" : mergeSunday ? "140px" : "155px"}, 1fr))`;
 
   const slotRows = (dayISO: string, dayItems: IntegratedAppointment[]) => {
     const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
@@ -309,7 +399,7 @@ function TimeGridView({
           end: minuteOfDay(item.endTime),
           step: Math.max(10, item.slotDuration || 30),
         }))
-      : [{ start: 8 * 60, end: 18 * 60, step: 30 }];
+      : doctorOffDay(dayISO) ? [] : [{ start: 8 * 60, end: 18 * 60, step: 30 }];
 
     const rows: Array<{ start: number; end: number; step: number }> = [];
 
@@ -339,13 +429,14 @@ function TimeGridView({
         });
         if (eventualBlock) continue;
 
-        const occupied = dayItems.some((appointment) => {
+        // Com um profissional selecionado cabem 2 atendimentos por horário (encaixe); em "Todos" segue 1.
+        const overlapping = dayItems.filter((appointment) => {
           const appointmentStart = minuteOfDay(appointment.time);
           const appointmentEnd =
             appointmentStart + Math.max(10, appointment.durationMinutes || 30);
           return appointmentStart < slotEnd && appointmentEnd > cursor;
-        });
-        if (occupied) continue;
+        }).length;
+        if (overlapping >= (professionalId ? 2 : 1)) continue;
 
         rows.push({ start: cursor, end: slotEnd, step: period.step });
       }
@@ -354,16 +445,36 @@ function TimeGridView({
     return rows;
   };
 
-  const breakRows = (dayISO: string) => {
-    if (!professionalId) return [];
-    const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
+  // Dia fechado para todos os profissionais (feriado ou bloqueio de agenda inteira): mostra faixa com o motivo.
+  const closedByBlock = (dayISO: string) => {
+    const start = new Date(`${dayISO}T00:00:00`).getTime();
+    const end = start + 86400000 - 60000;
+    return agendaBlocks.find((item) => !item.doctorId && new Date(item.startAt).getTime() <= start + 60000 && new Date(item.endAt).getTime() >= end) || null;
+  };
+  // Profissional com escala semanal: nos dias fora da escala a agenda fica fechada.
+  const doctorOffDay = (dayISO: string) => {
+    if (!professionalId) return false;
+    const mine = scheduleBlocks.filter((item) => item.doctorId === professionalId);
+    if (!mine.length) return false;
+    const dow = new Date(`${dayISO}T12:00:00`).getDay();
+    return !mine.some((item) => item.dayOfWeek === dow);
+  };
+  const closedDay = (dayISO: string): { reason: string } | null => closedByBlock(dayISO) || (doctorOffDay(dayISO) ? { reason: "Não atende neste dia" } : null);
 
-    return recurringBreaks
-      .filter(
-        (item) =>
-          item.doctorId === professionalId &&
-          item.dayOfWeek === dayOfWeek,
-      )
+  const breakRows = (dayISO: string) => {
+    const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
+    // Com "Todos" os profissionais, mostra o almoço (e demais intervalos) uma vez por horário, mesmo que valha para vários.
+    const wanted = professionalId
+      ? recurringBreaks.filter((item) => item.doctorId === professionalId && item.dayOfWeek === dayOfWeek)
+      : Array.from(
+          new Map(
+            recurringBreaks
+              .filter((item) => item.dayOfWeek === dayOfWeek)
+              .map((item) => [`${item.startTime}-${item.endTime}-${item.reason}`, item] as const),
+          ).values(),
+        );
+
+    return wanted
       .map((item) => ({
         ...item,
         start: Math.max(START_MINUTES, minuteOfDay(item.startTime)),
@@ -372,11 +483,44 @@ function TimeGridView({
       .filter((item) => item.end > item.start);
   };
 
+  // Almoço (intervalo longo recorrente) ocupa pouco espaço na grade, desde que não haja agendamento dentro dele.
+  const SQUEEZE = 0.3;
+  const lunchWin = (() => {
+    const wins = recurringBreaks.map((b) => ({ s: Math.max(START_MINUTES, minuteOfDay(b.startTime)), e: Math.min(END_MINUTES, minuteOfDay(b.endTime)) })).filter((w) => w.e - w.s >= 60).sort((a, b) => b.e - b.s - (a.e - a.s));
+    const w = wins[0];
+    if (!w) return null;
+    const busy = items.some((a) => dates.includes(a.dateISO) && a.status !== "Cancelado" && minuteOfDay(a.time) < w.e && minuteOfDay(a.time) + Math.max(10, a.durationMinutes || 30) > w.s);
+    return busy ? null : w;
+  })();
+  const Y = (m: number) => {
+    const p = GRID_HEIGHT / TOTAL_MINUTES;
+    if (!lunchWin || m <= lunchWin.s) return (m - START_MINUTES) * p;
+    if (m >= lunchWin.e) return ((lunchWin.s - START_MINUTES) + (lunchWin.e - lunchWin.s) * SQUEEZE + (m - lunchWin.e)) * p;
+    return ((lunchWin.s - START_MINUTES) + (m - lunchWin.s) * SQUEEZE) * p;
+  };
+  const gridH = Y(END_MINUTES);
+  const invY = (y: number) => {
+    const p = GRID_HEIGHT / TOTAL_MINUTES;
+    let m = START_MINUTES + y / p;
+    if (lunchWin) {
+      const sq = (lunchWin.e - lunchWin.s) * SQUEEZE;
+      const yS = (lunchWin.s - START_MINUTES) * p;
+      if (y > yS + sq * p) m = lunchWin.e + (y - yS - sq * p) / p;
+      else if (y > yS) m = lunchWin.s + (y - yS) / (p * SQUEEZE);
+    }
+    return m;
+  };
+  const dropMinute = (event: { clientY: number; currentTarget: HTMLElement }) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const raw = invY(event.clientY - rect.top - (drag.current?.grabY ?? 0));
+    return Math.min(END_MINUTES - 15, Math.max(START_MINUTES, Math.round(raw / 15) * 15));
+  };
+
   return (
-    <Box sx={{ overflowX: "auto" }}>
-      <Box sx={{ minWidth: view === "week" ? 1160 : 760 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns }}>
-          <Box sx={{ borderRight: 1, borderBottom: 1, borderColor: "divider", bgcolor: "action.hover" }} />
+    <Box sx={{ overflow: "auto", maxHeight: maxHeight ?? "calc(100vh - 230px)" }}>
+      <Box sx={{ minWidth: view === "week" ? (mergeSunday ? HOUR_GUTTER + 6 * 140 : 1160) : 760 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns, position: "sticky", top: 0, zIndex: 8, bgcolor: "background.paper", boxShadow: "0 1px 3px rgba(0,0,0,.06)" }}>
+          <Box sx={{ borderBottom: "1px solid #e8edf2" }} />
           {dates.map((dayISO) => (
             <Box
               key={dayISO}
@@ -391,76 +535,142 @@ function TimeGridView({
                 }
               }}
               sx={{
-                p: 1,
+                py: 1,
+                px: 0.5,
                 textAlign: "center",
-                borderRight: 1,
-                borderBottom: 1,
-                borderColor: "divider",
-                bgcolor: "action.hover",
+                borderLeft: "1px solid #eef1f5",
+                borderBottom: "1px solid #e8edf2",
+                bgcolor: "background.paper",
                 cursor: view === "week" ? "pointer" : "default",
                 transition: "background-color .15s ease",
-                "&:hover": view === "week" ? { bgcolor: "action.selected" } : undefined,
+                "&:hover": view === "week" ? { bgcolor: "#f4f8fc" } : undefined,
               }}
             >
-              <Typography variant="caption" sx={{ fontWeight: 900 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 13, color: "text.primary", textTransform: "capitalize" }}>
                 {shortDate(dayISO)}
               </Typography>
-              {view === "week" ? (
-                <Typography variant="caption" color="primary.main" sx={{ display: "block", fontSize: 10 }}>
-                  Clique para abrir o dia
+              <Typography variant="caption" sx={{ display: "block", fontSize: 11, color: "text.secondary" }}>
+                Pacientes: {items.filter((a) => a.dateISO === dayISO && a.status !== "Cancelado" && a.status !== "Desmarcado").length}
+              </Typography>
+              {mergeSunday && dayISO === weekAll[5] ? (
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: 10 }}>
+                  + {shortDate(sundayISO)} (tracejado)
+                </Typography>
+              ) : null}
+              {closedDay(dayISO) ? (
+                <Typography variant="caption" sx={{ display: "block", fontSize: 10, fontWeight: 900, color: "warning.dark" }}>
+                  {closedDay(dayISO)!.reason}
                 </Typography>
               ) : null}
             </Box>
           ))}
         </Box>
 
-        <Box sx={{ display: "grid", gridTemplateColumns }}>
-          <Box sx={{ position: "relative", height: GRID_HEIGHT, borderRight: 1, borderColor: "divider" }}>
-            {hours.map((hour) => (
+        <Box sx={{ display: "grid", gridTemplateColumns, position: "relative" }}>
+          {(() => {
+            const nowISO = `${nowTick.getFullYear()}-${String(nowTick.getMonth() + 1).padStart(2, "0")}-${String(nowTick.getDate()).padStart(2, "0")}`;
+            const nowMinutes = nowTick.getHours() * 60 + nowTick.getMinutes();
+            if (!dates.includes(nowISO) || nowMinutes < START_MINUTES || nowMinutes >= END_MINUTES) return null;
+            const top = Y(nowMinutes);
+            return (
+              <Box aria-label={`Agora: ${timeFromMinutes(nowMinutes)}`} title={`Agora: ${timeFromMinutes(nowMinutes)}`} sx={{ position: "absolute", left: 0, right: 0, top, height: 0, borderTop: "2px solid #e53935", zIndex: 6, pointerEvents: "none" }}>
+                <Box sx={{ position: "absolute", left: HOUR_GUTTER - 6, top: -6, width: 10, height: 10, borderRadius: "50%", bgcolor: "#e53935" }} />
+              </Box>
+            );
+          })()}
+          <Box sx={{ position: "relative", height: gridH, borderRight: 1, borderColor: "divider" }}>
+            {hours.filter((hour) => !(lunchWin && hour * 60 > lunchWin.s && hour * 60 < lunchWin.e)).map((hour) => (
               <Typography
                 key={hour}
                 variant="caption"
                 color="text.secondary"
                 sx={{
                   position: "absolute",
-                  top: `${((hour * 60 - START_MINUTES) / TOTAL_MINUTES) * 100}%`,
+                  top: `${Y(hour * 60)}px`,
                   right: 8,
                   transform: "translateY(-50%)",
                 }}
               >
-                {String(hour).padStart(2, "0")}:00
+                {hour}
               </Typography>
             ))}
           </Box>
 
           {dates.map((dayISO) => {
-            const dayItems = items
+            // Desmarcados continuam visíveis (em cinza), mas não ocupam o horário: slots e capacidade usam só os ativos.
+            const shownItems = items
               .filter((appointment) => appointment.dateISO === dayISO && appointment.status !== "Cancelado")
               .sort((a, b) => a.time.localeCompare(b.time));
+            const dayItems = shownItems.filter((appointment) => appointment.status !== "Desmarcado");
+            // A primeira coluna já fica junto da margem com as horas; nas demais a hora aparece ao lado do nome.
+            const isFirstDay = dayISO === dates[0];
+            const gutter = isFirstDay ? 4 : HOUR_GUTTER;
+            const lanes = computeLanes(shownItems);
             return (
               <Box
                 key={dayISO}
+                onDragOver={(event) => { if (!drag.current || !onMove) return; event.preventDefault(); const m = dropMinute(event); setDragOver((cur) => (cur && cur.dayISO === dayISO && cur.label === timeFromMinutes(m) ? cur : { dayISO, top: Y(m), label: timeFromMinutes(m) })); }}
+                onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragOver(null); }}
+                onDrop={(event) => {
+                  const d = drag.current; drag.current = null; setDragOver(null);
+                  if (!d || !onMove) return;
+                  event.preventDefault();
+                  const target = items.find((a) => a.id === d.id);
+                  if (target) onMove(target, dayISO, timeFromMinutes(dropMinute(event)));
+                }}
                 sx={{
                   position: "relative",
-                  height: GRID_HEIGHT,
-                  borderRight: 1,
-                  borderColor: "divider",
+                  height: gridH,
+                  borderLeft: "1px solid #eef1f5",
                   cursor: "default",
+                  bgcolor: "rgba(66,165,245,.07)",
                   backgroundImage:
-                    "repeating-linear-gradient(to bottom, transparent 0, transparent 29px, rgba(0,0,0,.08) 30px)",
+                    "repeating-linear-gradient(to bottom, transparent 0, transparent 29px, rgba(100,130,160,.12) 30px)",
                 }}
               >
+                {closedDay(dayISO) ? (
+                  <Box sx={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", bgcolor: "rgba(237,108,2,.07)", backgroundImage: "repeating-linear-gradient(135deg, transparent 0 14px, rgba(237,108,2,.16) 14px 16px)", display: "flex", justifyContent: "center", pt: 1.5 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 900, textTransform: "uppercase", textAlign: "center", color: "warning.dark", bgcolor: "background.paper", borderRadius: 1, px: 1, py: 0.3, height: "fit-content", maxWidth: "92%" }}>
+                      {closedDay(dayISO)!.reason} • agenda fechada
+                    </Typography>
+                  </Box>
+                ) : null}
+                {!isFirstDay && hours.filter((hour) => !(lunchWin && hour * 60 > lunchWin.s && hour * 60 < lunchWin.e)).map((hour) => (
+                  <Typography
+                    key={`h-${dayISO}-${hour}`}
+                    variant="caption"
+                    
+                    sx={{
+                      position: "absolute",
+                      top: `${Y(hour * 60)}px`,
+                      left: 4,
+                      width: HOUR_GUTTER - 6,
+                      zIndex: 2,
+                      fontWeight: 400, color: "#9aa7b4",
+                      fontSize: 11,
+                      lineHeight: 1,
+                      pointerEvents: "none",
+                      transform: "translateY(-50%)",
+                    }}
+                  >
+                    {hour}
+                  </Typography>
+                ))}
+
                 {slotRows(dayISO, dayItems).map((slot) => {
-                  const top = ((slot.start - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
-                  const height = ((slot.end - slot.start) / TOTAL_MINUTES) * GRID_HEIGHT;
+                  const top = Y(slot.start);
+                  const height = Y(slot.end) - Y(slot.start);
                   const startLabel = timeFromMinutes(slot.start);
                   const endLabel = timeFromMinutes(slot.end - 1);
                   return (
-                    <Box
+                    <Tooltip
                       key={`free-${dayISO}-${slot.start}`}
+                      title={<Box><Typography sx={{ fontSize: 13, fontWeight: 800 }}>Clique para criar um agendamento</Typography><Typography sx={{ fontSize: 12 }}>{startLabel} - {endLabel}</Typography></Box>}
+                      followCursor arrow enterDelay={200}
+                    >
+                    <Box
                       role="button"
                       tabIndex={0}
-                      title={`Novo agendamento • ${startLabel}–${endLabel}`}
                       onClick={(event) => {
                         event.stopPropagation();
                         onNew({
@@ -497,16 +707,47 @@ function TimeGridView({
                           outlineColor: "primary.light",
                           outlineOffset: "-1px",
                         },
+                        "&:hover .slot-time": { display: "flex" },
                       }}
-                    />
+                    >
+                      <Box className="slot-time" sx={{ display: "none", position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", alignItems: "center", gap: 0.5, color: "#e8641b", fontWeight: 800, fontSize: 12, pointerEvents: "none" }}>
+                        <EventAvailableIcon sx={{ fontSize: 16 }} />
+                        {startLabel}
+                      </Box>
+                    </Box>
+                    </Tooltip>
                   );
                 })}
 
+                {agendaBlocks.filter((b) => {
+                  if (b.doctorId && professionalId && b.doctorId !== professionalId) return false;
+                  const bs = new Date(b.startAt).getTime(); const be = new Date(b.endAt).getTime();
+                  const ds = new Date(`${dayISO}T00:00:00`).getTime(); const de = ds + 86400000;
+                  return bs < de && be > ds && be - bs < 20 * 3600000;
+                }).map((b) => {
+                  const ds = new Date(`${dayISO}T00:00:00`).getTime();
+                  const sMin = Math.max(START_MINUTES, Math.round((new Date(b.startAt).getTime() - ds) / 60000));
+                  const eMin = Math.min(END_MINUTES, Math.round((new Date(b.endAt).getTime() - ds) / 60000));
+                  if (eMin <= sMin) return null;
+                  return (
+                    <Tooltip key={`blk-${dayISO}-${b.id}`} title={`${b.reason} • ${timeFromMinutes(sMin)}–${timeFromMinutes(eMin)}`} arrow>
+                      <Box onClick={(event) => { event.stopPropagation(); onBlockClick?.(b); }} sx={{ position: "absolute", left: gutter, right: 4, top: Y(sMin), height: Math.max(22, Y(eMin) - Y(sMin)), zIndex: 3, p: 0.6, overflow: "hidden", cursor: onBlockClick ? "pointer" : "default", bgcolor: "#fff4e5", border: "1px solid #f3c98b", borderLeft: "3px solid #ed6c02", borderRadius: 1.25 }}>
+                        <Typography variant="caption" noWrap sx={{ display: "block", fontWeight: 700, color: "#8a4b00", lineHeight: 1.2 }}>{b.reason}</Typography>
+                        <Typography variant="caption" sx={{ display: "block", fontSize: 10.5, color: "#8a4b00", lineHeight: 1.2 }}>{timeFromMinutes(sMin)} - {timeFromMinutes(eMin)}</Typography>
+                      </Box>
+                    </Tooltip>
+                  );
+                })}
+                {dragOver && dragOver.dayISO === dayISO ? (
+                  <Box sx={{ position: "absolute", left: 0, right: 0, top: dragOver.top, height: 0, borderTop: "2px solid #1565c0", zIndex: 6, pointerEvents: "none" }}>
+                    <Typography variant="caption" sx={{ position: "absolute", right: 4, top: -18, bgcolor: "#1565c0", color: "#fff", borderRadius: 1, px: 0.6, fontWeight: 700 }}>{dragOver.label}</Typography>
+                  </Box>
+                ) : null}
                 {breakRows(dayISO).map((item) => {
-                  const top = ((item.start - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
+                  const top = Y(item.start);
                   const height = Math.max(
                     30,
-                    ((item.end - item.start) / TOTAL_MINUTES) * GRID_HEIGHT,
+                    Y(item.end) - Y(item.start),
                   );
                   return (
                     <Box
@@ -547,52 +788,132 @@ function TimeGridView({
                   );
                 })}
 
-                {dayItems.map((appointment) => {
+                {[
+                  ...shownItems.map((appointment) => ({ appointment, sunday: false })),
+                  ...(mergeSunday && dayISO === weekAll[5]
+                    ? items
+                        .filter((appointment) => appointment.dateISO === sundayISO && appointment.status !== "Cancelado")
+                        .map((appointment) => ({ appointment, sunday: true }))
+                    : []),
+                ].map(({ appointment, sunday }) => {
                   const start = minuteOfDay(appointment.time);
-                  const duration = Math.max(10, appointment.durationMinutes || 30);
+                  const savedDuration = Math.max(10, appointment.durationMinutes || 30);
+                  const isResizing = resizing?.id === appointment.id;
+                  const duration = isResizing ? resizing.duration : savedDuration;
+                  const canResize = Boolean(onResize && appointment.backendId && !sunday && appointment.status !== "Desmarcado");
                   if (start >= END_MINUTES || start + duration <= START_MINUTES) return null;
                   const visibleStart = Math.max(START_MINUTES, start);
                   const visibleEnd = Math.min(END_MINUTES, start + duration);
-                  const top = ((visibleStart - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
-                  const height = Math.max(28, ((visibleEnd - visibleStart) / TOTAL_MINUTES) * GRID_HEIGHT);
+                  const top = Y(visibleStart);
+                  const height = Math.max(28, Y(visibleEnd) - Y(visibleStart));
                   const badges = operationalBadges(appointment, materialAlerts, financialAlerts);
                   return (
+                    <Tooltip key={`${sunday ? "dom-" : ""}${appointment.id}`} title={appointmentTip({ ...appointment, durationMinutes: duration })} arrow enterDelay={150} placement="top">
                     <Box
-                      key={appointment.id}
                       onClick={(event) => {
                         event.stopPropagation();
                         onAppointmentClick(appointment);
                       }}
+                      draggable={Boolean(onMove && appointment.backendId && !sunday && !resizing && !isMobile)}
+                      onDragStart={(event) => { drag.current = { id: appointment.id, grabY: event.clientY - event.currentTarget.getBoundingClientRect().top }; event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", String(appointment.id)); }}
+                      onDragEnd={() => { drag.current = null; setDragOver(null); }}
                       sx={{
                         position: "absolute",
                         top,
-                        left: 4,
-                        right: 4,
+                        ...(sunday || !lanes.get(appointment.id) || lanes.get(appointment.id)!.count < 2
+                          ? appointment.status === "Desmarcado" && !sunday
+                            // Sozinho no horário: ocupa só parte da largura para o horário continuar livre para novo agendamento.
+                            ? { left: gutter, width: `calc((100% - ${gutter + 4}px) * 0.58)` }
+                            : { left: sunday ? gutter + 14 : gutter, right: sunday ? 0 : 4 }
+                          : {
+                              left: `calc(${gutter}px + (100% - ${gutter + 4}px) * ${lanes.get(appointment.id)!.lane} / ${lanes.get(appointment.id)!.count})`,
+                              width: `calc((100% - ${gutter + 4}px) / ${lanes.get(appointment.id)!.count} - 2px)`,
+                            }),
                         height,
-                        p: 0.7,
-                        border: 1,
-                        borderColor: "primary.light",
-                        borderRadius: 1.5,
-                        bgcolor: "background.paper",
-                        boxShadow: 1,
+                        p: 0.8,
+                        border: sunday ? "1px dashed #b8c4d0" : "1px solid #dde4ec",
+                        borderLeft: `3px solid ${appointment.status === "Desmarcado" ? "#bdbdbd" : colorOf(appointment.professionalName)}`,
+                        borderStyle: appointment.status === "Desmarcado" ? "dashed" : undefined,
+                        borderRadius: 1.25,
+                        bgcolor: appointment.status === "Desmarcado" ? "#f3f4f6" : "#fff",
+                        opacity: appointment.status === "Desmarcado" ? 0.85 : 1,
+                        boxShadow: "0 1px 2px rgba(20,40,70,.08)",
                         overflow: "hidden",
                         cursor: "pointer",
-                        zIndex: 2,
-                        "&:hover": { boxShadow: 3 },
+                        zIndex: sunday ? 3 : 2,
+                        "&:hover": { boxShadow: "0 3px 8px rgba(20,40,70,.18)" },
                       }}
                     >
-                      <Typography variant="caption" sx={{ display: "block", fontWeight: 900, lineHeight: 1.15 }}>
-                        {appointment.time}–{endTime(appointment)} • {appointment.patientName}
+                      <Typography variant="caption" sx={{ display: "block", fontWeight: 600, fontSize: 12, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...(appointment.status === "Desmarcado" ? { color: "text.disabled", textDecoration: "line-through" } : {}) }}>
+                        {sunday ? "Dom · " : ""}{appointment.patientName}<MarkerDots backendId={appointment.backendId} />
                       </Typography>
-                      {height >= 48 && badges[0] ? (
-                        <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />
+                      {appointment.status === "Desmarcado" ? (
+                        <Typography variant="caption" sx={{ display: "block", fontWeight: 800, lineHeight: 1.15, color: "text.secondary" }}>Desmarcou</Typography>
                       ) : null}
-                      {height >= 72 ? (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.15, mt: 0.3 }}>
+                      {height >= 32 ? (
+                        <Typography variant="caption" sx={{ display: "block", lineHeight: 1.2, fontSize: 11, color: "text.secondary" }}>
+                          {appointment.time.replace(":00", "")} - {timeFromMinutes(start + duration).replace(":00", "")}h
+                        </Typography>
+                      ) : null}
+                      {height >= 52 ? (
+                        <Typography variant="caption" sx={{ display: "block", lineHeight: 1.2, mt: 0.2, fontSize: 11, fontWeight: 400, color: "text.secondary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: height >= 80 ? "normal" : "nowrap" }}>
                           {appointment.procedure}
                         </Typography>
                       ) : null}
+                      {height >= 48 && badges[0] && badges[0].label !== "Financeiro OK" ? (
+                        <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />
+                      ) : null}
+                      {isResizing ? (
+                        <Typography variant="caption" sx={{ position: "absolute", right: 6, bottom: 8, fontWeight: 900, bgcolor: "primary.main", color: "primary.contrastText", borderRadius: 1, px: 0.6 }}>
+                          {appointment.time} - {timeFromMinutes(start + duration)}
+                        </Typography>
+                      ) : null}
+                      {canResize ? (
+                        <Box
+                          role="separator"
+                          aria-label="Arraste para mudar a duração"
+                          title="Arraste para mudar a duração"
+                          onClick={(event) => event.stopPropagation()}
+                          onPointerDown={(event) => {
+                            event.stopPropagation();
+                            event.preventDefault();
+                            const target = event.currentTarget;
+                            target.setPointerCapture(event.pointerId);
+                            const startY = event.clientY;
+                            const pxPerMinute = GRID_HEIGHT / TOTAL_MINUTES;
+                            const limit = END_MINUTES - start;
+                            let latest = savedDuration;
+                            setResizing({ id: appointment.id, duration: savedDuration });
+                            const move = (e: PointerEvent) => {
+                              const delta = Math.round((e.clientY - startY) / pxPerMinute / 15) * 15;
+                              latest = Math.min(limit, Math.max(15, savedDuration + delta));
+                              setResizing({ id: appointment.id, duration: latest });
+                            };
+                            const finish = async (e: PointerEvent) => {
+                              target.removeEventListener("pointermove", move);
+                              target.removeEventListener("pointerup", finish);
+                              target.removeEventListener("pointercancel", finish);
+                              try { target.releasePointerCapture(e.pointerId); } catch { /* já liberado */ }
+                              if (e.type === "pointerup" && latest !== savedDuration) {
+                                try { await onResize?.(appointment, latest); }
+                                catch (error) { window.alert(error instanceof Error ? error.message : "Não foi possível mudar a duração."); }
+                              }
+                              setResizing(null);
+                            };
+                            target.addEventListener("pointermove", move);
+                            target.addEventListener("pointerup", finish);
+                            target.addEventListener("pointercancel", finish);
+                          }}
+                          sx={{
+                            position: "absolute", left: 0, right: 0, bottom: 0, height: 9, cursor: "ns-resize", touchAction: "none", zIndex: 4,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            "&::after": { content: '""', width: 28, height: 3, borderRadius: 2, bgcolor: "text.secondary", opacity: isResizing ? 0.9 : 0, transition: "opacity .15s" },
+                            "&:hover::after": { opacity: 0.7 },
+                          }}
+                        />
+                      ) : null}
                     </Box>
+                    </Tooltip>
                   );
                 })}
               </Box>
@@ -600,14 +921,74 @@ function TimeGridView({
           })}
         </Box>
       </Box>
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", p: 1 }}>
+      <Box sx={{ display: isMobile ? "none" : "flex", flexWrap: "wrap", gap: 1.2, px: 1, pt: 1 }}>
+        {Array.from(new Set(items.map((item) => item.professionalName.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR")).map((name) => (
+          <Box key={`cor-${name}`} sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
+            <Box sx={{ width: 12, height: 12, borderRadius: 0.5, bgcolor: colorOf(name) }} />
+            <Typography variant="caption" sx={{ fontWeight: 700 }}>{name}</Typography>
+          </Box>
+        ))}
+      </Box>
+      <Typography variant="caption" color="text.secondary" sx={{ display: isMobile ? "none" : "block", p: 1 }}>
         Toda a faixa livre é clicável na Semana e no Dia. Intervalos fixos aparecem bloqueados na grade com o motivo e horário. Em "Todos", selecione um profissional para visualizar os intervalos dele.
       </Typography>
     </Box>
   );
 }
 
+// Dia no celular: uma linha por atendimento, com horário, nome do paciente, pendência e procedimento (a cor da barra é a do dentista).
+function DayListView({ dateISO, items, professionalNames = [], agendaBlocks = [], onAppointmentClick, onNew, materialAlerts, financialAlerts }: Omit<Props, "onDateChange" | "view" | "professional">) {
+  const colors = professionalColorMap([...professionalNames, ...items.map((item) => item.professionalName)]);
+  const colorOf = (name: string) => colors.get(name.trim()) || "#1976d2";
+  const day = items.filter((a) => a.dateISO === dateISO).sort((a, b) => a.time.localeCompare(b.time));
+  const blocks = agendaBlocks.filter((b) => b.startAt.slice(0, 10) === dateISO || new Date(b.startAt).toLocaleDateString("sv-SE") === dateISO);
+  type Row = { key: string; time: string; node: React.ReactNode };
+  const rows: Row[] = [];
+  blocks.forEach((b) => {
+    const start = new Date(b.startAt), end = new Date(b.endAt);
+    const hm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    rows.push({ key: `b-${b.id}`, time: hm(start), node: (
+      <Box sx={{ px: 1.2, py: 0.8, borderRadius: 2, bgcolor: "action.hover", display: "flex", gap: 1, alignItems: "center" }}>
+        <Typography variant="body2" sx={{ fontWeight: 700, color: "text.secondary", minWidth: 44 }}>{hm(start).replace(":00", "h")}</Typography>
+        <Typography variant="body2" color="text.secondary" noWrap>{`${b.reason} • ${hm(start)}–${hm(end)}`}</Typography>
+      </Box>) });
+  });
+  day.forEach((a) => {
+    const off = a.status === "Desmarcado" || a.status === "Cancelado";
+    const badges = operationalBadges(a, materialAlerts, financialAlerts).filter((x) => x.label !== "Financeiro OK");
+    rows.push({ key: `a-${a.id}`, time: a.time, node: (
+      <Box role="button" tabIndex={0} onClick={() => onAppointmentClick(a)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onAppointmentClick(a); } }}
+        sx={{ display: "flex", gap: 1, alignItems: "stretch", cursor: "pointer", borderRadius: 2, border: "1px solid", borderColor: "divider", overflow: "hidden", bgcolor: off ? "action.hover" : "background.paper", opacity: off ? 0.7 : 1, "&:active": { bgcolor: "action.selected" } }}>
+        <Box sx={{ width: 6, bgcolor: off ? "#bdbdbd" : colorOf(a.professionalName), flexShrink: 0 }} />
+        <Box sx={{ py: 0.9, pr: 1, minWidth: 46, textAlign: "center", display: "flex", alignItems: "center" }}>
+          <Typography sx={{ fontWeight: 900, fontSize: 15 }}>{a.time.replace(":00", "h")}</Typography>
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0, py: 0.9, pr: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.7, flexWrap: "wrap" }}>
+            <Typography sx={{ fontWeight: 800, fontSize: 16, lineHeight: 1.2, ...(off ? { textDecoration: "line-through", color: "text.disabled" } : {}) }}>{a.patientName}<MarkerDots backendId={a.backendId} /></Typography>
+            {off ? <Chip size="small" label={a.status === "Desmarcado" ? "Desmarcou" : "Cancelado"} /> : null}
+            {!off && a.status === "Faltou" ? <Chip size="small" color="error" label="Faltou" /> : null}
+            {badges.slice(0, 2).map((b) => <Chip key={b.label} size="small" color={b.color} label={`⚠ ${b.label}`} sx={{ maxWidth: "100%" }} />)}
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.3 }}>{`${a.procedure || "Sem procedimento"} • ${a.time}–${timeFromMinutes(minuteOfDay(a.time) + Math.max(10, a.durationMinutes || 30))}`}</Typography>
+        </Box>
+      </Box>) });
+  });
+  rows.sort((x, y) => x.time.localeCompare(y.time));
+  return (
+    <Box sx={{ p: 1, display: "grid", gap: 0.8 }}>
+      {rows.length === 0 ? <Typography color="text.secondary" sx={{ p: 2, textAlign: "center" }}>Nenhum atendimento neste dia.</Typography> : rows.map((r) => <Box key={r.key}>{r.node}</Box>)}
+      <Box role="button" tabIndex={0} onClick={() => onNew({ dateISO })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNew({ dateISO }); } }}
+        sx={{ mt: 0.5, py: 1.1, textAlign: "center", borderRadius: 2, border: "2px dashed", borderColor: "primary.main", color: "primary.main", fontWeight: 800, cursor: "pointer" }}>+ Agendar neste dia</Box>
+    </Box>
+  );
+}
+
 export default function AgendaCalendarBoard(props: Props) {
+  const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
+  if (props.view === "day" && isMobile) {
+    return <DayListView dateISO={props.dateISO} items={props.items} professionalNames={props.professionalNames} agendaBlocks={props.agendaBlocks} onAppointmentClick={props.onAppointmentClick} onNew={props.onNew} materialAlerts={props.materialAlerts} financialAlerts={props.financialAlerts} />;
+  }
   if (props.view === "month") {
     return (
       <MonthView
@@ -630,12 +1011,17 @@ export default function AgendaCalendarBoard(props: Props) {
       items={props.items}
       professional={props.professional}
       professionalId={props.professionalId}
+      professionalNames={props.professionalNames}
       scheduleBlocks={props.scheduleBlocks}
       agendaBlocks={props.agendaBlocks}
       recurringBreaks={props.recurringBreaks}
       onDayOpen={props.onDayOpen}
       onAppointmentClick={props.onAppointmentClick}
       onNew={props.onNew}
+      onResize={props.onResize}
+      onMove={props.onMove}
+      onBlockClick={props.onBlockClick}
+      maxHeight={props.maxHeight}
       materialAlerts={props.materialAlerts}
       financialAlerts={props.financialAlerts}
     />

@@ -1,12 +1,19 @@
 import { APP_NAME, EDU_ONLY } from "../config/appMode";
 import {
   Avatar, Box, Collapse, Divider, Drawer, IconButton, List, ListItemButton, ListItemIcon,
-  ListItemText, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button
+  ListItemText, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar, Alert
 } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CloseIcon from "@mui/icons-material/Close";
 import SchoolIcon from "@mui/icons-material/School";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import LockResetIcon from "@mui/icons-material/LockReset";
+import { isWmundiStaff } from "./WmundiStaffOnly";
+import { MANAGER_URL } from "./DentalPosManagerButton";
+import { fetchManagerAccess, openManagerReset, type ManagerAccess } from "./ManagerResetLink";
+import AlertsMenu from "./alerts/AlertsMenu";
+import { useAgendaLegend } from "../utils/agendaLegend";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
@@ -17,7 +24,7 @@ import { navigationGroups, SETORES } from "../config/navigation";
 import { eduApi } from "../services/EduApi";
 import { ajudaDoItem, groupHelp } from "../config/menuHelp";
 import MenuHelp from "./MenuHelp";
-import { rotaBloqueada, useModulosBloqueados } from "../edu/acesso/modulos";
+import { itemAllowed, useMenuAccess } from "../config/menuAccess";
 import {
   getDemoModuleStatus,
   readDemoAccess,
@@ -39,6 +46,9 @@ function cursosDoSetor(todos:CursoMenu[],tipo:string):CursoMenu[]{
 }
 const OPEN_GROUPS_KEY = "dentalpos.navigation.open-groups.v2";
 const AGENDAMENTO_ONLINE_PATH = "/agendamento-online";
+// Atalhos (não são rotas): abrem o DentalPos Manager e o link de nova senha dele.
+const MANAGER_PATH = "#manager";
+const MANAGER_RESET_PATH = "#manager-reset";
 
 function pathMatches(target:string, pathname:string, search:string){
   const [targetPath,query=""]=target.split("?");
@@ -53,13 +63,18 @@ export default function Sidebar(){
   const location=useLocation();
   const demo=readDemoAccess();
   const sessionUser=readSessionUser();
-const isDesign=location.pathname==="/design"||location.pathname.startsWith("/design/");
+  const isDesign=location.pathname==="/design"||location.pathname.startsWith("/design/");
   // Menu lateral: escondido por padrão (tela limpa), abre como gaveta sobreposta ao clicar no hambúrguer do cabeçalho.
   const [open,setOpen]=useState(false);
   const [showInDevelopment,setShowInDevelopment]=useState(false);
+  const [managerMsg,setManagerMsg]=useState<{type:"success"|"error";text:string}|null>(null);
+  const legend=useAgendaLegend();
+
+  const [managerAccess,setManagerAccess]=useState<ManagerAccess>({canOpen:false,canReset:false});
+  useEffect(()=>{let live=true;fetchManagerAccess().then(a=>{if(live)setManagerAccess(a)});return()=>{live=false}},[sessionUser?.email]);
 
   // No EXPERIENCE, nenhum item deve desaparecer do menu — apenas deduplicado.
-  const modulosBloqueados=useModulosBloqueados(); // acesso por cargo: esconde o que o cargo não pode abrir
+  const menuAccess=useMenuAccess(); // acesso por cargo/menu: esconde o que o cargo não pode abrir
   const cargoLogado=String(sessionUser?.role||"").toUpperCase();
   const visibleGroups=useMemo(()=>{
     const seen=new Set<string>();
@@ -71,7 +86,8 @@ const isDesign=location.pathname==="/design"||location.pathname.startsWith("/des
     return navigationGroups.map(group=>{
       const items=group.items.filter(it=>{
         if(it.roles&&!it.roles.includes(cargoLogado))return false;
-        if(rotaBloqueada(it.path,modulosBloqueados))return false;
+        if((it.path==="/prospeccao"||it.path==="/parceiros-estoque")&&!isWmundiStaff())return false;
+        if(!itemAllowed(it,menuAccess))return false;
         if(permitidos&&!permitidos.some(pp=>it.path.split("?")[0]===pp))return false;
         if(group.atalho)return true; // atalhos repetem telas de outros grupos dentro do setor
         const dedupeKey=it.path;
@@ -80,8 +96,16 @@ const isDesign=location.pathname==="/design"||location.pathname.startsWith("/des
         return true;
       });
       return {...group,items};
-    }).filter(g=>g.items.length>0);
-  },[modulosBloqueados,cargoLogado]);
+    }).filter(g=>g.items.length>0).flatMap(g=>{
+      // Atalhos do DentalPos Manager logo depois do grupo Sales (só para o e-mail autorizado).
+      if(g.label!=="CompletoDonto Sales"||!managerAccess.canOpen)return [g];
+      return [
+        g,
+        {label:"DentalPos Manager",icon:<StorefrontIcon/>,items:[{label:"DentalPos Manager",path:MANAGER_PATH,icon:<StorefrontIcon/>}],setor:undefined},
+        ...(managerAccess.canReset?[{label:"Redefinir senha do Manager",icon:<LockResetIcon/>,items:[{label:"Redefinir senha do Manager",path:MANAGER_RESET_PATH,icon:<LockResetIcon/>}],setor:undefined}]:[]),
+      ];
+    });
+  },[menuAccess,cargoLogado,managerAccess]);
 
   const activeGroup=useMemo(
     ()=>visibleGroups.find(g=>g.items.some(it=>pathMatches(it.path,location.pathname,location.search)))?.label,
@@ -108,8 +132,9 @@ const isDesign=location.pathname==="/design"||location.pathname.startsWith("/des
   },[]);
   useEffect(()=>{try{localStorage.setItem(OPEN_SETOR_KEY,setorAberto)}catch{}},[setorAberto]);
   // Botão de menu (hambúrguer) do cabeçalho: abre/fecha a gaveta do menu lateral.
-  useEffect(()=>{const h=()=>setOpen(v=>!v);window.addEventListener("edu:toggle-menu",h);return()=>window.removeEventListener("edu:toggle-menu",h)},[]);
+  useEffect(()=>{const h=()=>setOpen(v=>!v);window.addEventListener("edu:toggle-menu",h);window.addEventListener("dentalpos:open-menu",h);return()=>{window.removeEventListener("edu:toggle-menu",h);window.removeEventListener("dentalpos:open-menu",h)}},[]);
   useEffect(()=>{if(isDesign)setOpen(false)},[isDesign]);
+  useEffect(()=>{setOpen(false)},[location.pathname,location.search]);
   useEffect(()=>{
     if(activeGroup)setOpenGroups({[activeGroup]:true}); // somente um grupo aberto
     const g=visibleGroups.find(x=>x.label===activeGroup);
@@ -129,6 +154,14 @@ const isDesign=location.pathname==="/design"||location.pathname.startsWith("/des
   }
 
   function handleItemClick(path:string){
+    if(path===MANAGER_PATH){
+      window.open(MANAGER_URL,"_blank","noopener,noreferrer");
+      return;
+    }
+    if(path===MANAGER_RESET_PATH){
+      openManagerReset().then(err=>setManagerMsg(err?{type:"error",text:err}:{type:"success",text:"Link aberto em nova aba. Vale 10 minutos e só uma vez."}));
+      return;
+    }
     // Rota pública tratada fora do React Router (ver App.tsx) — precisa de navegação de
     // página inteira, com o clinicId incluído na URL para a página pública saber qual clínica.
     if(path.split("?")[0]===AGENDAMENTO_ONLINE_PATH){
@@ -211,7 +244,16 @@ const isDesign=location.pathname==="/design"||location.pathname.startsWith("/des
       <Typography sx={{color:"#94A3B8",fontSize:11}}>{roleLabel}</Typography>
     </Box>
     <Divider sx={{borderColor:"#334155"}}/>
-    {EDU_ONLY&&<><AlertasMenu collapsed={false} offsetLeft={sidebarWidth}/><Divider sx={{borderColor:"#334155"}}/></>}
+    {EDU_ONLY
+      ? <><AlertasMenu collapsed={false} offsetLeft={sidebarWidth}/><Divider sx={{borderColor:"#334155"}}/></>
+      : <><AlertsMenu collapsed={false}/><Divider sx={{borderColor:"#334155"}}/></>}
+    {!EDU_ONLY&&legend.length>0&&location.pathname.startsWith("/agenda")&&<Box sx={{mx:1,mt:.8,px:1.2,py:1,borderRadius:2,bgcolor:"#1E293B",border:"1px solid #334155"}}>
+      <Typography sx={{fontSize:11,fontWeight:800,color:"#94A3B8",mb:.6,letterSpacing:.4}}>DENTISTAS DA AGENDA</Typography>
+      {legend.map(l=><Box key={l.name} sx={{display:"flex",alignItems:"center",gap:.9,py:.25}}>
+        <Box sx={{width:12,height:12,borderRadius:.5,bgcolor:l.color,flexShrink:0}}/>
+        <Typography sx={{fontSize:12.5,fontWeight:600}}>{l.name}</Typography>
+      </Box>)}
+    </Box>}
 
     <List sx={{mt:.5,px:.7,overflowY:"auto"}}>
       {!EDU_ONLY&&visibleGroups.map(g=>renderGrupo(g))}
@@ -271,6 +313,10 @@ const isDesign=location.pathname==="/design"||location.pathname.startsWith("/des
         <Typography sx={{fontSize:10.5}}><BrandName/> • {appConfig.version}</Typography>
       </Box>
     )}
+
+    <Snackbar open={Boolean(managerMsg)} autoHideDuration={7000} onClose={()=>setManagerMsg(null)} anchorOrigin={{vertical:"bottom",horizontal:"center"}}>
+      {managerMsg?<Alert severity={managerMsg.type} onClose={()=>setManagerMsg(null)}>{managerMsg.text}</Alert>:undefined}
+    </Snackbar>
 
     <Dialog open={showInDevelopment} onClose={()=>setShowInDevelopment(false)} maxWidth="xs" fullWidth>
       <DialogTitle sx={{fontWeight:800}}>Em desenvolvimento</DialogTitle>

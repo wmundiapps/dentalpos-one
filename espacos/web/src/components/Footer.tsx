@@ -2,8 +2,9 @@ import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { LEGAL_DOCS } from '../legal';
 
-// Identificação da operadora (Decreto 7.962/2013) e do encarregado (LGPD, Res. CD/ANPD 18/2024)
-const OPERATOR = { company: 'Instituto Ravel de Ensino Superior Ltda.', cnpj: '03.162.275/0001-10', address: 'Av. XV de Novembro, 255 · Maringá/PR · CEP 87013-230', dpo: 'Robson Ravel de Oliveira', dpoEmail: 'info@wmundi.com' };
+// Identificação da operadora (Decreto 7.962/2013): nome, CNPJ, cidade e e-mail numa linha discreta.
+// Razão social completa, endereço e encarregado (LGPD, Res. CD/ANPD 18/2024) ficam nos Termos e na Privacidade.
+const OPERATOR = { short: 'Instituto Ravel', cnpj: '03.162.275/0001-10', city: 'Maringá/PR' };
 
 export function Footer() {
   const { t } = useI18n();
@@ -16,7 +17,7 @@ export function Footer() {
         </div>
         <div>
           <strong>{t('footer.policies')}</strong>
-          <ul>{LEGAL_DOCS.map((d) => <li key={d}><Link to={`/regras/${d}`}>{t(`legal.${d}` as never)}</Link></li>)}</ul>
+          <ul>{LEGAL_DOCS.filter((d) => !d.startsWith('partner-')).map((d) => <li key={d}><Link to={`/regras/${d}`}>{t(`legal.${d}` as never)}</Link></li>)}</ul>
         </div>
         <div>
           <strong>{t('footer.hosting')}</strong>
@@ -24,6 +25,7 @@ export function Footer() {
             <li><Link to="/anfitriao/novo">{t('nav.newListing')}</Link></li>
             <li><Link to="/regras/host-obligations">{t('legal.host-obligations')}</Link></li>
             <li><Link to="/regras/penalties">{t('legal.penalties')}</Link></li>
+            <li><Link to="/parceiros">Seja parceiro (corretor ou zelador)</Link></li>
           </ul>
         </div>
         <div>
@@ -34,9 +36,9 @@ export function Footer() {
           </ul>
         </div>
       </div>
-      <div className="container muted small footer-bottom">
-        © {new Date().getFullYear()} SpaceHour · {t('footer.operator', { company: OPERATOR.company, cnpj: OPERATOR.cnpj })} · {OPERATOR.address}
-        {' · '}{t('footer.dpo', { name: OPERATOR.dpo })} (<a href={`mailto:${OPERATOR.dpoEmail}`}>{OPERATOR.dpoEmail}</a>)
+      <div className="container footer-bottom">
+        © {new Date().getFullYear()} SpaceHour · {OPERATOR.short} · CNPJ {OPERATOR.cnpj} · {OPERATOR.city} · <a href="mailto:support@space-hour.com">support@space-hour.com</a>
+        {' · '}<Link to="/regras/privacy">{t('legal.privacy')} / LGPD</Link>
         <br />{t('footer.legalNote')}
       </div>
     </footer>

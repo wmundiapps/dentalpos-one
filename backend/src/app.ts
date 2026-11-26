@@ -44,7 +44,7 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'X-Clinic-ID', 'X-Tenant-ID', 'X-Request-ID', 'Idempotency-Key']
+    allowedHeaders: ['Authorization', 'Content-Type', 'X-Clinic-ID', 'X-Tenant-ID', 'X-Request-ID', 'Idempotency-Key', 'X-HR-Vault']
   })
 )
 
@@ -157,7 +157,7 @@ app.use('/api', apiLimiter)
 app.get('/health', (_req, res) => {
   return res.json({
     status: 'ok',
-    application: 'DentalPos One',
+    application: 'CompletoDonto',
     version: '1.0.0',
     environment: process.env.APP_ENV || process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString()

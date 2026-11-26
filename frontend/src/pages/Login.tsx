@@ -48,6 +48,8 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [faceOpen, setFaceOpen] = useState(false);
   const [faceErro, setFaceErro] = useState("");
+  const [ticket, setTicket] = useState("");
+  const [code, setCode] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetClinicId, setResetClinicId] = useState("");
@@ -224,8 +226,10 @@ export default function Login() {
     concluirLogin(data);
   }
 
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (ticket) return confirmCode();
     setBusy(true);
     setError("");
     setExpired(false);
@@ -260,6 +264,11 @@ export default function Login() {
         setEtapa("configurar2fa");
         return;
       }
+      if (data?.twoFactorRequired && data.ticket) {
+        setTicket(String(data.ticket));
+        setCode("");
+        return;
+      }
       if (data?.deviceApprovalRequired && data.deviceChallengeToken) {
         setDeviceChallengeToken(data.deviceChallengeToken);
         setDeviceRecusado(false);
@@ -269,6 +278,29 @@ export default function Login() {
       concluirLogin(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no login");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmCode() {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`${API}/auth/login/2fa`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticket, code: code.trim() }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (data?.code === "DEMO_ENDED") setExpired(true);
+        if (response.status === 401 && /expirou/i.test(String(data?.error))) setTicket("");
+        throw new Error(data.error || "Código não confere.");
+      }
+      concluirLogin(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha na confirmação.");
     } finally {
       setBusy(false);
     }
@@ -466,6 +498,26 @@ export default function Login() {
 
         {etapa === "credenciais" ? (
           <>
+        {ticket ? (
+          <>
+            <Typography sx={{ mb: 1.5 }}>Digite o código de 6 números do aplicativo autenticador. Se perdeu o celular, use um dos códigos reserva.</Typography>
+            <TextField
+              fullWidth
+              autoFocus
+              label="Código de 2 etapas"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              slotProps={{ htmlInput: { autoComplete: "one-time-code", inputMode: "text" } }}
+              sx={{ mb: 2 }}
+              required
+            />
+            <Button fullWidth size="large" variant="contained" type="submit" disabled={busy || code.trim().length < 6}>
+              {busy ? "Confirmando..." : "Confirmar e entrar"}
+            </Button>
+            <Button fullWidth sx={{ mt: 1 }} onClick={() => { setTicket(""); setCode(""); setError(""); }}>Voltar</Button>
+          </>
+        ) : null}
+        {!ticket ? (<>
         <TextField
           fullWidth
           label={EDU_ONLY ? "ID da instituição (opcional)" : "ID da clínica (opcional)"}
@@ -517,6 +569,7 @@ export default function Login() {
         <Button fullWidth size="large" variant="contained" type="submit" disabled={busy}>
           {busy ? "Entrando..." : "Entrar"}
         </Button>
+        </>) : null}
 
         {expired ? (
           <Button
@@ -534,8 +587,8 @@ export default function Login() {
         {!EDU_ONLY ? (
         <Box sx={{ mt: 3, pt: 2.5, borderTop: "1px solid", borderColor: "divider" }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Ainda não usa o DentalPos One? O EXPERIENCE é gratuito, temporário e informa claramente
-            a data de encerramento.
+            Ainda não usa o DentalPos? Teste grátis por 30 dias com o cartão cadastrado. A cobrança só
+            começa depois do teste, com 50% de desconto nos 12 meses seguintes. Sem fidelidade.
           </Typography>
           <Button
             fullWidth
@@ -544,7 +597,7 @@ export default function Login() {
               window.location.href = demoRegistrationUrl();
             }}
           >
-            Conhecer o EXPERIENCE
+            Começar 30 dias grátis
           </Button>
         </Box>
         ) : null}

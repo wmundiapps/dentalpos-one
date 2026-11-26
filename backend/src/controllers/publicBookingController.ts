@@ -1,3 +1,5 @@
+import { formatPersonName } from '../lib/personName'
+import { getHold } from '../services/financialHoldService'
 import { nextRecordNumber } from './patientController'
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
@@ -38,6 +40,16 @@ function onlineTimesFor(settings: { enabled: boolean; slots: OnlineSlots }, doct
   const values = settings.slots?.[doctorId]?.[String(dayOfWeek)]
   if (!Array.isArray(values)) return []
   return values.map(sanitizeTime).filter((value): value is string => Boolean(value)).sort()
+}
+
+// Dias da semana em que o profissional atende, conforme a jornada cadastrada (Schedule).
+// No agendamento público o dia só vale se estiver na jornada: sem jornada no dia, não há horário.
+async function workingDays(clinicId: string, tenantId: string, doctorId: string) {
+  const rows = await prisma.schedule.findMany({
+    where: { clinicId, tenantId, doctorId },
+    select: { dayOfWeek: true },
+  })
+  return Array.from(new Set(rows.map(row => row.dayOfWeek))).sort()
 }
 
 function normalizeChannel(value: unknown) {
@@ -189,13 +201,24 @@ export async function config(req: Request, res: Response) {
       orderBy: { createdAt: 'asc' },
     })
 
-    return res.json({
-      clinic: { id: clinic.id, name: clinic.displayName || clinic.name },
-      doctors: doctors.map(doctor => ({
+    // Só aparecem profissionais com horários online liberados e jornada cadastrada.
+    const onlineSettings = await loadOnlineBookingSettings(clinic.id)
+    const listed: Array<{ id: string; name: string; specialty: string; workDays: number[] }> = []
+    for (const doctor of doctors) {
+      const days = await workingDays(clinic.id, clinic.tenantId, doctor.id)
+      const onlineDays = days.filter(day => onlineTimesFor(onlineSettings, doctor.id, day).length > 0)
+      if (!onlineDays.length) continue
+      listed.push({
         id: doctor.id,
         name: `Dr(a). ${doctor.user.firstName} ${doctor.user.lastName}`.trim(),
         specialty: doctor.specialty,
-      })),
+        workDays: onlineDays,
+      })
+    }
+
+    return res.json({
+      clinic: { id: clinic.id, name: clinic.displayName || clinic.name },
+      doctors: listed,
     })
   } catch (error) {
     console.error('Erro ao carregar agendamento público:', error)
@@ -230,6 +253,11 @@ export async function availability(req: Request, res: Response) {
     const workBlocks = await getWorkBlocks(clinicId, clinic.tenantId, doctorId, dayOfWeek)
     const agendaBlocks = await listAgendaBlocks(clinicId)
     const recurringBreaks = await listRecurringBreaks(clinicId)
+
+    const days = await workingDays(clinicId, clinic.tenantId, doctorId)
+    if (!days.includes(dayOfWeek)) {
+      return res.json({ dateISO, doctorId, durationMinutes, slots: [], notWorkingDay: true, workDays: days })
+    }
 
     if (!configuredTimes.length) {
       return res.json({ dateISO, doctorId, durationMinutes, slots: [] })
@@ -339,6 +367,10 @@ export async function store(req: Request, res: Response) {
     }
 
     const date = new Date(`${String(dateISO)}T12:00:00-03:00`)
+    const days = await workingDays(clinicId, clinic.tenantId, doctor.id)
+    if (!days.includes(date.getDay())) {
+      return res.status(409).json({ error: 'O profissional não atende neste dia. Escolha outra data.' })
+    }
     const onlineSettings = await loadOnlineBookingSettings(clinicId)
     const allowedTimes = onlineTimesFor(onlineSettings, doctor.id, date.getDay())
     if (!allowedTimes.includes(String(time))) {
@@ -414,7 +446,7 @@ export async function store(req: Request, res: Response) {
             data: {
               clinicId,
               tenantId: clinic.tenantId,
-              fullName: patientName,
+              fullName: formatPersonName(patientName),
               phone: String(patientPhone).trim(),
               recordNumber: await nextRecordNumber(clinicId),
               ...(parsedBirthDate ? { birthDate: parsedBirthDate } : {}),
@@ -437,6 +469,12 @@ export async function store(req: Request, res: Response) {
         },
         select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
       })
+    }
+
+    // Pendência financeira: já tem um horário marcado e há cobrança vencida → só depois de regularizar (sem expor valores na página pública).
+    const hold = await getHold(clinicId, clinic.tenantId, patient.id).catch(() => null)
+    if (hold?.blocked) {
+      return res.status(409).json({ code: 'FINANCIAL_HOLD', error: 'Você já tem um horário marcado e há uma pendência financeira em aberto. Para marcar outro horário, entre em contato com a clínica para regularizar (boleto, Pix ou cartão).' })
     }
 
     const reminderChannel = normalizeChannel(rawChannel)

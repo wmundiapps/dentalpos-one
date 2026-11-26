@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { signupSource, track } from '../tracking';
+import { signupSource, adClickId, track } from '../tracking';
 import { api, ApiError } from '../api';
 import { useI18n } from '../i18n';
 import { useApp, type Me } from '../state';
@@ -33,15 +33,67 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const passwordRef = useRef<HTMLInputElement>(null);
+  // Verificação em duas etapas: depois da senha, o código enviado por e-mail
+  const [challenge, setChallenge] = useState<{ challengeId: string; email?: string; method?: 'app' | 'email' } | null>(null);
+  const [code, setCode] = useState('');
+  const [info, setInfo] = useState('');
+  const [busy, setBusy] = useState(false);
+  // Contador para reenviar o código: no mínimo 30 s entre um envio e outro
+  const [wait, setWait] = useState(0);
+  useEffect(() => {
+    if (wait <= 0) return;
+    const id = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(id);
+  }, [wait]);
+  function done(r: { token: string; user: Me }) {
+    rememberEmail(r.user.email);
+    login(r.token, r.user);
+    nav(safePath(params.get('next')) ?? '/');
+  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return; // evita dois logins (e dois códigos por e-mail) num clique duplo
+    setError(''); setBusy(true);
     try {
-      const r = await api<{ token: string; user: Me }>('/auth/login', { body: { email, password } });
-      rememberEmail(r.user.email);
-      login(r.token, r.user);
-      nav(params.get('next') ?? '/');
-    } catch (err) { setError(errorText(err, t)); }
+      const r = await api<{ token: string; user: Me } | { twoFactor: true; challengeId: string; email?: string; method?: 'app' | 'email' }>('/auth/login', { body: { email, password } });
+      if ('twoFactor' in r) { setChallenge(r); setCode(''); setInfo(''); setWait(30); return; }
+      done(r);
+    } catch (err) { setError(errorText(err, t)); } finally { setBusy(false); }
   }
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    try { done(await api<{ token: string; user: Me }>('/auth/login/verify', { body: { challengeId: challenge!.challengeId, code } })); }
+    catch (err) {
+      if (err instanceof ApiError && err.code === 'login_code_expired') { setChallenge(null); setPassword(''); }
+      setError(errorText(err, t));
+    }
+  }
+  async function resend() {
+    setError(''); setInfo('');
+    if (wait > 0) return;
+    try { await api('/auth/login/resend', { body: { challengeId: challenge!.challengeId } }); setInfo(t('auth.twoFactorResent')); setWait(30); }
+    catch (err) { setError(errorText(err, t)); }
+  }
+  if (challenge) return (
+    <div className="container narrow">
+      <h1>🔐 {t('auth.twoFactorTitle')}</h1>
+      <form className="panel" onSubmit={verify}>
+        {challenge.method === 'app'
+          ? <p>{t('auth.twoFactorAppText')}</p>
+          : <p>{t('auth.twoFactorText', { email: challenge.email ?? '' })}</p>}
+        {challenge.method === 'app'
+          ? <label>{t('auth.twoFactorCode')}<input autoComplete="one-time-code" maxLength={11} required autoFocus autoCapitalize="off" spellCheck={false}
+              value={code} onChange={(e) => setCode(e.target.value.replace(/[^0-9a-fA-F-]/g, '').slice(0, 11))} className="code-input" /></label>
+          : <label>{t('auth.twoFactorCode')}<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" required autoFocus
+              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="code-input" /></label>}
+        {error && <p className="errors" role="alert">{error}</p>}
+        {info && <p className="notice small">{info}</p>}
+        <button className="btn btn-primary block" disabled={challenge.method === 'app' ? code.replace(/-/g, '').length < 6 : code.length !== 6}>{t('auth.twoFactorConfirm')}</button>
+        <p className="small center">{challenge.method !== 'app' && <><button type="button" className="link-btn" disabled={wait > 0} onClick={resend}>{t('auth.twoFactorResend')}{wait > 0 ? ` (${wait}s)` : ''}</button> · </>}<button type="button" className="link-btn" onClick={() => { setChallenge(null); setError(''); }}>{t('common.back')}</button></p>
+      </form>
+    </div>
+  );
   return (
     <div className="container narrow">
       <h1>{t('auth.login')}</h1>
@@ -62,7 +114,7 @@ export function Login() {
         <label>{t('form.password')}<input ref={passwordRef} type="password" name="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" autoFocus={!!email} /></label>
         <p className="small right"><Link to={`/esqueci-senha${email ? `?email=${encodeURIComponent(email)}` : ''}`}>{t('auth.forgot')}</Link></p>
         {error && <p className="errors" role="alert">{error}</p>}
-        <button className="btn btn-primary block">{t('auth.login')}</button>
+        <button className="btn btn-primary block" disabled={busy}>{busy ? t('common.wait') : t('auth.login')}</button>
         <p className="small center">{t('auth.noAccount')} <Link to={`/cadastro${params.get('next') ? `?next=${encodeURIComponent(params.get('next')!)}` : ''}`}>{t('auth.register')}</Link></p>
       </form>
       {import.meta.env.DEV && <div className="notice small">
@@ -92,7 +144,7 @@ export function Register() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const r = await api<{ token: string; user: Me }>('/auth/register', { body: { ...f, locale, source: signupSource() } });
+      const r = await api<{ token: string; user: Me }>('/auth/register', { body: { ...f, locale, source: signupSource(), gclid: adClickId() } });
       track('CompleteRegistration');
       rememberEmail(r.user.email);
       login(r.token, r.user);

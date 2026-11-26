@@ -129,7 +129,7 @@ export function reportToText(
     string[] = [];
 
   lines.push(
-    "DENTALPOS DESIGN"
+    "COMPLETODONTO DESIGN"
   );
 
   lines.push(

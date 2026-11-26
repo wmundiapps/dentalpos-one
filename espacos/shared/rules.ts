@@ -7,7 +7,10 @@ import type {
 } from './types.js';
 import { getCountry } from './countries.js';
 
-export const RULES_VERSION = '2026-09-27';
+export const RULES_VERSION = '2026-11-20';
+
+/** Fiador casado precisa da autorização do cônjuge (CC art. 1.647, III), salvo na separação convencional (absoluta) de bens. */
+export const spouseConsentRequired = (m?: string, r?: string) => m === 'married' && r !== 'separation_conventional';
 
 // ───────────── Limites anti-locação de longo prazo ─────────────
 export const BOOKING_LIMITS = {
@@ -19,6 +22,11 @@ export const BOOKING_LIMITS = {
   maxConsecutiveDays: 5,         // reserva multi-dia: no máximo 5 dias seguidos
   maxRecurringWeeks: 12,         // recorrência semanal: no máximo 12 semanas por série
   maxOccurrencesPerBooking: 12,
+  // Pacote recorrente: vários dias da semana, sem exclusividade (cessão de uso por horário)
+  maxPackageWeekdays: 3,         // no máximo 3 dias por semana por locatário
+  maxPackageDays: 30,            // duração máxima do pacote (do primeiro ao último dia)
+  maxPackageOccurrences: 15,     // 3 dias × 5 semanas parciais dentro de 30 dias
+  maxPackageDiscountPct: 30,     // desconto máximo que o anfitrião pode dar para pacotes
   maxAdvanceDays: 180,           // antecedência máxima
   minAdvanceMinutes: 60,         // reservar com pelo menos 1 h de antecedência
   maxHoursPer30DaysPerListing: 120, // teto por locatário, por espaço, em janela móvel de 30 dias
@@ -29,14 +37,41 @@ export const BOOKING_LIMITS = {
 } as const;
 
 // ───────────── Taxas da plataforma ─────────────
+// Modelo aprovado em 20/11/2026 (sem reservas nem anfitriões ativos até então, vale já):
+// o locatário não paga taxa de serviço sobre a locação e a comissão do SpaceHour é de 20% (anfitrião fica com 80%).
+export function feesAt(_now: Date = new Date()) {
+  return { guestServiceFeeRate: FEES.guestServiceFeeRate, hostServiceFeeRate: FEES.hostServiceFeeRate };
+}
 export const FEES = {
-  guestServiceFeeRate: 0.15,  // taxa de serviço paga pelo locatário
-  hostServiceFeeRate: 0.05,   // taxa de serviço descontada do repasse ao anfitrião
+  guestServiceFeeRate: 0,     // o locatário não paga taxa de serviço sobre a locação
+  hostServiceFeeRate: 0.20,   // comissão do SpaceHour: 20% da locação (anfitrião recebe 80%), tributos incluídos
   payoutDelayHours: 24,       // repasse ao anfitrião 24 h após o início da (primeira) ocorrência
   depositReleaseHours: 72,    // caução liberada 72 h após o check-out se não houver ocorrência
   maxCleaningFeeRate: 0.30,   // taxa de limpeza limitada a 30% do valor base
   maxDepositMultiple: 3,      // caução limitada a 3x o valor base
 } as const;
+
+// ───────────── Parceiros (corretor e zelador) ─────────────
+// Taxas pagas pelo locatário "por fora" da locação, uma vez por reserva (independente do número de dias).
+// O SpaceHour recebe junto com a comissão e repassa ao parceiro até o dia 10 do mês seguinte ao check-out.
+export const PARTNER_RULES = {
+  brokerMinFee: 100,             // corretor: R$ 100 ou 10% do valor total da locação, o que for maior (inclui acompanhar o inquilino)
+  brokerRate: 0.10,
+  caretakerMinFee: 20,           // zelador: valor fixo por reserva, definido por anúncio (cidade, tamanho)
+  caretakerMaxFee: 500,
+  payoutDay: 10,                 // repasse ao parceiro até o dia 10 do mês seguinte
+  inspectionMinPhotos: 4,        // vistoria de entrada e de saída: no mínimo 4 fotos
+  inspectionDeadlineHours: 2,    // registrada em até 2 h do evento
+  checkInToleranceMinutes: 15,   // atraso máximo do zelador na entrega do acesso
+  responseMinutes: 30,           // resposta ao locatário durante a reserva
+  hostEndNoticeDays: 30,         // anfitrião encerra o vínculo com 30 dias de aviso (justa causa: na hora)
+  dataRetentionDays: 90,         // parceiro deixa de ver os dados do locatário 90 dias após o check-out
+} as const;
+
+/** Taxa do corretor: o maior entre R$ 100 e 10% do valor total da locação (valor base + limpeza), uma vez por reserva. */
+export function brokerFee(rentalTotal: number, currency: string): number {
+  return roundMoney(Math.max(PARTNER_RULES.brokerMinFee, rentalTotal * PARTNER_RULES.brokerRate), currency);
+}
 
 // ───────────── Política de cancelamento (locatário) ─────────────
 export interface CancellationTier { minHoursBefore: number; refundRate: number }
@@ -209,7 +244,8 @@ export function roundMoney(value: number, currency: string): number {
 }
 
 // ───────────── Preço ─────────────
-export function computePrice(listing: Listing, occurrences: Occurrence[]): PriceBreakdown {
+export function computePrice(listing: Listing, occurrences: Occurrence[], now: Date = new Date()): PriceBreakdown {
+  const rates = feesAt(now);
   const country = getCountry(listing.countryCode);
   const cur = listing.currency;
   let base = 0;
@@ -220,25 +256,41 @@ export function computePrice(listing: Listing, occurrences: Occurrence[]): Price
     hours += h;
     // Diária: aplica pricePerDay quando for mais vantajoso para o locatário
     const hourly = h * listing.pricePerHour;
-    if (listing.pricePerDay && h >= 6 && listing.pricePerDay < hourly) {
-      base += listing.pricePerDay;
-      days += 1;
-    } else {
-      base += hourly;
-    }
+    const value = listing.pricePerDay && h >= 6 && listing.pricePerDay < hourly ? listing.pricePerDay : hourly;
+    if (value !== hourly) days += 1;
+    base += value;
   }
-  base = roundMoney(base, cur);
+  const discountRate = packageDiscountRate(listing, occurrences);
+  const packageDiscount = roundMoney(base * discountRate, cur);
+  base = roundMoney(base - packageDiscount, cur);
   const cleaningFee = roundMoney(listing.cleaningFee * occurrences.length, cur);
-  const guestServiceFee = roundMoney((base + cleaningFee) * FEES.guestServiceFeeRate, cur);
+  const guestServiceFee = roundMoney((base + cleaningFee) * rates.guestServiceFeeRate, cur);
   const taxOnServiceFee = roundMoney(guestServiceFee * country.taxRate, cur);
-  const total = roundMoney(base + cleaningFee + guestServiceFee + taxOnServiceFee, cur);
-  const hostServiceFee = roundMoney((base + cleaningFee) * FEES.hostServiceFeeRate, cur);
+  // Parceiros do anúncio: uma taxa de cada por reserva, paga pelo locatário
+  const partners: NonNullable<PriceBreakdown['partners']> = [];
+  if (listing.brokerId) partners.push({ role: 'broker', userId: listing.brokerId, amount: brokerFee(base + cleaningFee, cur) });
+  if (listing.caretakerId && listing.caretakerFee) {
+    const fee = Math.min(Math.max(listing.caretakerFee, PARTNER_RULES.caretakerMinFee), PARTNER_RULES.caretakerMaxFee);
+    partners.push({ role: 'caretaker', userId: listing.caretakerId, amount: roundMoney(fee, cur) });
+  }
+  const brokerAmount = partners.find((p) => p.role === 'broker')?.amount ?? 0;
+  const caretakerAmount = partners.find((p) => p.role === 'caretaker')?.amount ?? 0;
+  const total = roundMoney(base + cleaningFee + guestServiceFee + taxOnServiceFee + brokerAmount + caretakerAmount, cur);
+  const hostServiceFee = roundMoney((base + cleaningFee) * rates.hostServiceFeeRate, cur);
   const hostPayout = roundMoney(base + cleaningFee - hostServiceFee, cur);
   return {
     currency: cur, hours, days, occurrences: occurrences.length, baseAmount: base, cleaningFee, guestServiceFee,
     taxOnServiceFee, taxName: country.taxName, total, hostServiceFee, hostPayout, securityDeposit: listing.securityDeposit,
+    hostServiceFeeRate: rates.hostServiceFeeRate,
+    ...(packageDiscount > 0 ? { packageDiscount } : {}),
+    ...(brokerAmount ? { brokerFee: brokerAmount } : {}),
+    ...(caretakerAmount ? { caretakerFee: caretakerAmount } : {}),
+    ...(partners.length ? { partners } : {}),
   };
 }
+
+/** Taxas de parceiros da reserva (corretor + zelador). */
+export const partnerFeesOf = (p: Pick<PriceBreakdown, 'brokerFee' | 'caretakerFee'>) => (p.brokerFee ?? 0) + (p.caretakerFee ?? 0);
 
 // ───────────── Validação de reserva ─────────────
 export interface ValidationContext {
@@ -251,12 +303,37 @@ export interface ValidationContext {
 
 export type ValidationError = { code: string; params?: Record<string, string | number> };
 
+export type BookingPattern = 'single' | 'consecutive' | 'weekly' | 'package' | 'invalid';
+
+/** Formato da reserva: um dia, dias seguidos, mesmo dia toda semana ou pacote (até 3 dias da semana, até 30 dias). */
+export function bookingPattern(occurrences: Occurrence[]): BookingPattern {
+  if (occurrences.length <= 1) return 'single';
+  const dates = occurrences.map((o) => o.date).sort();
+  if (new Set(dates).size !== dates.length) return 'invalid';
+  const diffs = dates.slice(1).map((d, i) => daysBetween(dates[i], d));
+  if (diffs.every((d) => d === 1)) return 'consecutive';
+  if (diffs.every((d) => d === 7)) return 'weekly';
+  const span = daysBetween(dates[0], dates[dates.length - 1]) + 1;
+  if (span <= BOOKING_LIMITS.maxPackageDays && new Set(dates.map(weekdayOf)).size <= BOOKING_LIMITS.maxPackageWeekdays) return 'package';
+  return 'invalid';
+}
+
+/** Desconto do anfitrião para pacotes de pelo menos 2 semanas (percentual sobre o valor das horas). */
+export function packageDiscountRate(listing: Pick<Listing, 'packageDiscountPct'>, occurrences: Occurrence[]): number {
+  const pct = Math.min(Math.max(listing.packageDiscountPct ?? 0, 0), BOOKING_LIMITS.maxPackageDiscountPct);
+  if (!pct || bookingPattern(occurrences) !== 'package') return 0;
+  const dates = occurrences.map((o) => o.date).sort();
+  return daysBetween(dates[0], dates[dates.length - 1]) >= 7 ? pct / 100 : 0;
+}
+
 export function validateOccurrences(listing: Listing, occurrences: Occurrence[], ctx: ValidationContext): ValidationError[] {
   const L = BOOKING_LIMITS;
   const errors: ValidationError[] = [];
   const now = ctx.now ?? new Date();
   if (occurrences.length === 0) return [{ code: 'no_occurrences' }];
-  if (occurrences.length > L.maxOccurrencesPerBooking) errors.push({ code: 'too_many_occurrences', params: { max: L.maxOccurrencesPerBooking } });
+  const pattern = bookingPattern(occurrences);
+  const maxOcc = pattern === 'package' ? L.maxPackageOccurrences : L.maxOccurrencesPerBooking;
+  if (occurrences.length > maxOcc) errors.push({ code: 'too_many_occurrences', params: { max: maxOcc } });
 
   const sorted = [...occurrences].sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
   const today = todayInZone(listing.timezone, now);
@@ -272,8 +349,13 @@ export function validateOccurrences(listing: Listing, occurrences: Occurrence[],
     const weekly = diffs.every((d) => d === 7);
     if (consecutive && sorted.length > L.maxConsecutiveDays) errors.push({ code: 'max_consecutive_days', params: { max: L.maxConsecutiveDays } });
     if (weekly && sorted.length > L.maxRecurringWeeks) errors.push({ code: 'max_recurring_weeks', params: { max: L.maxRecurringWeeks } });
-    if (!consecutive && !weekly) errors.push({ code: 'invalid_pattern' });
-    if (weekly && ctx.guestActiveSeries >= L.maxActiveSeriesPerListing) errors.push({ code: 'max_active_series', params: { max: L.maxActiveSeriesPerListing } });
+    if (!consecutive && !weekly) {
+      // Pacote: até 3 dias da semana, por até 30 dias
+      const span = daysBetween(sorted[0].date, sorted[sorted.length - 1].date) + 1;
+      if (span > L.maxPackageDays) errors.push({ code: 'package_max_days', params: { max: L.maxPackageDays } });
+      else if (new Set(dates.map(weekdayOf)).size > L.maxPackageWeekdays) errors.push({ code: 'package_max_weekdays', params: { max: L.maxPackageWeekdays } });
+    }
+    if ((weekly || pattern === 'package') && ctx.guestActiveSeries >= L.maxActiveSeriesPerListing) errors.push({ code: 'max_active_series', params: { max: L.maxActiveSeriesPerListing } });
     if (weekly && ctx.seriesCooldownUntil && sorted[0].date < ctx.seriesCooldownUntil) errors.push({ code: 'series_cooldown', params: { date: ctx.seriesCooldownUntil } });
   }
 
@@ -324,6 +406,8 @@ export interface RefundResult {
   refundCleaning: number;
   refundServiceFee: number;
   refundTax: number;
+  /** Taxas de corretor e zelador devolvidas na mesma proporção do valor base. */
+  refundPartnerFees: number;
   total: number;
   rule: 'grace' | 'withdrawal' | 'policy' | 'host_cancel' | 'no_refund_started';
   rate: number;
@@ -350,13 +434,35 @@ export function computeGuestRefund(params: {
   const bookedHoursBefore = (firstStart - params.bookedAt.getTime()) / 3600000;
   const nothingStarted = now.getTime() < firstStart;
 
-  // Janela de cortesia e direito de arrependimento reembolsam tudo
+  // Janela de cortesia e direito de arrependimento antes do início reembolsam tudo
   const grace = nothingStarted && hoursSinceBooking <= GRACE_PERIOD.hoursAfterBooking && bookedHoursBefore >= GRACE_PERIOD.minHoursBeforeStart;
-  const withdrawal = nothingStarted && (params.isConsumer ?? true) && country.withdrawalDays > 0 && hoursSinceBooking <= country.withdrawalDays * 24;
-  if (grace || withdrawal) {
+  const withdrawalWindow = (params.isConsumer ?? true) && country.withdrawalDays > 0 && hoursSinceBooking <= country.withdrawalDays * 24;
+  if (grace || (withdrawalWindow && nothingStarted)) {
     return {
       refundBase: price.baseAmount, refundCleaning: price.cleaningFee, refundServiceFee: price.guestServiceFee,
-      refundTax: price.taxOnServiceFee, total: price.total, rule: grace ? 'grace' : 'withdrawal', rate: 1,
+      refundTax: price.taxOnServiceFee, refundPartnerFees: partnerFeesOf(price), total: price.total, rule: grace ? 'grace' : 'withdrawal', rate: 1,
+    };
+  }
+  // Arrependimento (CDC art. 49) com o uso já iniciado: ocorrências futuras voltam inteiras, a que está em
+  // andamento volta proporcional ao tempo que falta e as já usadas não voltam (serviço prestado a pedido do consumidor).
+  if (withdrawalWindow) {
+    const perBase = price.baseAmount / occurrences.length;
+    const perCleaning = price.cleaningFee / occurrences.length;
+    let refundBase = 0;
+    let refundCleaning = 0;
+    occurrences.forEach((o, i) => {
+      const start = starts[i];
+      const end = occurrenceEndUtc(listing, o).getTime();
+      if (now.getTime() < start) { refundBase += perBase; refundCleaning += perCleaning; } else if (now.getTime() < end) refundBase += perBase * ((end - now.getTime()) / (end - start));
+    });
+    const share = price.baseAmount ? refundBase / price.baseAmount : 0;
+    const refundServiceFee = price.guestServiceFee * share;
+    const refundTax = price.taxOnServiceFee * share;
+    const refundPartnerFees = roundMoney(partnerFeesOf(price) * share, cur);
+    const total = roundMoney(refundBase + refundCleaning + refundServiceFee + refundTax + refundPartnerFees, cur);
+    return {
+      refundBase: roundMoney(refundBase, cur), refundCleaning: roundMoney(refundCleaning, cur), refundServiceFee: roundMoney(refundServiceFee, cur),
+      refundTax: roundMoney(refundTax, cur), refundPartnerFees, total, rule: 'withdrawal', rate: price.total ? total / price.total : 0,
     };
   }
 
@@ -378,10 +484,12 @@ export function computeGuestRefund(params: {
   const feeShare = fullyRefundedCount / occurrences.length;
   const refundServiceFee = price.guestServiceFee * feeShare;
   const refundTax = price.taxOnServiceFee * feeShare;
-  const total = roundMoney(refundBase + refundCleaning + refundServiceFee + refundTax, cur);
+  // Corretor e zelador: devolvidos na mesma proporção do valor base
+  const refundPartnerFees = roundMoney(partnerFeesOf(price) * (price.baseAmount ? refundBase / price.baseAmount : 0), cur);
+  const total = roundMoney(refundBase + refundCleaning + refundServiceFee + refundTax + refundPartnerFees, cur);
   return {
     refundBase: roundMoney(refundBase, cur), refundCleaning: roundMoney(refundCleaning, cur),
-    refundServiceFee: roundMoney(refundServiceFee, cur), refundTax: roundMoney(refundTax, cur), total,
+    refundServiceFee: roundMoney(refundServiceFee, cur), refundTax: roundMoney(refundTax, cur), refundPartnerFees, total,
     rule: nothingStarted ? 'policy' : 'no_refund_started', rate: price.total ? total / price.total : 0,
   };
 }

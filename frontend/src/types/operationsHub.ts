@@ -26,12 +26,13 @@ export interface IntegratedLaboratoryWork {
   priority: LaboratoryPriority;
   hasCadCamFile: boolean;
   observations?: string;
-  source: "Laboratório" | "DentalPos Design" | "Agenda";
+  source: "Laboratório" | "CompletoDonto Design" | "Agenda";
   designJobId?: number;
   updatedAtISO: string;
   impressionType?: "Analógica" | "Digital";
   receivedItems?: string[];
   toothShade?: string;
+  dvo?: string;
   faceBiotype?: "Dolicocéfalo" | "Mesocéfalo" | "Braquicéfalo";
   faceShape?: "Ovoide" | "Quadrado" | "Triangular" | "Outro";
   faceDescription?: string;
@@ -50,7 +51,7 @@ export interface IntegratedLaboratoryWork {
 export interface AppointmentHistoryEvent {
   id: number;
   atISO: string;
-  action: "Criado" | "Remarcado" | "Cancelado" | "Faltou" | "Alterado";
+  action: "Criado" | "Remarcado" | "Cancelado" | "Desmarcado" | "Faltou" | "Alterado";
   requestedBy?: "Paciente" | "Clínica" | "Dentista" | "Outro";
   reason?: string;
   previousDateISO?: string;

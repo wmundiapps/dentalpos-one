@@ -87,6 +87,11 @@ export interface Listing {
   currency: string;
   pricePerHour: number;
   pricePerDay?: number;     // diária (turno completo), opcional
+  packageDiscountPct?: number; // desconto (%) para pacotes recorrentes de 2+ semanas
+  // Parceiros ativos no anúncio (mantidos pelo módulo de parceiros, não pelo formulário do anfitrião)
+  brokerId?: string;
+  caretakerId?: string;
+  caretakerFee?: number;
   minHours: number;
   cleaningFee: number;
   securityDeposit: number;  // caução (pré-autorização), 0 = sem caução
@@ -96,6 +101,8 @@ export interface Listing {
   guarantorThreshold?: number; // p/ required_over_amount
   requiresLicense: boolean;    // exige registro profissional verificado
   hostLicenseResponsibility: boolean; // anfitrião assume conferir o registro do locatário
+  occupancy?: Occupancy;              // a que título o anfitrião ocupa o imóvel
+  occupancyConsentAt?: string;        // declarou autorização do proprietário/locador (quem não é proprietário)
   houseRules: string;          // normas do espaço
   buildingRules?: string;      // normas do condomínio/edifício
   allowedActivities?: string;
@@ -117,7 +124,15 @@ export interface Guarantor {
   status: 'invited' | 'accepted' | 'declined';
   liabilityCap: number;
   respondedAt?: string;
+  maritalStatus?: MaritalStatus;
+  propertyRegime?: PropertyRegime;
+  /** Autorização do cônjuge (CC art. 1.647, III), exigida para fiador casado fora da separação convencional de bens */
+  spouse?: { name: string; documentNumber: string; email: string; token: string; status: 'invited' | 'accepted' | 'declined'; respondedAt?: string };
 }
+
+export type MaritalStatus = 'single' | 'married' | 'stable_union' | 'divorced' | 'widowed';
+export type PropertyRegime = 'partial' | 'universal' | 'final_participation' | 'separation_conventional' | 'separation_mandatory';
+export type Occupancy = 'owner' | 'tenant' | 'other';
 
 export interface PriceBreakdown {
   currency: string;
@@ -133,7 +148,14 @@ export interface PriceBreakdown {
   hostServiceFee: number;
   hostPayout: number;
   securityDeposit: number;
+  packageDiscount?: number; // desconto de pacote já abatido do baseAmount
+  hostServiceFeeRate?: number; // comissão do anfitrião gravada na reserva
+  brokerFee?: number;       // taxa do corretor parceiro (paga pelo locatário, uma por reserva)
+  caretakerFee?: number;    // taxa do zelador parceiro (paga pelo locatário, uma por reserva)
+  partners?: Array<{ role: PartnerRole; userId: string; amount: number }>;
 }
+
+export type PartnerRole = 'broker' | 'caretaker';
 
 export interface Occurrence { date: string; start: string; end: string } // data local do espaço
 

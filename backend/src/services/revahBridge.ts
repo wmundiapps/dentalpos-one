@@ -1,4 +1,4 @@
-// Ponte DentalPos One -> REVAH. Toda a comunicação passa pelo @revah/dentalpos-one-adapter
+// Ponte CompletoDonto -> REVAH. Toda a comunicação passa pelo @revah/dentalpos-one-adapter
 // (API assinada, SSO e eventos). Nenhuma tabela do REVAH é acessada daqui.
 import { RevahClient, verifyRevahWebhook, type RevahEvent, type RevahPlan } from '@revah/dentalpos-one-adapter'
 import { prisma } from '../lib/prisma'

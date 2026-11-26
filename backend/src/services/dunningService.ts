@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma'
+import { importedOriginsToSkip } from './importedHold'
 import { decryptSecret } from './secretVault'
 import { dispatchRevah, type RevahChannel } from './revahProviderService'
 
@@ -84,8 +85,9 @@ type Candidate = { entryId: string; patientId: string; patientName: string; phon
 export async function dunningCandidates(clinicId: string, tenantId: string, settings: DunningSettings, now = new Date(), channels: RevahChannel[] = settings.channels, multi = true): Promise<Candidate[]> {
   const today = brtDay(now)
   const from = new Date(now.getTime() - (LEGAL_UNTIL + 3) * DAY)
+  const skip = await importedOriginsToSkip(clinicId)
   const entries = await prisma.financialEntry.findMany({
-    where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, patientId: { not: null }, dueDate: { gte: from, lt: now } },
+    where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, patientId: { not: null }, dueDate: { gte: from, lt: now }, ...(skip.length ? { origin: { notIn: skip } } : {}) },
     select: { id: true, patientId: true, amount: true, dueDate: true, patient: { select: { fullName: true, phone: true, email: true } } },
     take: 1000
   })
@@ -126,7 +128,7 @@ async function sendNotice(notice: { id: string; clinicId: string; tenantId: stri
     try { credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {} } catch { return fail(`Credenciais de ${channel} não puderam ser abertas.`) }
   } else credentials = { apiKey: platformKey }
   if (!Object.keys(credentials).length || credentials.simulated === true) return fail(`Credenciais reais de ${channel} ainda não configuradas.`)
-  const address = sender ? sender.address : 'DentalPos One <contato@dentalpos.com.br>'
+  const address = sender ? sender.address : 'CompletoDonto <contato@dentalpos.com.br>'
   try {
     const result = await dispatchRevah(channel, destination, notice.message, channel === 'EMAIL' ? { ...credentials, subject: 'Aviso de pagamento em atraso' } : credentials, address)
     if (result.simulated) return fail(`O provedor ${result.provider} está em modo simulado.`)

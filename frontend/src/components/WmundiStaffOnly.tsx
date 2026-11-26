@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { readSessionUser } from "../services/DemoAccess";
 
-const WMUNDI_STAFF_EMAILS = ["contato@dentalpos.com.br"];
+const WMUNDI_STAFF_EMAILS = ["contato@dentalpos.com.br", "clinicaravel@gmail.com"];
 
 export function isWmundiStaff(): boolean {
   const user = readSessionUser();

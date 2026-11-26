@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import FinancialHoldDialog from "./FinancialHoldDialog";
+import { loadPatientHold } from "../services/FinancialHoldApi";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -19,10 +21,14 @@ import { useNavigate } from "react-router-dom";
 import ProcedurePicker from "./ProcedurePicker";
 import DurationSelect from "./DurationSelect";
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
+import NextProcedureHint from "./NextProcedureHint";
 import PatientSearchField, { formatPhoneBR, isValidPhoneBR, onlyDigits, type PatientChoice } from "./PatientSearchField";
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import {
   createBackendAppointment,
+  loadNextProcedureHint,
+  type NextProcedureHint as NextHint,
+  isFinancialHold,
   loadBackendAvailability,
   loadBackendDoctors,
   type BackendDoctor,
@@ -77,6 +83,21 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
   const [breaks, setBreaks] = useState<RecurringBreak[]>([]);
   const [choice, setChoice] = useState<PatientChoice>(null);
   const [procedure, setProcedure] = useState(DEFAULT_PROCEDURE);
+  const [nextHint, setNextHint] = useState<NextHint | null>(null);
+  const registeredId = choice?.mode === "registered" ? choice.patient.id : "";
+  const useHint = (h: NextHint) => { setProcedure(h.nextProcedure); setDuration(suggestDuration(h.nextProcedure)); };
+  useEffect(() => {
+    setNextHint(null);
+    if (!registeredId) return;
+    let alive = true;
+    loadNextProcedureHint(registeredId).then((h) => {
+      if (!alive || !h) return;
+      setNextHint(h);
+      setProcedure((cur) => (!cur.trim() || cur === DEFAULT_PROCEDURE || cur === prefill?.procedure ? h.nextProcedure : cur));
+    }).catch(() => undefined);
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registeredId]);
   const [duration, setDuration] = useState(30);
   const [doctorId, setDoctorId] = useState("");
   const [assistants, setAssistants] = useState<TeamMember[]>([]);
@@ -88,6 +109,10 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
   const [slotsError, setSlotsError] = useState("");
   const [reminders, setReminders] = useState<ReminderSelection>({ onBooking: true, oneDayBefore: true, onDay: true });
   const [saving, setSaving] = useState(false);
+  const [holdOpen, setHoldOpen] = useState(false);
+  const [holdRetry, setHoldRetry] = useState(false);
+  const holdResolvedFor = useRef<string | null>(null); // pendência mostrada e regularizada antes de agendar
+  const [holdPatient, setHoldPatient] = useState<{ id: string; name: string } | null>(null);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
 
@@ -152,7 +177,8 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
     return choice.fullName.trim().length >= 3 && isValidPhoneBR(choice.phone);
   }, [choice]);
 
-  const save = async () => {
+  const save = () => saveWith(false);
+  const saveWith = async (anyway = false) => {
     if (!choice || !patientReady) {
       setError("Informe o paciente (para paciente novo: nome e telefone com DDD).");
       return;
@@ -173,8 +199,10 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
           ? existing
           : await createBackendPatient({ fullName: choice.fullName.trim(), phone: formatPhoneBR(choice.phone) } as Parameters<typeof createBackendPatient>[0]);
       }
+      setHoldPatient({ id: patient.id, name: patient.fullName });
       const scheduledAt = new Date(`${dateISO}T${time}:00`);
       await createBackendAppointment({
+        evolutionId: nextHint && procedure.trim() === nextHint.nextProcedure ? nextHint.evolutionId : undefined,
         patientId: patient.id,
         doctorId,
         procedure: procedure.trim() || DEFAULT_PROCEDURE,
@@ -184,17 +212,25 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
         assistantId: assistantId || undefined,
         reminderChannel: "WHATSAPP",
         reminders,
+        scheduleAnyway: anyway || undefined,
+        holdWasShown: holdResolvedFor.current === patient.id || undefined,
       });
+      holdResolvedFor.current = null;
       setDone(`${patient.fullName} agendado(a) em ${new Date(`${dateISO}T12:00:00`).toLocaleDateString("pt-BR")} às ${time}.`);
       onSaved?.();
+      // Aviso de pendência financeira: este é o único horário permitido até regularizar.
+      const hold = await loadPatientHold(patient.id).catch(() => null);
+      if (hold?.hasPending) { setHoldRetry(false); setHoldOpen(true); }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível agendar.");
+      if (isFinancialHold(e)) { setHoldRetry(true); setHoldOpen(true); }
     } finally {
       setSaving(false);
     }
   };
 
   return (
+    <>
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle sx={{ fontWeight: 900 }}>Agendar paciente</DialogTitle>
       <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
@@ -211,6 +247,7 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
               <PatientSearchField patients={patients} value={choice} onChange={setChoice} autoFocus />
             )}
 
+            <NextProcedureHint hint={nextHint} current={procedure} onUse={() => nextHint && useHint(nextHint)} />
             <ProcedurePicker
               value={procedure}
               onChange={(name) => {
@@ -277,5 +314,7 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
         ) : null}
       </DialogActions>
     </Dialog>
+      {holdPatient && <FinancialHoldDialog patientId={holdPatient.id} patientName={holdPatient.name} open={holdOpen} onClose={() => setHoldOpen(false)} onResolved={(id) => { holdResolvedFor.current = id; }} onScheduleAnyway={holdRetry ? () => { setHoldOpen(false); setHoldRetry(false); void saveWith(true); } : undefined} />}
+    </>
   );
 }

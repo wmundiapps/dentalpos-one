@@ -8,6 +8,7 @@ import { sendMessage } from './messaging'
 import { assertCanLaunchCampaign } from './plans'
 import { suppressedSet } from './suppression'
 import { queueCall } from './voice/engine'
+import { startOfToday } from './leads/invites'
 
 export interface Audience {
   tagIds?: string[]
@@ -173,6 +174,14 @@ async function campaignSendJob(job: Job): Promise<JobOutcome> {
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: job.tenantId } })
   if (['SUSPENDED', 'CANCELED', 'PAST_DUE'].includes(tenant.status)) return { reschedule: new Date(Date.now() + 30 * 60_000), reason: 'Conta sem assinatura ativa.' }
   const contact = recipient.contactId ? await prisma.contact.findUnique({ where: { id: recipient.contactId } }) : null
+  // Contato frio (veio da captação) por e-mail: limite diário por cliente; o excedente vai para o dia seguinte, 9h.
+  if (campaign.channel === 'EMAIL' && contact?.source === 'LEADS') {
+    const today = startOfToday(tenant.timezone)
+    const sent = await prisma.message.count({ where: { tenantId: tenant.id, channel: 'EMAIL', direction: 'OUT', createdAt: { gte: today }, contact: { source: 'LEADS' } } })
+    if (sent >= config.leads.emailDailyCap) {
+      return { reschedule: new Date(today.getTime() + 33 * 3600_000), reason: `Limite diário de ${config.leads.emailDailyCap} e-mails para contatos da captação.` }
+    }
+  }
   const vars = contactVars(contact || { name: recipient.name }, { minha_empresa: tenant.name })
   const tpl = campaign.waTemplate as { name: string; language?: string; params?: string[] } | null
   const r = await sendMessage({

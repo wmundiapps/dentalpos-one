@@ -10,6 +10,7 @@ export type AiTask =
   | 'RESUMO'
   | 'CLASSIFICACAO'
   | 'ANALISE'
+  | 'AJUDA'
 
 // Custo em creditos por tipo de tarefa. Ajustavel sem mexer no resto do sistema.
 const CUSTO: Record<AiTask, number> = {
@@ -18,6 +19,7 @@ const CUSTO: Record<AiTask, number> = {
   RESUMO: 1,
   CLASSIFICACAO: 1,
   ANALISE: 3,
+  AJUDA: 1,
 }
 
 const MODELO_PADRAO = process.env.OPENAI_MODEL || 'gpt-5.6-luna'
@@ -39,6 +41,7 @@ export async function runAiTask(input: {
   task: AiTask
   system: string
   prompt: string
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>
   maxTokens?: number
   referenceType?: string
   referenceId?: string
@@ -63,6 +66,7 @@ export async function runAiTask(input: {
         max_completion_tokens: teto,
         messages: [
           { role: 'system', content: input.system },
+          ...(input.history || []).map((m) => ({ role: m.role, content: String(m.content).slice(0, 1500) })),
           { role: 'user', content: prompt },
         ],
       }),

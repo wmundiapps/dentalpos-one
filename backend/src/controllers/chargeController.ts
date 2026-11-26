@@ -1,3 +1,4 @@
+import { sendChargeEmail, EMAIL_RE, type ChargeEmailResult } from '../services/chargeEmailService'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
@@ -54,6 +55,17 @@ export async function listCharges(req: AuthRequest, res: Response) {
   }
 }
 
+// Dados do paciente do lançamento para pré-preencher a cobrança online (CPF, e-mail e telefone do cadastro).
+export async function customerData(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const entry = await prisma.financialEntry.findFirst({ where: { id: String(req.params.id), clinicId, tenantId }, include: { patient: { select: { fullName: true, cpf: true, email: true, phone: true } } } })
+    if (!entry) return res.status(404).json({ error: 'Lançamento não encontrado.' })
+    const p = entry.patient
+    return res.json({ name: p?.fullName || entry.personName, cpfCnpj: String(p?.cpf || '').replace(/\D/g, ''), email: p?.email || '', phone: p?.phone || '', fromRegistry: Boolean(p) })
+  } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao buscar os dados do paciente.' }) }
+}
+
 // Gera a cobrança real no Asaas da clínica para um lançamento a receber, com divisão automática (split) opcional.
 export async function createForEntry(req: AuthRequest, res: Response) {
   try {
@@ -87,6 +99,10 @@ export async function createForEntry(req: AuthRequest, res: Response) {
     if (!name) return res.status(400).json({ error: 'Informe o nome do cliente.' })
     const customer = { externalReference: patient?.id || `entry-${entry.id}`, name, email: b.customer?.email || patient?.email, phone: b.customer?.phone || patient?.phone, cpfCnpj: b.customer?.cpfCnpj || patient?.cpf }
 
+    const typedDoc = String(b.customer?.cpfCnpj || '').replace(/\D/g, '')
+    if (b.customer?.cpfCnpj && typedDoc.length !== 11 && typedDoc.length !== 14) return res.status(400).json({ error: 'CPF ou CNPJ inválido: informe 11 dígitos (CPF) ou 14 (CNPJ).' })
+    if (b.customer?.email && !EMAIL_RE.test(String(b.customer.email).trim())) return res.status(400).json({ error: 'E-mail inválido.' })
+
     // Divisão automática com o dentista (carteira Asaas dele cadastrada em Recebimentos online).
     let splitPlan: ReturnType<typeof resolveSplit> | null = null
     let walletId = ''
@@ -116,6 +132,19 @@ export async function createForEntry(req: AuthRequest, res: Response) {
       return res.status(status).json({ error: error instanceof Error ? error.message : 'Falha ao criar cobrança no Asaas.' })
     }
 
+    // Dados corrigidos na cobrança voltam para o cadastro do paciente (só preenche o que estava vazio ou inválido).
+    if (patient && b.customer) {
+      try {
+        const upd: Record<string, string> = {}
+        const doc = String(b.customer.cpfCnpj || '').replace(/\D/g, '')
+        const curDoc = String(patient.cpf || '').replace(/\D/g, '')
+        if (doc && doc !== curDoc && curDoc.length !== 11 && curDoc.length !== 14) upd.cpf = doc
+        if (b.customer.email && !patient.email) upd.email = String(b.customer.email).trim()
+        if (b.customer.phone && !patient.phone) upd.phone = String(b.customer.phone).trim()
+        if (Object.keys(upd).length) await prisma.patient.update({ where: { id: patient.id }, data: upd })
+      } catch (e) { console.error('Não foi possível atualizar o cadastro do paciente:', e) }
+    }
+
     try {
       const charge = await prisma.$transaction(async tx => {
         const row = await tx.receivableCharge.create({
@@ -134,7 +163,19 @@ export async function createForEntry(req: AuthRequest, res: Response) {
         return tx.receivableCharge.findUniqueOrThrow({ where: { id: row.id }, include: { splits: true } })
       })
       await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'CHARGE_CREATE', entityType: 'ReceivableCharge', entityId: charge.id, summary: `Cobrança ${billingType} de R$ ${amount.toFixed(2)} para ${name}${splitPlan?.ok ? ' com repasse automático' : ''}.`, metadata: { entryId: entry.id, externalId: created.externalId } }).catch((e: unknown) => console.error(e))
-      return res.status(201).json(publicCharge(charge))
+      // Guarda no cadastro do paciente o que faltava (CPF/CNPJ, e-mail, telefone) para as próximas cobranças.
+      if (patient) {
+        const patch: Record<string, string> = {}
+        if (!patient.cpf && typedDoc) patch.cpf = typedDoc
+        if (!patient.email && b.customer?.email) patch.email = String(b.customer.email).trim().toLowerCase()
+        if (Object.keys(patch).length) await prisma.patient.update({ where: { id: patient.id }, data: patch }).catch((e: unknown) => console.error(e))
+      }
+      // O paciente recebe SEMPRE a cobrança por e-mail (link, Pix e linha digitável).
+      const email = await sendChargeEmail({
+        clinicId, tenantId, patientName: name, email: String(b.customer?.email || patient?.email || '').trim(),
+        charge: { value: amount, dueDate: new Date(`${dueDate}T12:00:00Z`), billingType, invoiceUrl: created.invoiceUrl, pixCopyPaste: created.pixCopyPaste, digitableLine: created.digitableLine },
+      }).catch((e: unknown): ChargeEmailResult => ({ sent: false, to: null, reason: e instanceof Error ? e.message : 'Falha no envio.' }))
+      return res.status(201).json({ ...publicCharge(charge), email })
     } catch (error) {
       // A cobrança existe no Asaas mas não foi gravada: cancela lá para não ficar uma cobrança "fantasma" para o paciente.
       console.error('Erro ao gravar cobrança; cancelando no Asaas:', error)
@@ -171,5 +212,28 @@ export async function cancelCharge(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error('Erro ao cancelar cobrança:', error)
     return res.status(500).json({ error: 'Erro ao cancelar cobrança.' })
+  }
+}
+
+// Reenvia (ou envia pela primeira vez) a cobrança por e-mail ao paciente. Se o paciente não tem e-mail, o informado aqui é salvo no cadastro.
+export async function sendEmail(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const charge = await prisma.receivableCharge.findFirst({ where: { id: String(req.params.id), clinicId, tenantId } })
+    if (!charge) return res.status(404).json({ error: 'Cobrança não encontrada.' })
+    const entry = await prisma.financialEntry.findFirst({ where: { id: charge.financialEntryId, clinicId, tenantId }, include: { patient: true } })
+    const patient = entry?.patient || null
+    const typed = String(req.body?.email || '').trim().toLowerCase()
+    if (typed && !EMAIL_RE.test(typed)) return res.status(400).json({ error: 'E-mail inválido.' })
+    const email = typed || String(patient?.email || '').trim()
+    if (typed && patient && !patient.email) await prisma.patient.update({ where: { id: patient.id }, data: { email: typed } }).catch((e: unknown) => console.error(e))
+    const result = await sendChargeEmail({
+      clinicId, tenantId, patientName: patient?.fullName || entry?.personName || 'paciente', email,
+      charge: { value: Number(charge.value), dueDate: charge.dueDate, billingType: charge.billingType, invoiceUrl: charge.invoiceUrl, pixCopyPaste: charge.pixCopyPaste, digitableLine: charge.digitableLine },
+    })
+    return res.json(result)
+  } catch (error) {
+    console.error('Erro ao enviar cobrança por e-mail:', error)
+    return res.status(500).json({ error: 'Erro ao enviar a cobrança por e-mail.' })
   }
 }

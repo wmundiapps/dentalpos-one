@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
 import { prisma } from '../lib/prisma'
+import { nationalHolidays } from '../lib/holidays'
 
 const BLOCK_FLAG = 'AGENDA_BLOCKS'
 const RECURRING_BREAK_FLAG = 'AGENDA_RECURRING_BREAKS'
@@ -93,7 +94,11 @@ export async function getWorkBlocks(
     orderBy: { startTime: 'asc' },
   })
 
-  if (!rows.length) return DEFAULT_WORK_BLOCKS
+  if (!rows.length) {
+    // Se o profissional tem escala semanal cadastrada (ex.: só terça), os outros dias ficam fechados.
+    const hasWeekly = await prisma.schedule.count({ where: { clinicId, tenantId, doctorId } })
+    return hasWeekly > 0 ? [] : DEFAULT_WORK_BLOCKS
+  }
 
   return rows.map(row => ({
     startTime: row.startTime,
@@ -180,10 +185,49 @@ function normalizeAgendaBlock(value: unknown): AgendaBlock | undefined {
   }
 }
 
+const holidayYearsOf = (metadata: Record<string, unknown>) =>
+  Array.isArray(metadata.holidayYears) ? metadata.holidayYears.map(Number).filter(Number.isFinite) : []
+
+// Feriados nacionais entram sozinhos como dias fechados (agenda toda, todos os profissionais) do ano atual e do próximo.
+// Cada ano entra uma única vez: se a clínica abrir num feriado e remover o bloqueio, ele não volta.
+async function seedHolidayBlocks(clinicId: string, row: { tenantId: string; metadata: unknown } | null) {
+  const year = Number(new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 4))
+  const metadata = (row?.metadata || {}) as Record<string, unknown>
+  const done = holidayYearsOf(metadata)
+  const missing = [year, year + 1].filter(y => !done.includes(y))
+  if (!missing.length) return
+  const tenantId = row?.tenantId || (await prisma.clinic.findUnique({ where: { id: clinicId }, select: { tenantId: true } }))?.tenantId
+  if (!tenantId) return
+  const current = (Array.isArray(metadata.blocks) ? metadata.blocks : [])
+    .map(normalizeAgendaBlock)
+    .filter((item): item is AgendaBlock => Boolean(item))
+  const known = new Set(current.map(b => b.id))
+  const next = new Date(0)
+  for (const y of missing) {
+    for (const h of nationalHolidays(y)) {
+      const id = `feriado-${h.date}`
+      if (known.has(id)) continue
+      next.setTime(new Date(`${h.date}T00:00:00-03:00`).getTime() + 86400000)
+      current.push({ id, doctorId: null, startAt: new Date(`${h.date}T00:00:00-03:00`).toISOString(), endAt: next.toISOString(), reason: `Feriado nacional: ${h.name}` })
+    }
+  }
+  await persistAgendaBlocks(clinicId, tenantId, current, [...done, ...missing])
+}
+
 export async function listAgendaBlocks(clinicId: string): Promise<AgendaBlock[]> {
-  const row = await prisma.tenantFeatureFlag.findUnique({
+  let row = await prisma.tenantFeatureFlag.findUnique({
     where: { clinicId_key: { clinicId, key: BLOCK_FLAG } },
   })
+  try {
+    const year = Number(new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 4))
+    const done = holidayYearsOf((row?.metadata || {}) as Record<string, unknown>)
+    if (![year, year + 1].every(y => done.includes(y))) {
+      await seedHolidayBlocks(clinicId, row)
+      row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: BLOCK_FLAG } } })
+    }
+  } catch (error) {
+    console.error('Falha ao incluir feriados na agenda:', error instanceof Error ? error.message : error)
+  }
   const metadata = (row?.metadata || {}) as Record<string, unknown>
   const raw = Array.isArray(metadata.blocks) ? metadata.blocks : []
   return raw
@@ -196,13 +240,17 @@ async function persistAgendaBlocks(
   clinicId: string,
   tenantId: string,
   blocks: AgendaBlock[],
+  holidayYears?: number[],
 ) {
+  // Mantém a lista de anos de feriados já incluídos (senão um feriado removido pela clínica voltaria).
+  const years = holidayYears ?? holidayYearsOf(((await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: BLOCK_FLAG } } }))?.metadata || {}) as Record<string, unknown>)
+  const metadata = { version: 1, blocks, holidayYears: years } as unknown as Parameters<typeof prisma.tenantFeatureFlag.upsert>[0]['create']['metadata']
   await prisma.tenantFeatureFlag.upsert({
     where: { clinicId_key: { clinicId, key: BLOCK_FLAG } },
     update: {
       enabled: true,
       rolloutStage: 'PILOT',
-      metadata: { version: 1, blocks },
+      metadata,
     },
     create: {
       clinicId,
@@ -210,7 +258,7 @@ async function persistAgendaBlocks(
       key: BLOCK_FLAG,
       enabled: true,
       rolloutStage: 'PILOT',
-      metadata: { version: 1, blocks },
+      metadata,
     },
   })
 }
@@ -300,10 +348,42 @@ function normalizeRecurringBreak(value: unknown): RecurringBreak | undefined {
   }
 }
 
+const seededDoctorsOf = (metadata: Record<string, unknown>) =>
+  Array.isArray(metadata.lunchSeeded) ? metadata.lunchSeeded.map(String) : []
+
+// Almoço fechado por padrão para TODOS os profissionais (12:00 às 13:59, nos dias em que atendem).
+// Cada profissional entra uma única vez: se a clínica remover o almoço dele, não volta. Profissional novo ganha o almoço sozinho.
+async function seedLunchBreaks(clinicId: string, row: { tenantId: string; metadata: unknown } | null) {
+  const metadata = (row?.metadata || {}) as Record<string, unknown>
+  const seeded = seededDoctorsOf(metadata)
+  const doctors = await prisma.doctor.findMany({ where: { clinicId, isActive: true }, select: { id: true, tenantId: true } })
+  const pending = doctors.filter(d => !seeded.includes(d.id))
+  if (!pending.length) return
+  const tenantId = row?.tenantId || pending[0].tenantId
+  const schedules = await prisma.schedule.findMany({ where: { clinicId, doctorId: { in: pending.map(d => d.id) } }, select: { doctorId: true, dayOfWeek: true } })
+  const current = (Array.isArray(metadata.breaks) ? metadata.breaks : [])
+    .map(normalizeRecurringBreak)
+    .filter((item): item is RecurringBreak => Boolean(item))
+  for (const doctor of pending) {
+    const days = [...new Set(schedules.filter(x => x.doctorId === doctor.id).map(x => x.dayOfWeek))]
+    for (const day of days.length ? days : [1, 2, 3, 4, 5]) {
+      const covered = current.some(b => b.doctorId === doctor.id && b.dayOfWeek === day && clockMinutes(b.startTime) < 14 * 60 && clockMinutes(b.endTime) > 12 * 60)
+      if (!covered) current.push({ id: randomUUID(), doctorId: doctor.id, dayOfWeek: day, startTime: '12:00', endTime: '14:00', reason: 'Almoço' })
+    }
+  }
+  await persistRecurringBreaks(clinicId, tenantId, current, [...seeded, ...pending.map(d => d.id)])
+}
+
 export async function listRecurringBreaks(clinicId: string): Promise<RecurringBreak[]> {
-  const row = await prisma.tenantFeatureFlag.findUnique({
+  let row = await prisma.tenantFeatureFlag.findUnique({
     where: { clinicId_key: { clinicId, key: RECURRING_BREAK_FLAG } },
   })
+  try {
+    await seedLunchBreaks(clinicId, row)
+    row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: RECURRING_BREAK_FLAG } } })
+  } catch (error) {
+    console.error('Falha ao incluir almoço na agenda:', error instanceof Error ? error.message : error)
+  }
   const metadata = (row?.metadata || {}) as Record<string, unknown>
   const raw = Array.isArray(metadata.breaks) ? metadata.breaks : []
   return raw
@@ -320,13 +400,17 @@ async function persistRecurringBreaks(
   clinicId: string,
   tenantId: string,
   breaks: RecurringBreak[],
+  lunchSeeded?: string[],
 ) {
+  // Mantém a lista de profissionais que já receberam o almoço padrão (senão um almoço removido voltaria).
+  const seeded = lunchSeeded ?? seededDoctorsOf(((await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: RECURRING_BREAK_FLAG } } }))?.metadata || {}) as Record<string, unknown>)
+  const metadata = { version: 1, breaks, lunchSeeded: seeded } as unknown as Parameters<typeof prisma.tenantFeatureFlag.upsert>[0]['create']['metadata']
   await prisma.tenantFeatureFlag.upsert({
     where: { clinicId_key: { clinicId, key: RECURRING_BREAK_FLAG } },
     update: {
       enabled: true,
       rolloutStage: 'PILOT',
-      metadata: { version: 1, breaks },
+      metadata,
     },
     create: {
       clinicId,
@@ -334,7 +418,7 @@ async function persistRecurringBreaks(
       key: RECURRING_BREAK_FLAG,
       enabled: true,
       rolloutStage: 'PILOT',
-      metadata: { version: 1, breaks },
+      metadata,
     },
   })
 }

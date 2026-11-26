@@ -45,7 +45,7 @@ export interface LibraryTemplate {
 
 export interface Session {
   token: string
-  user: { id: string; name: string; email: string; role: Role }
+  user: { id: string; name: string; email: string; role: Role; twoFactorEnabled?: boolean }
   tenant: {
     id: string
     name: string
@@ -334,7 +334,9 @@ export interface Lead {
   city: string | null
   state: string | null
   category: string | null
-  status: 'NEW' | 'IMPORTED' | 'DISCARDED'
+  status: 'NEW' | 'IMPORTED' | 'DISCARDED' | 'OPTED_OUT'
+  isMei?: boolean
+  invitedAt?: string | null
   contactId: string | null
   createdAt: string
 }

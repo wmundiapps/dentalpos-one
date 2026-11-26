@@ -787,7 +787,7 @@ export default function Dental3DViewer({
 
         /*
          * Entregamos uma cópia da geometria para
-         * as ferramentas externas do DentalPos Design.
+         * as ferramentas externas do CompletoDonto Design.
          *
          * O diagnóstico pode trabalhar nessa cópia
          * sem interferir no modelo exibido.
@@ -809,7 +809,7 @@ export default function Dental3DViewer({
         );
       } catch (error) {
         console.error(
-          "DentalPos STL Loader:",
+          "CompletoDonto STL Loader:",
           error
         );
 
@@ -827,7 +827,7 @@ export default function Dental3DViewer({
       () => {
         if (!cancelled) {
           console.error(
-            "DentalPos: erro ao ler arquivo STL."
+            "CompletoDonto: erro ao ler arquivo STL."
           );
 
           onGeometryLoaded?.(
@@ -884,7 +884,7 @@ export default function Dental3DViewer({
           if (box) { const c = new THREE.Vector3(); box.getCenter(c); geometry.translate(-c.x,-c.y,-c.z); }
           const material = new THREE.MeshStandardMaterial({ color, transparent:true, opacity, roughness:.65, side:THREE.DoubleSide });
           const mesh = new THREE.Mesh(geometry, material); scene.add(mesh); ref.current = mesh; renderRef.current?.();
-        } catch (error) { console.error("DentalPos auxiliary STL:", error); }
+        } catch (error) { console.error("CompletoDonto auxiliary STL:", error); }
       };
       reader.readAsArrayBuffer(file);
     };

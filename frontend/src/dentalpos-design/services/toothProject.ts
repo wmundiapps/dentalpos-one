@@ -204,7 +204,7 @@ export function parseDentalPosProject(
       "object"
   ) {
     throw new Error(
-      "Projeto DentalPos inválido."
+      "Projeto CompletoDonto inválido."
     );
   }
 

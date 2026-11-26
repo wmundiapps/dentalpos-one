@@ -258,6 +258,10 @@ model Patient {
 
   recordNumber Int?
 
+  // Fase na ficha: BUDGET (só orçamento) ou TREATMENT (tratamento confirmado). Vazio = ainda não definida.
+  treatmentStage   String?
+  treatmentStageAt DateTime?
+
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -579,6 +583,9 @@ model FinancialEntry {
   issuerEntity        String             @default("INSTITUTO_RAVEL")
   approvedAt          DateTime?
   sourceDocumentHash  String?
+  cashDestination     String?
+  destinationAccount  String?
+  destinationAt       DateTime?
   taxObligation       TaxObligation?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
@@ -1141,12 +1148,19 @@ model HREmployee {
   pixKey              String?
   notes               String?
   createdAt           DateTime               @default(now())
+  workplaceId         String?
+  workStart           String?
+  lunchStart          String?
+  lunchEnd            String?
+  workEnd             String?
   updatedAt           DateTime               @updatedAt
   attendance          HRAttendance[]
   payrollEntries      HRPayrollEntry[]
   vacations           HRVacation[]
   documents           HRDocument[]
   disciplinaryActions HRDisciplinaryAction[]
+  timePunches         HRTimePunch[]
+  absenceRequests     HRAbsenceRequest[]
 
   @@unique([clinicId, employeeCode])
   @@index([clinicId, status])
@@ -1172,6 +1186,51 @@ model HRAttendance {
   @@index([clinicId, date])
   @@index([employeeId, date])
   @@index([tenantId])
+}
+
+model HRTimePunch {
+  id              String     @id @default(cuid())
+  clinicId        String
+  tenantId        String
+  employeeId      String
+  employee        HREmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  userId          String?
+  kind            String
+  punchedAt       DateTime   @default(now()) @db.Timestamp(3)
+  ip              String?
+  latitude        Float?
+  longitude       Float?
+  accuracyMeters  Float?
+  insideWorkplace Boolean?
+  workplaceNote   String?
+  method          String     @default("PASSWORD")
+  userAgent       String?
+  createdAt       DateTime   @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, punchedAt])
+  @@index([employeeId, punchedAt])
+}
+
+model HRAbsenceRequest {
+  id           String     @id @default(cuid())
+  clinicId     String
+  tenantId     String
+  employeeId   String
+  employee     HREmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  userId       String?
+  absenceDate  String
+  type         String
+  reason       String
+  attachments  Json?
+  status       String     @default("PENDENTE")
+  decisionNote String?
+  decidedBy    String?
+  decidedAt    DateTime?  @db.Timestamp(3)
+  createdAt    DateTime   @default(now()) @db.Timestamp(3)
+  updatedAt    DateTime   @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, status])
+  @@index([employeeId, absenceDate])
 }
 
 model HRPayrollEntry {
@@ -2455,6 +2514,8 @@ model FiscalRule {
   requireAccountantApproval Boolean  @default(false)
   serviceCode               String?
   issRate                   Decimal? @db.Decimal(5, 2)
+  accountantEmail           String?
+  adminEmail                String?
   createdAt                 DateTime @default(now()) @db.Timestamp(3)
   updatedAt                 DateTime @default(now()) @db.Timestamp(3)
 }
@@ -2532,6 +2593,181 @@ model LabNotification {
 
   @@index([clinicId, workRef])
   @@index([status, scheduledFor])
+}
+
+// Rosto do colaborador para bater o ponto (códigos numéricos do rosto, nunca a foto), com consentimento.
+model HREmployeeFace {
+  id          String   @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  employeeId  String
+  samples     Json
+  photo       String?
+  consentAt   DateTime
+  consentById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([clinicId, employeeId])
+  @@index([tenantId])
+}
+
+// Senha individual do colaborador para a área "Meu ponto" (CPF + senha). Fica fora de HREmployee para nunca vazar nas listagens do RH.
+model HREmployeePortal {
+  employeeId   String   @id
+  clinicId     String
+  tenantId     String
+  passwordHash String
+  updatedAt    DateTime @updatedAt
+
+  @@index([clinicId])
+}
+
+// Assinatura (na tela) do paciente e do dentista confirmando o procedimento realizado; fica como comprovante em eventual cobrança.
+model ClinicalEvolutionSignature {
+  id                 String    @id @default(cuid())
+  clinicId           String
+  tenantId           String
+  patientId          String
+  evolutionId        String    @unique
+  contentHash        String
+  patientSignature   String?
+  patientSignerName  String?
+  patientSignedAt    DateTime?
+  patientIp          String?
+  patientUserAgent   String?
+  dentistSignature   String?
+  dentistSignerName  String?
+  dentistSignedAt    DateTime?
+  dentistIp          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([clinicId, patientId])
+}
+
+// Acesso exclusivo do RH (login e senha próprios), porque toda a clínica usa o mesmo login do sistema.
+model HRVault {
+  clinicId       String    @id
+  tenantId       String
+  login          String
+  passwordHash   String
+  recoveryEmail  String
+  failedCount    Int       @default(0)
+  lockedUntil    DateTime?
+  resetCodeHash  String?
+  resetExpiresAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// Marcadores coloridos da agenda (ex.: LABORATÓRIO FAZER = vermelho, LABORATÓRIO FEITO = verde).
+model AppointmentMarker {
+  id        String   @id @default(cuid())
+  clinicId  String
+  tenantId  String
+  name      String
+  color     String   @default("#9E9E9E")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([clinicId])
+}
+
+model AppointmentMarkerLink {
+  appointmentId String
+  markerId      String
+  clinicId      String
+  createdAt     DateTime @default(now())
+
+  @@id([appointmentId, markerId])
+  @@index([clinicId, appointmentId])
+}
+
+// Polo/unidade onde o colaborador bate o ponto (celular do polo, com a localização exata e o raio permitido).
+model HRWorkplace {
+  id           String   @id @default(cuid())
+  clinicId     String
+  tenantId     String
+  name         String
+  slug         String
+  address      String?
+  latitude     Float
+  longitude    Float
+  radiusMeters Int      @default(150)
+  pinHash      String?
+  isActive     Boolean  @default(true)
+  utcOffsetMinutes Int  @default(-180)
+  calibrating  Boolean  @default(false)
+  calibratedAt DateTime?
+  calibratedAccuracy Int?
+  approxLocation Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([clinicId, slug])
+  @@index([slug])
+}
+
+// Foto tirada no momento da batida pelo rosto (comprovação), consultada pelo RH no detalhe da folha.
+model HRTimePunchPhoto {
+  punchId    String   @id
+  clinicId   String
+  tenantId   String
+  employeeId String
+  photo      String
+  createdAt  DateTime @default(now())
+
+  @@index([clinicId, employeeId])
+}
+
+// Ordem de serviço enviada ao laboratório de prótese (protocolo impresso, recebimento e relato de erros).
+model LabServiceOrder {
+  id              String    @id @default(cuid())
+  clinicId        String
+  tenantId        String
+  protocol        String
+  patientId       String?
+  appointmentId   String?
+  patientName     String
+  patientContact  String
+  dentistName     String
+  dentistContact  String
+  assistantName   String
+  laboratoryName  String
+  service         String
+  shade           String
+  elements        String
+  sentAt          DateTime
+  dueAt           DateTime
+  scanUpper       Boolean   @default(false)
+  scanLower       Boolean   @default(false)
+  scanBite        Boolean   @default(false)
+  impressionUpper Boolean   @default(false)
+  impressionLower Boolean   @default(false)
+  waxBite         Boolean   @default(false)
+  status          String    @default("SENT")
+  receivedAt      DateTime?
+  receivedByName  String?
+  receiptCode     String?
+  refusalReason   String?
+  deliveredAt     DateTime?
+  // Andamento no laboratório (depois do recebimento): IN_PROGRESS | FINISHED; "entregue" continua sendo status DELIVERED.
+  stage           String    @default("IN_PROGRESS")
+  progressNote    String?
+  progressAt      DateTime?
+  progressByName  String?
+  readyBy         DateTime?
+  progressLog     Json      @default("[]")
+  errors          Json      @default("[]")
+  createdById     String?
+  createdByName   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([clinicId, protocol])
+  @@index([clinicId, status])
+  @@index([tenantId])
 }
 
 model LabOrder {
@@ -2639,6 +2875,584 @@ model DunningNotice {
   @@index([clinicId, createdAt])
 }
 
+// ===== Prospecção (captador de leads da Receita Federal) =====
+// Colar no FINAL do backend/prisma/schema.prisma (sem BOM) e rodar `npx prisma generate`.
+// As tabelas são criadas pelo sql/prospeccao.sql — nunca usar prisma migrate / db push.
+
+model ProspectLead {
+  id               String          @id @default(cuid())
+  cnpj             String          @unique
+  razaoSocial      String
+  nomeFantasia     String?
+  displayName      String
+  email            String?
+  emailType        String?
+  phone1           String?
+  phone2           String?
+  uf               String
+  city             String?
+  bairro           String?
+  cep              String?
+  address          String?
+  cnaePrincipal    String?
+  segment          String          @default("CLINICA")
+  naturezaJuridica String?
+  porte            String?
+  openedAt         String?
+  isMatriz         Boolean         @default(true)
+  source           String          @default("RECEITA_FEDERAL")
+  status           String          @default("NOVO")
+  lastStep         Int             @default(0)
+  firstSentAt      DateTime?       @db.Timestamp(3)
+  lastSentAt       DateTime?       @db.Timestamp(3)
+  hotAt            DateTime?       @db.Timestamp(3)
+  token            String          @unique
+  notes            String?
+  createdAt        DateTime        @default(now()) @db.Timestamp(3)
+  updatedAt        DateTime        @default(now()) @updatedAt @db.Timestamp(3)
+  events           ProspectEvent[]
+
+  @@index([status, lastSentAt])
+  @@index([email])
+}
+
+model ProspectEvent {
+  id         String       @id @default(cuid())
+  leadId     String
+  lead       ProspectLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type       String
+  step       Int?
+  detail     String?
+  providerId String?
+  createdAt  DateTime     @default(now()) @db.Timestamp(3)
+
+  @@index([leadId, createdAt])
+  @@index([providerId])
+  @@index([type, createdAt])
+}
+
+model ProspectSuppression {
+  email     String   @id
+  reason    String
+  createdAt DateTime @default(now()) @db.Timestamp(3)
+}
+
+model ProspectConfig {
+  id             String   @id
+  sendingEnabled Boolean  @default(false)
+  dailyLimit     Int      @default(10)
+  step2AfterDays Int      @default(3)
+  step3AfterDays Int      @default(7)
+  sendToWebmail  Boolean  @default(true)
+  segments       String   @default("CLINICA")
+  updatedAt      DateTime @default(now()) @updatedAt @db.Timestamp(3)
+}
+
+model UserTwoFactor {
+  userId       String    @id
+  secret       String?
+  pending      String?
+  enabledAt    DateTime? @db.Timestamp(3)
+  lastStep     Int?
+  backupHashes String[]  @default([])
+  updatedAt    DateTime  @default(now()) @updatedAt @db.Timestamp(3)
+}
+
+model PatientFace {
+  id          String   @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  patientId   String
+  samples     Json
+  consentAt   DateTime
+  consentById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([clinicId, patientId])
+}
+
+model StockPartner {
+  id         String               @id @default(cuid())
+  name       String
+  email      String
+  whatsapp   String?
+  categories String[]             @default([])
+  monthlyFee Decimal              @default(0) @db.Decimal(12, 2)
+  status     String               @default("PENDENTE")
+  paidUntil  DateTime?
+  notes      String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  notices    StockPartnerNotice[]
+}
+
+model StockPartnerNotice {
+  id        String       @id @default(cuid())
+  clinicId  String
+  partnerId String
+  partner   StockPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  productId String
+  sentAt    DateTime     @default(now())
+
+  @@index([clinicId, partnerId, productId, sentAt])
+}
+
+model UserSession {
+  id         String    @id @default(cuid())
+  userId     String
+  clinicId   String
+  tenantId   String
+  ip         String?
+  userAgent  String?
+  city       String?
+  region     String?
+  country    String?
+  lastIp     String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  anomalyAt  DateTime?
+  revokedAt  DateTime?
+  revokedBy  String?
+
+  @@index([userId, createdAt])
+  @@index([clinicId, lastSeenAt])
+}
+
+// Kit da clínica: dados extras para documentos, cartões digitais e lembretes (SQL manual 20261023_kit_clinica.sql).
+// Acessado por SQL direto no settingsController; um registro por clínica.
+model ClinicBrandKit {
+  id        String   @id
+  clinicId  String   @unique
+  tenantId  String
+  data      Json     @default("{}")
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+// Assinatura da clinica com a WMundi: teste de 30 dias com cartao, depois cobranca mensal
+// (50% nos primeiros 12 meses, depois valor cheio). Cartao fica so no Asaas (nunca aqui).
+model PlatformSubscription {
+  id                  String    @id
+  clinicId            String    @unique
+  tenantId            String
+  plan                String
+  status              String    @default("PENDENTE")
+  fullPrice           Decimal   @db.Decimal(12, 2)
+  promoPrice          Decimal   @db.Decimal(12, 2)
+  promoCycles         Int       @default(12)
+  cyclesPaid          Int       @default(0)
+  paidPaymentIds      Json      @default("[]")
+  trialDays           Int       @default(30)
+  trialEndsAt         DateTime  @db.Timestamp(3)
+  accessUntil         DateTime? @db.Timestamp(3)
+  fullPriceAppliedAt  DateTime? @db.Timestamp(3)
+  asaasCustomerId     String?
+  asaasSubscriptionId String?
+  cardBrand           String?
+  cardLast4           String?
+  cardTokenEnc        String?
+  debtAtCancel        Decimal   @default(0) @db.Decimal(12, 2)
+  reminderSentAt      DateTime? @db.Timestamp(3)
+  trialNotices        Json      @default("[]")
+  canceledAt          DateTime? @db.Timestamp(3)
+  termsAcceptedAt     DateTime  @db.Timestamp(3)
+  termsVersion        String
+  lastEvent           String?
+  createdAt           DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt           DateTime  @default(now()) @db.Timestamp(3)
+
+  @@index([status, trialEndsAt])
+  @@index([asaasSubscriptionId])
+}
+
+// Indicador profissional: o paciente se identifica, escolhe a cidade e so ali ve os nomes.
+// O contato do profissional nunca e exposto: o aviso vai por mensagem automatica do sistema.
+model ProfessionalListing {
+  id          String    @id
+  clinicId    String    @unique
+  tenantId    String
+  active      Boolean   @default(false)
+  displayName String
+  specialty   String?
+  city        String
+  citySlug    String
+  state       String
+  services    Json      @default("[]")
+  about       String?
+  channels    Json      @default("{}")
+  consentAt   DateTime? @db.Timestamp(3)
+  createdAt   DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt   DateTime  @default(now()) @db.Timestamp(3)
+
+  @@index([active, citySlug])
+}
+
+model ProfessionalLead {
+  id             String   @id
+  name           String
+  whatsapp       String
+  city           String
+  citySlug       String
+  state          String?
+  service        String
+  tokenHash      String   @unique
+  consentAt      DateTime @db.Timestamp(3)
+  consentVersion String
+  ipHash         String?
+  createdAt      DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([whatsapp, createdAt])
+  @@index([ipHash, createdAt])
+}
+
+model ProfessionalLeadReveal {
+  id        String   @id
+  leadId    String
+  citySlug  String
+  createdAt DateTime @default(now()) @db.Timestamp(3)
+
+  @@unique([leadId, citySlug])
+}
+
+model ProfessionalLeadContact {
+  id        String   @id
+  leadId    String
+  listingId String
+  clinicId  String
+  tenantId  String
+  status    String   @default("ENVIADO")
+  channels  Json     @default("{}")
+  createdAt DateTime @default(now()) @db.Timestamp(3)
+
+  @@unique([leadId, listingId])
+  @@index([clinicId, createdAt])
+}
+
+// Leads e conversas do atendimento automatico de vendas do DentalPos (WhatsApp).
+model MarketingLead {
+  id            String    @id
+  whatsapp      String    @unique
+  name          String?
+  email         String?
+  clinicName    String?
+  city          String?
+  source        String?
+  product       String?
+  utm           Json      @default("{}")
+  consentAt     DateTime? @db.Timestamp(3)
+  status        String    @default("NOVO")
+  optOut        Boolean   @default(false)
+  lastMessageAt DateTime? @db.Timestamp(3)
+  createdAt     DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt     DateTime  @default(now()) @db.Timestamp(3)
+
+  @@index([status, createdAt])
+}
+
+model MarketingMessage {
+  id          String   @id
+  phone       String
+  role        String
+  text        String
+  waMessageId String?  @unique
+  createdAt   DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([phone, createdAt])
+}
+
+// Lembretes de vencimento cadastrados pela clinica (alvara, teste da autoclave, impostos, recibos da Receita Saude...).
+model DueReminder {
+  id         String    @id
+  clinicId   String
+  tenantId   String
+  kind       String
+  title      String
+  dueDate    DateTime  @db.Date
+  recurrence String    @default("NONE")
+  notes      String?
+  active     Boolean   @default(true)
+  lastDoneAt DateTime? @db.Timestamp(3)
+  createdAt  DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt  DateTime  @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, active, dueDate])
+}
+
+// Registro dos e-mails de vencimento ja enviados (nunca repete o mesmo aviso).
+model DueReminderLog {
+  id       String   @id
+  clinicId String
+  key      String   @unique
+  sentAt   DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, sentAt])
+}
+
+// ---------------- Clube da clinica (SQL: manual-migrations/20261114_clube_campanha_equipe.sql) ----------------
+
+// Configuracao da campanha da equipe por clinica: meta, premiacao, cashback, e-mails do gestor.
+model ClubSettings {
+  id          String   @id
+  clinicId    String   @unique
+  tenantId    String
+  data        Json     @default("{}")
+  surveyToken String   @unique
+  updatedAt   DateTime @default(now()) @db.Timestamp(3)
+}
+
+// Origem do paciente: so "CAMPANHA_FUNCIONARIOS" entra na comissao de tratamentos.
+model PatientOrigin {
+  id          String   @id
+  clinicId    String
+  tenantId    String
+  patientId   String   @unique
+  origin      String
+  detail      String?
+  setByUserId String?
+  createdAt   DateTime @default(now()) @db.Timestamp(3)
+  updatedAt   DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, origin])
+}
+
+// Vendas e pagamentos do Clube. kind: MANUTENCAO | MENSALIDADE | ADESAO | TRATAMENTO.
+model ClubSale {
+  id                 String    @id
+  clinicId           String
+  tenantId           String
+  patientId          String
+  kind               String
+  amount             Float
+  saleDate           DateTime  @db.Date
+  captureChannel     String
+  sellerIds          String[]  @default([])
+  mainSellerId       String?
+  notes              String?
+  paymentConfirmed   Boolean   @default(false)
+  paymentConfirmedAt DateTime? @db.Timestamp(3)
+  paymentConfirmedBy String?
+  cancelledAt        DateTime? @db.Timestamp(3)
+  createdBy          String
+  createdAt          DateTime  @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, saleDate])
+  @@index([clinicId, patientId])
+}
+
+// Participante do cashback (Cashbacksmart da clinica).
+model CashbackMember {
+  id        String    @id
+  clinicId  String
+  tenantId  String
+  patientId String    @unique
+  consentAt DateTime  @db.Timestamp(3)
+  freeUntil DateTime? @db.Date
+  active    Boolean   @default(true)
+  createdBy String
+  createdAt DateTime  @default(now()) @db.Timestamp(3)
+}
+
+// Lote de cashback com saldo e validade (6 meses por padrao).
+model CashbackLot {
+  id            String   @id
+  clinicId      String
+  tenantId      String
+  patientId     String
+  origin        String
+  amount        Float
+  remaining     Float
+  expiresAt     DateTime @db.Date
+  saleId        String?
+  fromPatientId String?
+  createdAt     DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, patientId, expiresAt])
+}
+
+// Extrato de cashback. kind: CREDITO | USO | TRANSFERENCIA_ENVIADA | TRANSFERENCIA_RECEBIDA.
+model CashbackMove {
+  id                   String   @id
+  clinicId             String
+  tenantId             String
+  patientId            String
+  kind                 String
+  amount               Float
+  counterpartPatientId String?
+  relation             String?
+  saleId               String?
+  note                 String?
+  createdBy            String
+  createdAt            DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, patientId])
+}
+
+// Avaliacao semanal da equipe (SELF ou PEER). So o gestor le.
+model TeamEvaluation {
+  id              String   @id
+  clinicId        String
+  tenantId        String
+  weekKey         String
+  kind            String
+  evaluatorUserId String
+  evaluatedUserId String
+  answers         Json
+  score           Int
+  comment         String?
+  createdAt       DateTime @default(now()) @db.Timestamp(3)
+
+  @@unique([clinicId, weekKey, evaluatorUserId, evaluatedUserId])
+  @@index([clinicId, weekKey])
+}
+
+// Avaliacao do paciente pelo link publico (anonima ou identificada).
+model PatientSurvey {
+  id             String   @id
+  clinicId       String
+  tenantId       String
+  anonymous      Boolean  @default(true)
+  name           String?
+  phone          String?
+  answers        Json
+  recommend      Int
+  highlightStaff String?
+  comment        String?
+  createdAt      DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, createdAt])
+}
+
+// Estoque: ligação entre procedimento e consumo de material, uso registrado e histórico de duração por reposição.
+model StockProcedureRule {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  procedureKey   String
+  procedureLabel String
+  productId      String
+  mode           String   @default("DEBIT")
+  quantity       Float    @default(1)
+  perTooth       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([clinicId, procedureKey, productId])
+  @@index([clinicId, procedureKey])
+  @@index([tenantId])
+}
+
+model StockUsageEvent {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  productId      String
+  procedureLabel String
+  evolutionId    String
+  patientId      String?
+  mode           String
+  quantity       Float
+  cycleId        String?
+  createdAt      DateTime @default(now())
+
+  @@unique([evolutionId, productId])
+  @@index([clinicId, productId, cycleId])
+  @@index([tenantId])
+}
+
+model StockCycle {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  productId      String
+  startedAt      DateTime
+  endedAt        DateTime
+  procedureCount Int
+  unitsDebited   Float    @default(0)
+  reason         String   @default("RESTOCK")
+  createdAt      DateTime @default(now())
+
+  @@index([clinicId, productId, endedAt])
+  @@index([tenantId])
+}
+
+// Assinatura do paciente: mensalidade vira crédito; usar o crédito dá desconto (padrão 10%).
+model MembershipPlan {
+  id            String   @id @default(cuid())
+  clinicId      String
+  tenantId      String
+  name          String
+  description   String?
+  monthlyPrice  Decimal  @db.Decimal(12, 2)
+  monthlyCredit Decimal  @db.Decimal(12, 2)
+  discountPct   Decimal  @default(10) @db.Decimal(5, 2)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @db.Timestamp(3)
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamp(3)
+
+  @@index([clinicId])
+}
+
+model Membership {
+  id          String    @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  patientId   String
+  planId      String
+  status      String    @default("AGUARDANDO_PAGAMENTO")
+  balance     Decimal   @default(0) @db.Decimal(12, 2)
+  billingDay  Int       @default(5)
+  startedAt   DateTime  @default(now()) @db.Timestamp(3)
+  cancelledAt DateTime? @db.Timestamp(3)
+  notes       String?
+  createdAt   DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamp(3)
+
+  @@index([clinicId, status])
+  @@index([patientId])
+}
+
+model MembershipInvoice {
+  id               String    @id @default(cuid())
+  clinicId         String
+  tenantId         String
+  memberId         String
+  competence       String
+  amount           Decimal   @db.Decimal(12, 2)
+  creditAmount     Decimal   @db.Decimal(12, 2)
+  dueDate          DateTime  @db.Date
+  status           String    @default("PENDENTE")
+  financialEntryId String?
+  invoiceUrl       String?
+  pixCopyPaste     String?
+  paidAt           DateTime? @db.Timestamp(3)
+  creditedAt       DateTime? @db.Timestamp(3)
+  createdAt        DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt        DateTime  @default(now()) @updatedAt @db.Timestamp(3)
+
+  @@unique([memberId, competence])
+  @@index([clinicId, status])
+  @@index([financialEntryId])
+}
+
+model MembershipLedger {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  memberId       String
+  movement       String
+  amount         Decimal  @db.Decimal(12, 2)
+  balanceAfter   Decimal  @db.Decimal(12, 2)
+  procedureValue Decimal? @db.Decimal(12, 2)
+  discountAmount Decimal? @db.Decimal(12, 2)
+  description    String
+  actorId        String?
+  idempotencyKey String?  @unique
+  createdAt      DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([memberId, createdAt])
+}
 
 /// Execuções de backup do banco e testes de restauração (prova de que a cópia existe e restaura).
 model PlatformBackupRun {

@@ -55,7 +55,7 @@ export async function loadToothSTL(
 
   if (!definition) {
     throw new Error(
-      `Dente FDI ${fdi} não encontrado na DentalPos Tooth Library.`
+      `Dente FDI ${fdi} não encontrado na CompletoDonto Tooth Library.`
     );
   }
 

@@ -1,0 +1,207 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Box, Button, CircularProgress, Paper, TextField, Typography } from "@mui/material";
+import PageHeader from "../components/PageHeader";
+import { describeFace, loadFaceApi, snapshot, useCamera, warmUpFace } from "../utils/faceCamera";
+import { COARSE_HELP, COARSE_LIMIT, GEO_HELP, useBestLocation } from "../hooks/useBestLocation";
+import { clinicPunchApi, type FacePunchResult, type PunchApi } from "../services/HrFaceApi";
+import { Button as MuiButton, Checkbox, FormControlLabel } from "@mui/material";
+
+type Geo = { latitude?: number; longitude?: number; accuracy?: number };
+
+const maskCpf = (v: string) => {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  return d.replace(/^(\d{3})(\d)/, "$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1-$2");
+};
+
+// Ponto no celular/tablet fixo da clínica: o colaborador digita o CPF, a câmera confere o rosto com o cadastro e a foto fica como comprovante.
+export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto por rosto", description = "Digite o CPF, olhe para a câmera e o ponto é registrado com a hora, o local e a foto.", embedded = false, approx = false }: { api?: PunchApi; title?: string; description?: string; embedded?: boolean; approx?: boolean } = {}) {
+  const [cpf, setCpf] = useState("");
+  // Enquanto a pessoa digita o CPF, o reconhecimento já é carregado e aquecido para a câmera abrir pronta.
+  useEffect(() => { void warmUpFace(); }, []);
+  const [step, setStep] = useState<"cpf" | "camera" | "enroll">("cpf");
+  const [firstName, setFirstName] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<FacePunchResult | null>(null);
+  const [problem, setProblem] = useState("");
+  // Local do aparelho: melhor leitura (rápida + GPS preciso), sempre a mais recente quando alguém lê geo.current.
+  const loc = useBestLocation();
+  const geo = useMemo(() => ({ get current(): Geo { const b = loc.best.current; return b ? { latitude: b.latitude, longitude: b.longitude, accuracy: b.accuracy } : {}; } }) as unknown as React.MutableRefObject<Geo>, [loc.best]);
+  const [, setTick] = useState(0);
+  useEffect(() => { const t = window.setInterval(() => setTick((n) => n + 1), 2000); return () => window.clearInterval(t); }, []);
+
+  // Atalho na tela inicial: troca o manifesto do app só nesta tela, para abrir direto no ponto.
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "manifest"; link.href = "/manifest-ponto.webmanifest";
+    document.head.appendChild(link);
+    // Ícone de atalho e nome neutros (sem a marca do sistema) só nesta tela.
+    const touch = document.createElement("link");
+    touch.rel = "apple-touch-icon"; touch.href = "/brand/ponto-192.png";
+    document.head.appendChild(touch);
+    const prevDesc = document.querySelector('meta[name="description"]')?.getAttribute("content") || "";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", "Registro de ponto.");
+    const prev = document.title;
+    document.title = "Ponto";
+    return () => { link.remove(); touch.remove(); document.querySelector('meta[name="description"]')?.setAttribute("content", prevDesc); document.title = prev; };
+  }, []);
+
+
+  const speak = useCallback((text: string) => { try { const u = new SpeechSynthesisUtterance(text); u.lang = "pt-BR"; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch { /* sem voz */ } }, []);
+  const reset = useCallback(() => { setStep("cpf"); setCpf(""); setResult(null); setProblem(""); }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    const t = setTimeout(reset, 6000);
+    return () => clearTimeout(t);
+  }, [result, reset]);
+
+  const cpfDigits = cpf.replace(/\D/g, "");
+  // Já na digitação do CPF: se não há rosto cadastrado, vai direto para o primeiro acesso; senão abre a câmera para conferir.
+  const proceed = async () => {
+    if (checking || cpfDigits.length !== 11) return;
+    setChecking(true); setProblem("");
+    try {
+      // Espera o GPS chegar a uma leitura boa (até 20 s) antes de consultar o CPF: o ponto só vale com boa precisão.
+      await loc.waitForFix(approx ? 5000 : 150, approx ? 4000 : 20000);
+      const c = await api.cpfCheck(cpfDigits, geo.current);
+      if (c.hasFace) setStep("camera"); else { setFirstName(c.employeeName); setStep("enroll"); }
+    } catch (e) { setProblem(e instanceof Error ? e.message : "Não foi possível verificar o CPF."); }
+    finally { setChecking(false); }
+  };
+  return (
+    <Box>
+      {embedded ? <Typography variant="h5" sx={{ fontWeight: 900, textAlign: "center", mb: 0.5 }}>{title}</Typography> : <PageHeader title={title} description={description} />}
+      {embedded && <Typography color="text.secondary" sx={{ textAlign: "center", mb: 2 }}>{description}</Typography>}
+      {loc.status === "denied" && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>A localização está bloqueada neste aparelho. {GEO_HELP}</Alert>}
+      {loc.status === "unavailable" && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Este aparelho não conseguiu achar o local. {GEO_HELP}</Alert>}
+      {loc.status === "searching" && loc.secondsSearching() >= 6 && <Alert severity="info" sx={{ mb: 2 }} action={loc.secondsSearching() >= 30 ? <Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button> : undefined}>Procurando o sinal de GPS… ({loc.secondsSearching()} s). {loc.secondsSearching() >= 20 ? GEO_HELP : "Pode levar alguns segundos."}</Alert>}
+      {!approx && loc.status === "ok" && loc.accuracy !== null && loc.accuracy > COARSE_LIMIT && <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Localização aproximada (±{loc.accuracy} m). {COARSE_HELP}</Alert>}
+      {!approx && loc.status === "ok" && loc.accuracy !== null && loc.accuracy > 150 && loc.accuracy <= COARSE_LIMIT && <Alert severity="info" sx={{ mb: 2 }}>Melhorando a precisão do GPS (agora ±{loc.accuracy} m; o ponto precisa de ±150 m). Aguarde alguns segundos, perto de uma janela ou área aberta.</Alert>}
+      {result ? (
+        <Paper variant="outlined" sx={{ p: 4, borderRadius: 3, textAlign: "center", maxWidth: 520, mx: "auto" }}>
+          <Typography variant="h4" sx={{ fontWeight: 900 }}>{result.employeeName}</Typography>
+          <Typography variant="h5" color="success.main" sx={{ fontWeight: 800, mt: 1 }}>{result.label} às {result.time}</Typography>
+          {result.insideWorkplace === false && <Alert severity="warning" sx={{ mt: 2 }}>Batida fora do local da clínica: o RH será avisado.</Alert>}
+          <Button sx={{ mt: 3 }} onClick={reset}>Próximo colaborador</Button>
+        </Paper>
+      ) : step === "cpf" ? (
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, maxWidth: 420, mx: "auto", display: "grid", gap: 2 }}>
+          <TextField autoFocus label="CPF" value={cpf} onChange={(e) => setCpf(maskCpf(e.target.value))} slotProps={{ htmlInput: { inputMode: "numeric", style: { fontSize: 28, textAlign: "center" } } }} onKeyDown={(e) => { if (e.key === "Enter" && cpfDigits.length === 11) void proceed(); }} />
+          {problem && <Alert severity="error">{problem}</Alert>}
+          <Button variant="contained" size="large" disabled={cpfDigits.length !== 11 || checking} onClick={() => void proceed()}>{checking ? "Verificando…" : "Continuar"}</Button>
+        </Paper>
+      ) : step === "enroll" ? (
+        <EnrollStep api={api} cpf={cpfDigits} name={firstName} geo={geo} onDone={(r) => { setResult(r); speak(`${r.employeeName.split(" ")[0]}, rosto cadastrado e ${r.label} registrada às ${r.time}`); }} onFail={(m) => { setProblem(m); setStep("cpf"); }} onCancel={reset} />
+      ) : (
+        <CameraStep api={api} cpf={cpfDigits} geo={geo} onDone={(r) => { setResult(r); speak(`${r.employeeName.split(" ")[0]}, ${r.label} registrada às ${r.time}`); }} onFail={(m, code, name) => { if (code === "NO_FACE") { setFirstName(name || ""); setStep("enroll"); return; } setProblem(m); setStep("cpf"); }} onCancel={reset} />
+      )}
+    </Box>
+  );
+}
+
+function CameraStep({ api, cpf, geo, onDone, onFail, onCancel }: { api: PunchApi; cpf: string; geo: React.MutableRefObject<Geo>; onDone: (r: FacePunchResult) => void; onFail: (m: string, code?: string, name?: string) => void; onCancel: () => void }) {
+  const { videoRef, ready, error: camError } = useCamera(true);
+  const [hint, setHint] = useState("Carregando o reconhecimento…");
+
+  useEffect(() => {
+    if (!ready) return;
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const startedAt = Date.now();
+    (async () => {
+      let faceapi: Awaited<ReturnType<typeof loadFaceApi>>;
+      try { faceapi = await loadFaceApi(); } catch { onFail("Não consegui carregar o reconhecimento facial."); return; }
+      setHint("Olhe de frente para a câmera.");
+      const tick = async () => {
+        if (stop) return;
+        if (Date.now() - startedAt > 30000) { onFail("Não consegui ver seu rosto. Tente de novo."); return; }
+        if (videoRef.current) {
+          const d = await describeFace(faceapi, videoRef.current);
+          if (stop) return;
+          if (d.count > 1) setHint("Uma pessoa por vez, por favor.");
+          else if (d.far) setHint("Chegue um pouco mais perto da câmera.");
+          else if (d.descriptor) {
+            setHint("Conferindo…");
+            try { onDone(await api.facePunch(cpf, d.descriptor, snapshot(videoRef.current), geo.current)); }
+            catch (e) { const x = e as Error & { code?: string; employeeName?: string }; onFail(x instanceof Error ? x.message : "Não foi possível registrar o ponto.", x.code, x.employeeName); }
+            return;
+          } else setHint("Olhe de frente para a câmera.");
+        }
+        timer = setTimeout(() => void tick(), 150);
+      };
+      void tick();
+    })();
+    return () => { stop = true; clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, maxWidth: 520, mx: "auto" }}>
+      <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden", bgcolor: "#000", aspectRatio: "4 / 3" }}>
+        <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
+        {!ready && !camError && <Box sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}><CircularProgress /></Box>}
+      </Box>
+      <Typography sx={{ mt: 2, textAlign: "center", fontWeight: 700 }}>{camError ? "" : hint}</Typography>
+      {camError && <Alert severity="error" sx={{ mt: 1 }}>{camError}</Alert>}
+      <Button fullWidth sx={{ mt: 1 }} onClick={onCancel}>Cancelar</Button>
+    </Paper>
+  );
+}
+
+// Primeiro acesso: o colaborador confirma que é ele, aceita o uso do rosto e o sistema tira as fotos para reconhecer nas próximas vezes.
+function EnrollStep({ api, cpf, name, geo, onDone, onFail, onCancel }: { api: PunchApi; cpf: string; name: string; geo: React.MutableRefObject<Geo>; onDone: (r: FacePunchResult) => void; onFail: (m: string) => void; onCancel: () => void }) {
+  const [agree, setAgree] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [hint, setHint] = useState("");
+  const { videoRef, ready, error: camError } = useCamera(started);
+
+  useEffect(() => {
+    if (!started || !ready) return;
+    let stop = false;
+    (async () => {
+      let faceapi: Awaited<ReturnType<typeof loadFaceApi>>;
+      try { faceapi = await loadFaceApi(); } catch { onFail("Não consegui carregar o reconhecimento facial."); return; }
+      const samples: number[][] = [];
+      let photo = "";
+      const t0 = Date.now();
+      setHint("Olhe de frente para a câmera e fique parado…");
+      while (!stop && samples.length < 3) {
+        if (Date.now() - t0 > 40000) { onFail("Não consegui ver o seu rosto com nitidez. Tente de novo, com boa luz."); return; }
+        if (videoRef.current) {
+          const d = await describeFace(faceapi, videoRef.current);
+          if (d.count > 1) setHint("Uma pessoa por vez, por favor.");
+          else if (d.descriptor) { samples.push(d.descriptor); if (!photo) photo = snapshot(videoRef.current); setHint(`Capturando… ${samples.length}/3`); await new Promise((r) => setTimeout(r, 500)); }
+        }
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      if (stop || samples.length < 3) return;
+      setHint("Salvando o seu cadastro…");
+      try { onDone(await api.firstFaceEnroll(cpf, samples, photo, geo.current)); }
+      catch (e) { onFail(e instanceof Error ? e.message : "Não foi possível cadastrar o rosto."); }
+    })();
+    return () => { stop = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started, ready]);
+
+  if (!started) return (
+    <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, maxWidth: 480, mx: "auto", display: "grid", gap: 2, textAlign: "center" }}>
+      <Typography variant="h5" sx={{ fontWeight: 900 }}>Primeiro acesso{name ? `, ${name.split(" ")[0]}` : ""}!</Typography>
+      <Typography>Seu rosto ainda não está cadastrado. Vamos tirar a sua foto agora, uma única vez, para reconhecer você nas próximas vezes.</Typography>
+      <Alert severity="warning" sx={{ textAlign: "left" }}>Só continue se você for <b>{name || "a pessoa deste CPF"}</b>.</Alert>
+      <FormControlLabel sx={{ textAlign: "left" }} control={<Checkbox checked={agree} onChange={(_, v) => setAgree(v)} />} label="Eu sou essa pessoa e autorizo o uso do meu rosto e da minha foto para registrar o meu ponto." />
+      <MuiButton variant="contained" size="large" disabled={!agree} onClick={() => setStarted(true)}>Tirar a foto e bater o ponto</MuiButton>
+      <MuiButton onClick={onCancel}>Cancelar</MuiButton>
+    </Paper>
+  );
+  return (
+    <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, maxWidth: 520, mx: "auto" }}>
+      <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden", bgcolor: "#000", aspectRatio: "4 / 3" }}>
+        <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
+        {!ready && !camError && <Box sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}><CircularProgress /></Box>}
+      </Box>
+      <Typography sx={{ mt: 2, textAlign: "center", fontWeight: 700 }}>{camError ? "" : hint}</Typography>
+      {camError && <Alert severity="error" sx={{ mt: 1 }}>{camError}</Alert>}
+      <MuiButton fullWidth sx={{ mt: 1 }} onClick={onCancel}>Cancelar</MuiButton>
+    </Paper>
+  );
+}
