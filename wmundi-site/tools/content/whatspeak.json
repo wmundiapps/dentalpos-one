@@ -1,66 +1,199 @@
 {
-  "slug": "whatspeak",
-  "nome": "WhatSpeak",
-  "cat": "mkt",
-  "tagline": "Assinatura de baixo custo para a equipe atender clientes por WhatsApp em um só painel.",
-  "persona": "Estúdio 'Ateliê Exemplo Design' — empresa FICTÍCIA com equipe pequena de atendimento",
-  "kpis": [
-    {"l": "Atendentes ativos", "v": "12", "d": "usando a assinatura"},
-    {"l": "Conversas no mês", "v": "3.940", "d": "em um painel único"},
-    {"l": "Tempo médio de resposta", "v": "2 min", "d": "em horário comercial"},
-    {"l": "Satisfação dos clientes", "v": "4,6/5", "d": "pesquisa pós-atendimento"}
-  ],
-  "table": {
-    "title": "Atividade por atendente, principais (dados fictícios)",
-    "cols": ["Atendente", "Equipe", "Conversas no mês", "Status"],
-    "rows": [
-      ["Maria Modelo", "Vendas", "612", "ok:Online"],
-      ["João Modelo", "Vendas", "548", "ok:Online"],
-      ["Atendente Exemplo 03", "Suporte", "497", "warn:Ausente"],
-      ["Atendente Exemplo 04", "Suporte", "455", "ok:Online"],
-      ["Atendente Exemplo 05", "Pós-venda", "389", "info:Em treinamento"],
-      ["Atendente Exemplo 06", "Financeiro", "341", "ok:Online"],
-      ["Atendente Exemplo 07", "Vendas", "302", "bad:Offline"]
-    ]
+ "slug": "whatspeak",
+ "nome": "WhatSpeak",
+ "cat": "mkt",
+ "tagline": "Curso de inglês por assinatura de baixo custo, com aulas curtas e prática de conversação.",
+ "persona": "Turma 'Inglês Exemplo' — alunos FICTÍCIOS de um curso de inglês de exemplo",
+ "kpis": [
+  {
+   "l": "Alunos ativos",
+   "v": "240",
+   "d": "com assinatura em dia"
   },
-  "chart": {
-    "title": "Conversas atendidas por mês",
-    "labels": ["Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out"],
-    "values": [1850, 2200, 2480, 2900, 3250, 3510, 3720, 3940]
+  {
+   "l": "Aulas concluídas no mês",
+   "v": "1.920",
+   "d": "somando todos os alunos"
   },
-  "sim": {
-    "title": "Simulador: capacidade da equipe",
-    "intro": "Informe o tamanho da equipe e o ritmo de conversas para estimar o volume mensal e quantas ferramentas poderiam ser reunidas em uma só.",
-    "inputs": [
-      {"id": "atend", "label": "Atendentes", "min": 1, "max": 20, "step": 1, "val": 3, "unit": ""},
-      {"id": "cdia", "label": "Conversas por atendente por dia", "min": 10, "max": 120, "step": 5, "val": 40, "unit": ""},
-      {"id": "dias", "label": "Dias de atendimento por mês", "min": 15, "max": 30, "step": 1, "val": 22, "unit": "dias"},
-      {"id": "ferr", "label": "Ferramentas de atendimento hoje", "min": 1, "max": 8, "step": 1, "val": 4, "unit": ""}
-    ],
-    "outputs": [
-      {"label": "Conversas por mês", "expr": "atend*cdia*dias", "fmt": "int"},
-      {"label": "Conversas por atendente por mês", "expr": "cdia*dias", "fmt": "int"},
-      {"label": "Ferramentas que podem ser unificadas", "expr": "Math.max(ferr-1,0)", "fmt": "int"}
-    ]
+  {
+   "l": "Prática de conversação",
+   "v": "410 h",
+   "d": "no mês"
   },
-  "fluxo": [
-    "Conectar o número de WhatsApp da empresa",
-    "Cadastrar os atendentes e as equipes",
-    "Distribuir as conversas entre quem está disponível",
-    "Acompanhar o volume e a satisfação no painel"
+  {
+   "l": "Sequência média de estudo",
+   "v": "9 dias",
+   "d": "dias seguidos"
+  }
+ ],
+ "table": {
+  "title": "Progresso dos alunos (dados fictícios)",
+  "cols": [
+   "Aluno",
+   "Nível",
+   "Aulas no mês",
+   "Progresso do nível",
+   "Status"
   ],
-  "recursos": [
-    "Painel único para vários atendentes",
-    "Distribuição automática de conversas",
-    "Respostas rápidas e modelos de texto",
-    "Etiquetas e notas por contato",
-    "Histórico de conversas por cliente",
-    "Horário de atendimento e mensagem de ausência",
-    "Relatórios de volume por equipe",
-    "Assinatura mensal de baixo custo"
-  ],
-  "faq": [
-    {"q": "Como funciona a assinatura?", "a": "É uma assinatura mensal pensada para ter custo baixo. Os valores estão sob consulta e não aparecem neste modelo."},
-    {"q": "Posso começar com poucos atendentes?", "a": "Sim, o modelo ilustra equipes pequenas que podem crescer aos poucos, de acordo com a necessidade."}
+  "rows": [
+   [
+    "Aluna Modelo 01",
+    "Iniciante",
+    "14",
+    "72%",
+    "ok:Em dia"
+   ],
+   [
+    "Aluno Modelo 02",
+    "Básico",
+    "12",
+    "58%",
+    "ok:Em dia"
+   ],
+   [
+    "Aluna Modelo 03",
+    "Intermediário",
+    "9",
+    "41%",
+    "warn:Ritmo baixo"
+   ],
+   [
+    "Aluno Modelo 04",
+    "Básico",
+    "16",
+    "83%",
+    "ok:Em dia"
+   ],
+   [
+    "Aluna Modelo 05",
+    "Iniciante",
+    "3",
+    "12%",
+    "bad:Parado"
+   ],
+   [
+    "Aluno Modelo 06",
+    "Intermediário",
+    "11",
+    "64%",
+    "ok:Em dia"
+   ],
+   [
+    "Aluna Modelo 07",
+    "Avançado",
+    "8",
+    "35%",
+    "info:Novo nível"
+   ]
   ]
+ },
+ "chart": {
+  "title": "Aulas concluídas por mês",
+  "labels": [
+   "Mar",
+   "Abr",
+   "Mai",
+   "Jun",
+   "Jul",
+   "Ago",
+   "Set",
+   "Out"
+  ],
+  "values": [
+   720,
+   940,
+   1180,
+   1350,
+   1510,
+   1690,
+   1810,
+   1920
+  ]
+ },
+ "sim": {
+  "title": "Simulador: plano de estudo",
+  "intro": "Mude a frequência e o tempo de cada aula para ver quanto o aluno estudaria no período, em um cenário ilustrativo.",
+  "inputs": [
+   {
+    "id": "aulas",
+    "label": "Aulas por semana",
+    "min": 1,
+    "max": 14,
+    "step": 1,
+    "val": 4,
+    "unit": ""
+   },
+   {
+    "id": "minutos",
+    "label": "Duração de cada aula",
+    "min": 10,
+    "max": 60,
+    "step": 5,
+    "val": 25,
+    "unit": "min"
+   },
+   {
+    "id": "semanas",
+    "label": "Período de estudo",
+    "min": 4,
+    "max": 52,
+    "step": 4,
+    "val": 12,
+    "unit": "semanas"
+   },
+   {
+    "id": "palavras",
+    "label": "Palavras novas por aula",
+    "min": 3,
+    "max": 20,
+    "step": 1,
+    "val": 8,
+    "unit": ""
+   }
+  ],
+  "outputs": [
+   {
+    "label": "Aulas no período",
+    "expr": "aulas*semanas",
+    "fmt": "int"
+   },
+   {
+    "label": "Horas de estudo no período",
+    "expr": "aulas*semanas*minutos/60",
+    "fmt": "dec1"
+   },
+   {
+    "label": "Palavras novas apresentadas",
+    "expr": "aulas*semanas*palavras",
+    "fmt": "int"
+   }
+  ],
+  "note": "Simulação ilustrativa com números fictícios. Não é promessa de aprendizado nem de fluência em prazo algum."
+ },
+ "fluxo": [
+  "O aluno faz um teste de nível e recebe uma trilha",
+  "Estuda aulas curtas no celular, no próprio ritmo",
+  "Pratica conversação e revisa o vocabulário",
+  "Acompanha o progresso e a sequência de estudo no painel"
+ ],
+ "recursos": [
+  "Teste de nível inicial",
+  "Trilhas por nível, de iniciante a avançado",
+  "Aulas curtas em vídeo e áudio",
+  "Prática de conversação",
+  "Revisão de vocabulário",
+  "Acompanhamento de progresso do aluno",
+  "Painel de turmas para a escola ou o professor",
+  "Assinatura mensal de baixo custo"
+ ],
+ "faq": [
+  {
+   "q": "Como funciona a assinatura?",
+   "a": "É uma assinatura mensal pensada para ter custo baixo. Os valores estão sob consulta e não aparecem neste modelo."
+  },
+  {
+   "q": "O WhatSpeak garante fluência?",
+   "a": "Não. Este modelo é só uma ilustração do painel; resultados dependem da dedicação de cada aluno."
+  }
+ ]
 }
