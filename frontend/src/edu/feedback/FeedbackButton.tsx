@@ -15,6 +15,12 @@ instalarCapturaConsole();
 const TIPOS = [["SUGESTAO", "Sugestão"], ["MELHORIA", "Melhoria de algo existente"], ["ERRO", "Erro na tela"], ["BUG", "Bug (comportamento incorreto)"], ["DUVIDA", "Dúvida"]];
 const CATEGORIAS = ["ACADEMICO", "FINANCEIRO", "SECRETARIA", "PORTAL", "INFRAESTRUTURA", "RH", "DESEMPENHO", "DESIGN", "OUTRO"];
 const PRIOR = [["BAIXA", "Baixa"], ["MEDIA", "Média"], ["ALTA", "Alta"], ["CRITICA", "Crítica — impede o trabalho"]];
+// departamentos que o autor pode marcar como podendo ver este item (reitoria/admin/suporte já veem tudo, por isso não aparecem aqui)
+const DEPARTAMENTOS: Array<[string, string]> = [
+  ["COORDINATOR", "Coordenação"], ["TEACHER", "Professores"], ["STUDENT", "Alunos"], ["FINANCE", "Financeiro"], ["SECRETARY", "Secretaria"],
+  ["LIBRARIAN", "Biblioteca"], ["FACILITIES", "Infraestrutura/Instalações"], ["SUPPLIES", "Suprimentos"], ["MARKETING", "Marketing"], ["ADMISSIONS", "Admissões"],
+  ["STAFF", "Equipe geral"], ["GESTOR_CONTABIL", "Gestão contábil"], ["CONTADOR", "Contador"], ["ANALISTA_CONTABIL", "Analista contábil"], ["CLIENTE_CONTABIL", "Cliente contábil"], ["HR", "RH"],
+];
 const VERSAO = (import.meta as any).env?.VITE_APP_VERSION || (import.meta as any).env?.MODE || "dev";
 const MAX_BYTES = 1_800_000;
 const lbl = (s: string) => s.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
@@ -74,7 +80,7 @@ function FeedbackDialog({ onClose, rota }: { onClose: () => void; rota: string }
 }
 
 function Enviar({ rota, onClose }: { rota: string; onClose: () => void }) {
-  const [f, setF] = useState<Record<string, any>>({ tipo: "SUGESTAO", categoria: "OUTRO", prioridade: "MEDIA", ctx: true, logs: true, anonimo: false });
+  const [f, setF] = useState<Record<string, any>>({ tipo: "SUGESTAO", categoria: "OUTRO", prioridade: "MEDIA", ctx: true, logs: true, anonimo: false, departamentosVisiveis: [] as string[] });
   const [shot, setShot] = useState<{ arquivoNome: string; mime: string; dataUrl: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -109,7 +115,10 @@ function Enviar({ rota, onClose }: { rota: string; onClose: () => void }) {
         viewport: `${window.innerWidth}x${window.innerHeight}`, idioma: navigator.language, logsConsole: f.logs && logs ? sanitizar(logs) : undefined,
       } : { rota: rota.split("?")[0] };
       const r = await eduApi.post<any>("/feedback/itens", {
-        tipo: f.tipo, categoria: f.categoria, prioridade: f.prioridade, titulo: f.titulo, descricao: f.descricao, passosReproduzir: erro && f.passos ? f.passos : undefined,
+        tipo: f.tipo, categoria: f.categoria, prioridade: f.prioridade, titulo: f.titulo,
+        aba: f.aba || undefined, funcionalidade: f.funcionalidade || undefined, descricao: f.descricao, finalidade: f.finalidade || undefined,
+        departamentosVisiveis: f.departamentosVisiveis?.length ? f.departamentosVisiveis : undefined,
+        passosReproduzir: erro && f.passos ? f.passos : undefined,
         anonimo: !!f.anonimo, contexto, capturas: shot ? [shot] : undefined,
       });
       setOk(r);
@@ -135,9 +144,21 @@ function Enviar({ rota, onClose }: { rota: string; onClose: () => void }) {
           <TextField select size="small" label="O que você quer enviar?" value={f.tipo} onChange={(e) => set("tipo", e.target.value)}>{TIPOS.map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}</TextField>
           <TextField select size="small" label="Área" value={f.categoria} onChange={(e) => set("categoria", e.target.value)}>{CATEGORIAS.map((c) => <MenuItem key={c} value={c}>{lbl(c)}</MenuItem>)}</TextField>
           <TextField size="small" label="Título" required value={f.titulo || ""} onChange={(e) => set("titulo", e.target.value)} slotProps={{ htmlInput: { maxLength: 160 } }} sx={{ gridColumn: "1 / -1" }} />
-          <TextField size="small" label={erro ? "O que aconteceu?" : "Descreva sua ideia"} required multiline minRows={3} value={f.descricao || ""} onChange={(e) => set("descricao", e.target.value)} helperText="Não escreva senhas nem dados pessoais de terceiros." sx={{ gridColumn: "1 / -1" }} />
+          <TextField size="small" label="Qual aba/seção do sistema?" placeholder="Ex.: Sala virtual > Cadernos" value={f.aba || ""} onChange={(e) => set("aba", e.target.value)} slotProps={{ htmlInput: { maxLength: 160 } }} />
+          <TextField size="small" label="Qual funcionalidade/botão?" placeholder="Ex.: Botão Enviar arquivo" value={f.funcionalidade || ""} onChange={(e) => set("funcionalidade", e.target.value)} slotProps={{ htmlInput: { maxLength: 160 } }} />
+          <TextField size="small" label={erro ? "O que aconteceu? (descrição detalhada)" : "Descreva em detalhes o que você quer implementar/melhorar"} required multiline minRows={3} value={f.descricao || ""} onChange={(e) => set("descricao", e.target.value)} helperText="Não escreva senhas nem dados pessoais de terceiros." sx={{ gridColumn: "1 / -1" }} />
+          {!erro && <TextField size="small" label="Qual a finalidade dessa melhoria? (opcional)" placeholder="Por que isso é importante? Que problema resolve?" multiline minRows={2} value={f.finalidade || ""} onChange={(e) => set("finalidade", e.target.value)} sx={{ gridColumn: "1 / -1" }} />}
           {erro && <TextField size="small" label="Passos para reproduzir (opcional)" multiline minRows={2} value={f.passos || ""} onChange={(e) => set("passos", e.target.value)} sx={{ gridColumn: "1 / -1" }} />}
           <TextField select size="small" label="Prioridade" value={f.prioridade} onChange={(e) => set("prioridade", e.target.value)}>{PRIOR.map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}</TextField>
+          <TextField
+            select size="small" label="Quais departamentos podem ver? (opcional)" value={f.departamentosVisiveis}
+            onChange={(e) => set("departamentosVisiveis", typeof e.target.value === "string" ? e.target.value.split(",") : e.target.value)}
+            slotProps={{ select: { multiple: true, renderValue: (v: any) => (v as string[]).length ? (v as string[]).map((c) => DEPARTAMENTOS.find(([k]) => k === c)?.[1] ?? c).join(", ") : "Padrão (reitoria/admin/suporte)" } }}
+            helperText="Deixe em branco para o padrão (só a reitoria/administração/suporte veem). Marque para pedir a visão de outros departamentos."
+            sx={{ gridColumn: "1 / -1" }}
+          >
+            {DEPARTAMENTOS.map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}
+          </TextField>
         </Box>
         <Box sx={{ mt: 1.5, display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
           <Button size="small" variant="outlined" component="label">Anexar captura de tela<input hidden type="file" accept="image/*" onChange={(e) => { void anexar(e.target.files?.[0]); e.target.value = ""; }} /></Button>

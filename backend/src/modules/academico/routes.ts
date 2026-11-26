@@ -3,6 +3,7 @@ import curriculumRoutes from './curriculum';
 import studentRoutes from './student';
 import classSectionRoutes from './classSection';
 import sessionRoutes from './session';
+import credenciaisRoutes from './credenciais';
 import { academicErrorHandler } from './middleware';
 
 // ============================================================
@@ -23,6 +24,7 @@ router.use(curriculumRoutes);
 router.use(studentRoutes);
 router.use(classSectionRoutes);
 router.use(sessionRoutes);
+router.use(credenciaisRoutes);
 
 router.use(academicErrorHandler);
 

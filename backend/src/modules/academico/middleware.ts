@@ -44,6 +44,10 @@ export interface AuthenticatedRequest extends Request {
 // Papéis com acesso total à gestão (reitoria/administração).
 const SUPER_ROLES: string[] = ['ADMIN', 'OWNER', 'RECTOR', 'BOARD']
 
+// robsonravel@wmundi.com: proprietário da WMundi, acesso total sempre, independente do cargo
+// atribuído na conta (mesmo tratamento dado aos SUPER_ROLES acima).
+const OWNER_ACCOUNT_EMAIL = 'robsonravel@wmundi.com'
+
 export function asyncHandler(fn: RequestHandler) {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next)
@@ -59,6 +63,7 @@ export function requireRole(...roles: AcademicRole[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
     const role = String(req.user.role || '').toUpperCase()
+    if (String(req.user.email || '').toLowerCase() === OWNER_ACCOUNT_EMAIL) return next()
     if (SUPER_ROLES.includes(role) || roles.includes(role as AcademicRole)) return next()
     // Acesso por cargo (modules/acesso): concessão PERMITIR do módulo atual libera rotas de gestão. Não vale para rotas só de
     // STUDENT/TEACHER (checam o dono do dado) nem para rotas só da administração (roles vazio).

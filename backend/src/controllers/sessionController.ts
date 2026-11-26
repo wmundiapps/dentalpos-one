@@ -15,6 +15,7 @@ export async function me(req: AuthRequest, res: Response) {
       clinicId: true,
       tenantId: true,
       avatar: true,
+      mustChangePassword: true,
       clinic: {
         select: {
           name: true,

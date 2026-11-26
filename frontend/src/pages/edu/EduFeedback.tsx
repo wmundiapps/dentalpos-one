@@ -44,7 +44,13 @@ function Detalhe({ id, onClose, onChanged, responsaveis }: { id: string; onClose
                 <Status value={i.status} /><Chip size="small" label={label(i.tipo)} /><Chip size="small" label={label(i.categoria)} /><Chip size="small" color={i.prioridade === "CRITICA" ? "error" : "default"} label={`Prioridade ${label(i.prioridade)}`} />
                 <Chip size="small" label={`${i.votos} voto(s)`} />{i.atendimentoRef && <Chip size="small" color="info" label={`Atendimento ${i.atendimentoRef}`} />}
               </Box>
+              {(i.aba || i.funcionalidade) && (
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 0.5, mb: 1, fontSize: 14 }}>
+                  <span>Aba/seção: <b>{i.aba || "—"}</b></span><span>Funcionalidade: <b>{i.funcionalidade || "—"}</b></span>
+                </Box>
+              )}
               <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{i.descricao}</Typography>
+              {i.finalidade && <><Typography variant="subtitle2" sx={{ mt: 1.5 }}>Finalidade da melhoria</Typography><Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{i.finalidade}</Typography></>}
               {i.passosReproduzir && <><Typography variant="subtitle2" sx={{ mt: 1.5 }}>Passos para reproduzir</Typography><Typography sx={{ whiteSpace: "pre-wrap" }}>{i.passosReproduzir}</Typography></>}
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 0.5, my: 1.5, fontSize: 14 }}>
                 <span>Autor: <b>{i.autorAnonimo ? "anônimo" : i.autorNome || "—"}</b></span><span>Perfil: <b>{i.perfil || "—"}</b></span>
@@ -52,6 +58,12 @@ function Detalhe({ id, onClose, onChanged, responsaveis }: { id: string; onClose
                 <span>Navegador: <b>{i.navegador || "—"}</b></span><span>Viewport: <b>{i.viewport || "—"}</b></span>
                 <span>Responsável: <b>{i.responsavelNome || "—"}</b></span><span>Enviado em: <b>{fmtDT(i.createdAt)}</b></span>
               </Box>
+              {!!i.departamentosVisiveis?.length && (
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography variant="subtitle2">Departamentos convidados a ver este item</Typography>
+                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>{i.departamentosVisiveis.map((d: string) => <Chip key={d} size="small" label={label(d)} />)}</Box>
+                </Box>
+              )}
               {i.logsConsole && <><Typography variant="subtitle2">Logs do console (sanitizados)</Typography><Box component="pre" sx={{ m: 0, p: 1, fontSize: 11, maxHeight: 160, overflow: "auto", bgcolor: "action.hover", borderRadius: 1, whiteSpace: "pre-wrap" }}>{i.logsConsole}</Box></>}
               {(i.anexos ?? []).map((a: any) => <Box key={a.id} sx={{ mt: 1 }}><Captura itemId={i.id} a={a} /></Box>)}
               {i.respostaAutor && <Alert severity="info" sx={{ mt: 1.5 }}><b>Resposta ao autor ({fmtDT(i.respondidoEm)}):</b> {i.respostaAutor}</Alert>}

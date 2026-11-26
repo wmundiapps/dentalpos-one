@@ -21,8 +21,13 @@ model FbkItem {
   categoria        String   @default("OUTRO")   // ACADEMICO | FINANCEIRO | SECRETARIA | PORTAL | INFRAESTRUTURA | RH | DESEMPENHO | DESIGN | OUTRO
   prioridade       String   @default("MEDIA")   // BAIXA | MEDIA | ALTA | CRITICA
   titulo           String
-  descricao        String
+  // detalhamento estruturado (pedido do cliente: localizar melhor onde é o problema/ideia e a quem ela interessa)
+  aba              String?  // "qual aba" — nome da aba/seção em palavras do usuário (pode divergir de `rota`/`tela`, que são técnicas)
+  funcionalidade   String?  // "qual funcionalidade" — botão/ação específica
+  descricao        String   // "o que" — descrição detalhada do erro ou do que se quer implementar/melhorar
+  finalidade       String?  // "para quê" — finalidade/objetivo da melhoria (por que ela importa, que problema resolve)
   passosReproduzir String?
+  departamentosVisiveis String[] @default([]) // AcademicRole extras que podem ver este item (além da triagem e do autor); vazio = visibilidade padrão
   status           String   @default("NOVO")    // NOVO | EM_TRIAGEM | PLANEJADO | EM_ANDAMENTO | RESOLVIDO | RECUSADO | DUPLICADO
   // contexto capturado automaticamente (sanitizado)
   rota             String?

@@ -1,8 +1,12 @@
 /**
- * Seed do ACESSO POR CARGO: um exemplo realista de matriz para a demonstração.
- *   - SECRETARY (secretaria) sem Financeiro / Tesouraria / Cobrança / Caixa de boletos / RH / Jurídico;
- *   - FINANCE (financeiro) sem Jurídico e sem RH; com concessão (PERMITIR) para Suprimentos (compras ligadas ao contas a pagar);
- *   - MARKETING sem Financeiro e sem dados acadêmicos sensíveis (Apoio, Notas); com concessão em Atendimento;
+ * Seed do ACESSO POR CARGO: matriz padrão para o piloto (Uningá).
+ *   - Acesso amplo: todo cargo interno (secretaria, marketing, RH, suprimentos, coordenação etc.) vê os módulos de
+ *     gestão normalmente; só o Financeiro/Tesouraria/Cobrança/Caixa de boletos fica restrito a FINANCE e à Reitoria
+ *     (RECTOR já é cargo SUPER, então nunca é bloqueado — ver abaixo).
+ *   - SECRETARY e MARKETING sem Financeiro / Tesouraria / Cobrança / Caixa de boletos (dados financeiros da
+ *     instituição não são de rotina desses setores).
+ *   - MARKETING: concessão (PERMITIR) em Atendimento.
+ *   - FINANCE: concessão (PERMITIR) em Suprimentos (compras ligadas ao contas a pagar).
  *   - STUDENT sem módulos de gestão (Financeiro acadêmico/Tesouraria/RH/Jurídico), sem tocar nos portais.
  * Cargos SUPER (ADMIN, OWNER, RECTOR, BOARD) nunca são afetados: apresentacao@uninga.br (ADMIN) segue vendo tudo.
  * IMPORTANTE: rode este seed por ÚLTIMO — outros seeds usam usuários por papel (ex.: ctx.apiAs('FINANCE')) e dependem do acesso padrão.
@@ -18,9 +22,8 @@ export interface SeedCtx { tenantId?: string; failures?: string[] }
 export interface ResumoSeedAcesso { regras: number; alteradas: number }
 
 const BLOQUEIOS: Record<string, string[]> = {
-  SECRETARY: ['financeiro', 'tesouraria', 'cobranca', 'boletos', 'rh', 'juridico'],
-  FINANCE: ['juridico', 'rh'],
-  MARKETING: ['financeiro', 'tesouraria', 'cobranca', 'boletos', 'apoio', 'notas', 'rh', 'juridico'],
+  SECRETARY: ['financeiro', 'tesouraria', 'cobranca', 'boletos'],
+  MARKETING: ['financeiro', 'tesouraria', 'cobranca', 'boletos'],
   STUDENT: ['tesouraria', 'cobranca', 'boletos', 'rh', 'juridico', 'suprimentos', 'infraestrutura', 'governanca', 'reitoria'],
 }
 const CONCESSOES: Record<string, string[]> = {

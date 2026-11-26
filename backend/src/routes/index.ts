@@ -81,11 +81,14 @@ const router = Router()
 // ======================
 
 router.post('/auth/register', authController.register)
-router.post('/auth/login', authController.login)
+// Login por e-mail OU por identificador alternativo (ra: aluno; loginAlt: professor/gestor de polo) — resolverIdentificador
+// traduz para email+clinicId e segue para o mesmo login(), sem duplicar bloqueio/2FA/auditoria.
+router.post('/auth/login', authController.resolverIdentificador, authController.login)
 router.post('/auth/2fa/verify', verificar2fa)
 router.post('/auth/device/status', statusDispositivo)
 router.post('/auth/password-reset/request', authController.requestPasswordReset)
 router.post('/auth/password-reset/confirm', authController.resetPassword)
+router.post('/auth/change-password', authMiddleware, authController.changePassword)
 router.get('/demo/config', demoController.config)
 router.post('/demo/register', demoController.register)
 router.get('/debug/demo-clinics', debugDemoController.list)

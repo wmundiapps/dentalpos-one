@@ -1,7 +1,7 @@
 import { Router, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
-import { AcademicRole, AuthenticatedRequest, asyncHandler, getTenantId, getUserId, requireRole, academicErrorHandler } from '../academico/middleware'
+import { AcademicRole, AuthenticatedRequest, asyncHandler, getTenantId, getUserId, requireAuth, requireRole, academicErrorHandler } from '../academico/middleware'
 import { pageParams, parseBody, qs } from '../core/crud'
 import { audit, notify } from '../core/notify'
 import { registerEduJob } from '../core/jobs'
@@ -18,6 +18,11 @@ const CATEGORIAS = ['ACADEMICO', 'FINANCEIRO', 'SECRETARIA', 'PORTAL', 'INFRAEST
 const PRIOR = ['BAIXA', 'MEDIA', 'ALTA', 'CRITICA'] as const
 const STATUS = ['NOVO', 'EM_TRIAGEM', 'PLANEJADO', 'EM_ANDAMENTO', 'RESOLVIDO', 'RECUSADO', 'DUPLICADO'] as const
 const VOTAVEIS = ['SUGESTAO', 'MELHORIA']
+/** Papéis que podem ser escolhidos em "quais departamentos podem ver" (reitoria/admin/suporte já veem tudo via TRIAGEM/SUPER). */
+const DEPARTAMENTOS: AcademicRole[] = [
+  'COORDINATOR', 'TEACHER', 'STUDENT', 'FINANCE', 'SECRETARY', 'LIBRARIAN', 'FACILITIES', 'SUPPLIES', 'MARKETING',
+  'ADMISSIONS', 'STAFF', 'GESTOR_CONTABIL', 'CONTADOR', 'ANALISTA_CONTABIL', 'CLIENTE_CONTABIL', 'HR',
+]
 const fail = (status: number, msg: string): never => { throw Object.assign(new Error(msg), { status }) }
 const MAX_POR_HORA = 15
 const MAX_DATAURL = 2_800_000
@@ -25,6 +30,8 @@ const MAX_DATAURL = 2_800_000
 const shotSchema = z.object({ arquivoNome: z.string().min(1).max(200), mime: z.string().max(120).optional(), dataUrl: z.string().max(MAX_DATAURL) })
 const criarSchema = z.object({
   tipo: z.enum(TIPOS), categoria: z.enum(CATEGORIAS).default('OUTRO'), prioridade: z.enum(PRIOR).default('MEDIA'), titulo: z.string().min(5).max(160), descricao: z.string().min(10).max(6000),
+  aba: z.string().max(160).optional().nullable(), funcionalidade: z.string().max(160).optional().nullable(), finalidade: z.string().max(2000).optional().nullable(),
+  departamentosVisiveis: z.array(z.enum(DEPARTAMENTOS as unknown as [string, ...string[]])).max(12).optional(),
   passosReproduzir: z.string().max(3000).optional().nullable(), anonimo: z.boolean().default(false),
   contexto: z.object({
     rota: z.string().max(400).optional(), tela: z.string().max(160).optional(), versaoApp: z.string().max(40).optional(), navegador: z.string().max(400).optional(), plataforma: z.string().max(80).optional(),
@@ -42,6 +49,11 @@ const nomeCompleto = async (tenantId: string, userId: string) => {
 function viewTriagem(i: any) { const { autorUserId, ...r } = i; return { ...r, autorNome: i.anonimo ? null : i.autorNome, autorAnonimo: i.anonimo } }
 function viewAutor(i: any) { const { autorUserId, logsConsole, responsavelUserId, autorNome, ...r } = i; return r }
 function viewPublico(i: any, jaVotei: boolean) { return { id: i.id, numero: i.numero, tipo: i.tipo, categoria: i.categoria, titulo: i.titulo, descricao: i.descricao.slice(0, 400), status: i.status, votos: i.votos, jaVotei, createdAt: i.createdAt } }
+/** Além da triagem (SUPER/SUPPORT) e do autor, um departamento listado em departamentosVisiveis também pode ver o item. */
+function podeVerPorDepartamento(item: any, req: AuthenticatedRequest) {
+  const role = String(req.user?.role ?? '').toUpperCase()
+  return Array.isArray(item.departamentosVisiveis) && item.departamentosVisiveis.includes(role)
+}
 
 async function avisarTriagem(tenantId: string, assunto: string, mensagem: string, refId: string) {
   const us = await prisma.user.findMany({ where: { tenantId, role: { in: ['ADMIN', 'OWNER', 'SUPPORT'] as any } }, select: { id: true }, take: 50 })
@@ -64,6 +76,8 @@ router.post('/itens', asyncHandler(async (req: AuthenticatedRequest, res: Respon
   const item = await prisma.fbkItem.create({
     data: {
       tenantId, numero, tipo: d.tipo, categoria: d.categoria, prioridade: d.prioridade, titulo: sanitizarTexto(d.titulo, 160), descricao: sanitizarTexto(d.descricao, 6000),
+      aba: d.aba ? sanitizarTexto(d.aba, 160) : null, funcionalidade: d.funcionalidade ? sanitizarTexto(d.funcionalidade, 160) : null, finalidade: d.finalidade ? sanitizarTexto(d.finalidade, 2000) : null,
+      departamentosVisiveis: d.departamentosVisiveis ?? [],
       passosReproduzir: d.passosReproduzir ? sanitizarTexto(d.passosReproduzir, 3000) : null,
       rota: sanitizarRota(c.rota), tela: c.tela ? sanitizarTexto(c.tela, 160) : null, versaoApp: c.versaoApp?.replace(/[^\w.\-+]/g, '').slice(0, 40) || null,
       perfil: String(req.user?.role ?? '').toUpperCase() || null, navegador: resumirNavegador(c.navegador), plataforma: c.plataforma ? sanitizarTexto(c.plataforma, 80) : null,
@@ -124,11 +138,13 @@ function filtros(req: AuthenticatedRequest) {
   const q = qs(req.query.q); if (q) where.OR = [{ titulo: { contains: q, mode: 'insensitive' } }, { descricao: { contains: q, mode: 'insensitive' } }, { numero: { contains: q, mode: 'insensitive' } }, { rota: { contains: q, mode: 'insensitive' } }]
   const de = qs(req.query.de), ate = qs(req.query.ate)
   if (de || ate) where.createdAt = { ...(de ? { gte: new Date(de) } : {}), ...(ate ? { lte: new Date(ate + (ate.length <= 10 ? 'T23:59:59Z' : '')) } : {}) }
+  // quem não é triagem só vê, na fila, os itens que o autor marcou como visíveis ao departamento (perfil) dele
+  if (!isTriagem(req)) where.departamentosVisiveis = { has: String(req.user?.role ?? '').toUpperCase() }
   return where
 }
 const ORD_PRIOR: Record<string, number> = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAIXA: 3 }
 
-router.get('/fila', requireRole(...TRIAGEM), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/fila', requireAuth, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { skip, take, page, pageSize } = pageParams(req.query)
   const where = filtros(req)
   const ordem = qs(req.query.ordem)
@@ -144,7 +160,7 @@ router.get('/fila', requireRole(...TRIAGEM), asyncHandler(async (req: Authentica
 
 router.get('/exportar', requireRole(...TRIAGEM), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const rows = await prisma.fbkItem.findMany({ where: filtros(req), orderBy: { createdAt: 'desc' }, take: 10_000 })
-  const out = rows.map((i) => ({ numero: i.numero, criadoEm: i.createdAt, tipo: i.tipo, categoria: i.categoria, prioridade: i.prioridade, status: i.status, titulo: i.titulo, descricao: i.descricao, rota: i.rota ?? '', perfil: i.perfil ?? '', versao: i.versaoApp ?? '', navegador: i.navegador ?? '', votos: i.votos, responsavel: i.responsavelNome ?? '', respondido: i.respondidoEm ?? '', resolvidoEm: i.resolvidoEm ?? '' }))
+  const out = rows.map((i) => ({ numero: i.numero, criadoEm: i.createdAt, tipo: i.tipo, categoria: i.categoria, prioridade: i.prioridade, status: i.status, titulo: i.titulo, aba: i.aba ?? '', funcionalidade: i.funcionalidade ?? '', descricao: i.descricao, finalidade: i.finalidade ?? '', rota: i.rota ?? '', perfil: i.perfil ?? '', versao: i.versaoApp ?? '', navegador: i.navegador ?? '', departamentosVisiveis: (i.departamentosVisiveis ?? []).join(', '), votos: i.votos, responsavel: i.responsavelNome ?? '', respondido: i.respondidoEm ?? '', resolvidoEm: i.resolvidoEm ?? '' }))
   await audit({ tenantId: getTenantId(req), userId: getUserId(req), modulo: MOD, acao: 'EXPORTADO', detalhes: { linhas: out.length } })
   if (qs(req.query.format) === 'csv') {
     const esc = (v: unknown) => { let s = v == null ? '' : v instanceof Date ? v.toISOString() : String(v); if (/^[=+\-@]/.test(s)) s = "'" + s; return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s }
@@ -187,13 +203,16 @@ async function carregar(req: AuthenticatedRequest, res: Response) {
 router.get('/itens/:id', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const item = await carregar(req, res); if (!item) return
   const triagem = isTriagem(req)
-  if (!triagem && item.autorUserId !== getUserId(req)) return res.status(404).json({ error: 'Item não encontrado.' })
+  const autor = item.autorUserId === getUserId(req)
+  const departamento = !triagem && !autor && podeVerPorDepartamento(item, req)
+  if (!triagem && !autor && !departamento) return res.status(404).json({ error: 'Item não encontrado.' })
   const [comentarios, anexos] = await Promise.all([
     prisma.fbkComentario.findMany({ where: { itemId: item.id, tenantId: item.tenantId, ...(triagem ? {} : { interno: false }) }, orderBy: { createdAt: 'asc' } }),
     prisma.fbkAnexo.findMany({ where: { itemId: item.id }, select: { id: true, nome: true, mime: true, tamanhoBytes: true, createdAt: true } }),
   ])
   if (triagem) await audit({ tenantId: item.tenantId, userId: getUserId(req), modulo: MOD, acao: 'TRIAGEM_VISUALIZOU', refType: 'FbkItem', refId: item.id })
-  res.json({ ...(triagem ? viewTriagem(item) : viewAutor(item)), comentarios: comentarios.map((c) => ({ ...c, autorNome: triagem ? c.autorNome : 'Equipe EduMaster' })), anexos })
+  // visão: triagem vê tudo; autor vê a própria (sem dados internos); um departamento convidado vê como a triagem, mas sem o userId do autor anônimo
+  res.json({ ...(triagem || departamento ? viewTriagem(item) : viewAutor(item)), comentarios: comentarios.map((c) => ({ ...c, autorNome: triagem ? c.autorNome : 'Equipe EduMaster' })), anexos })
 }))
 router.get('/itens/:id/anexos/:anexoId', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const item = await carregar(req, res); if (!item) return

@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'crypto'
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import { prisma } from '../lib/prisma'
 import {
@@ -120,6 +120,46 @@ export async function register(req: Request, res: Response) {
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro interno do servidor.' })
+  }
+}
+
+/** Senha inicial derivada da data de nascimento (DDMMAAAA). Usada no provisionamento de aluno/professor/gestor de polo; troca-se no 1º acesso. */
+export function senhaInicialPorNascimento(data: Date): string {
+  const d = String(data.getUTCDate()).padStart(2, '0')
+  const m = String(data.getUTCMonth() + 1).padStart(2, '0')
+  return `${d}${m}${data.getUTCFullYear()}`
+}
+
+/**
+ * Login por identificador alternativo (RA do aluno, via Student.ra; ou nome de usuário do professor/gestor de
+ * polo, via User.loginAlt) em vez de e-mail. Resolve para email+clinicId e delega ao login() normal, reaproveitando
+ * bloqueio por tentativas, 2FA, aprovação de dispositivo e auditoria — sem duplicar essa lógica de segurança.
+ */
+export async function resolverIdentificador(req: Request, res: Response, next: NextFunction) {
+  try {
+    const ra = req.body?.ra ? String(req.body.ra).trim() : ''
+    const loginAlt = req.body?.loginAlt ? String(req.body.loginAlt).trim().toLowerCase() : ''
+    if (!ra && !loginAlt) return next()
+
+    let userId: string | null = null
+    if (ra) {
+      const student = await prisma.student.findFirst({ where: { ra } })
+      userId = student?.userId ?? null
+    } else {
+      const user = await prisma.user.findFirst({ where: { loginAlt } })
+      userId = user?.id ?? null
+    }
+    if (!userId) return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
+
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || !user.isActive) return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
+
+    req.body.email = user.email
+    req.body.clinicId = user.clinicId
+    next()
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erro interno do servidor.' })
   }
 }
 
@@ -383,6 +423,49 @@ export async function requestPasswordReset(req: Request, res: Response) {
   } catch (error) {
     console.error('Erro na solicitação de redefinição:', error)
     return res.json(generic)
+  }
+}
+
+/** Troca de senha autenticada: usada no fluxo normal e, sem exigir a senha atual, na troca obrigatória do 1º acesso (mustChangePassword). */
+export async function changePassword(req: Request & { user?: { id: string; email: string; clinicId: string; tenantId: string; role: string } }, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
+    const senhaAtual = req.body?.senhaAtual ? String(req.body.senhaAtual) : ''
+    const novaSenha = String(req.body?.novaSenha || '')
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } })
+    if (!user || !user.isActive) return res.status(404).json({ error: 'Usuário não encontrado.' })
+
+    if (!user.mustChangePassword) {
+      if (!senhaAtual) return res.status(400).json({ error: 'Informe a senha atual.' })
+      if (!(await comparePassword(senhaAtual, user.password))) {
+        return res.status(401).json({ error: 'Senha atual incorreta.' })
+      }
+    }
+
+    const senhaOk = validarSenhaForte(novaSenha, { email: user.email, nome: `${user.firstName} ${user.lastName}` })
+    if (!senhaOk.ok) {
+      void registrarEvento({ tenantId: user.tenantId, tipo: 'senha_fraca', ip: ipDaRequisicao(req), detalhe: { rota: 'change-password' } })
+      return res.status(400).json({ error: senhaOk.erro })
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { password: await hashPassword(novaSenha), mustChangePassword: false } }),
+      prisma.refreshToken.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } }),
+    ])
+
+    try {
+      await writeAudit({
+        clinicId: user.clinicId, tenantId: user.tenantId, actorId: user.id, module: 'auth', action: 'PASSWORD_CHANGE',
+        entityType: 'User', entityId: user.id, summary: 'Senha alterada pelo próprio usuário.', ipAddress: req.ip, userAgent: req.get('user-agent') || undefined,
+      })
+    } catch {}
+
+    const token = generateToken({ id: user.id, email: user.email, clinicId: user.clinicId, tenantId: user.tenantId, role: user.role, accessExpiresAt: user.accessExpiresAt })
+    return res.json({ message: 'Senha alterada com sucesso.', token })
+  } catch (error) {
+    console.error('Erro ao trocar senha:', error)
+    return res.status(500).json({ error: 'Não foi possível trocar a senha.' })
   }
 }
 

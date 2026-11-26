@@ -79,6 +79,8 @@ export interface NavigationGroup { label: string; icon: ReactNode; items: Naviga
 
 /** Cargos que veem o submenu Contabilidade (alunos e professores não têm acesso). */
 const CTB_ROLES = ["ADMIN","OWNER","RECTOR","BOARD","FINANCE","GESTOR_CONTABIL","ANALISTA_CONTABIL","ACCOUNTANT","CONTADOR","COORDINATOR"];
+/** Cargos que veem o Financeiro institucional (Tesouraria, Cobrança, Financeiro acadêmico): só Financeiro e Reitoria. */
+const FINANCEIRO_ROLES = ["ADMIN","OWNER","RECTOR","BOARD","FINANCE"];
 const item = (label:string,path:string,icon:ReactNode,roles?:string[]):NavigationItem => ({label,path,icon,...(roles?{roles}:{})});
 /** Cargos que veem a Carteira de clientes do escritório de contabilidade (o servidor também valida). */
 const CARTEIRA_ROLES=["ADMIN","OWNER","RECTOR","BOARD","GESTOR_CONTABIL","CONTADOR","ACCOUNTANT","ANALISTA_CONTABIL","FINANCE"];
@@ -210,7 +212,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Cursos","/academico?secao=cursos",<SchoolIcon/>),
       item("Professores","/academico?secao=professores",<GroupsIcon/>),
       item("Turmas","/academico?secao=turmas",<EventIcon/>),
-      item("Financeiro acadêmico","/edu/financeiro",<PaymentsIcon/>),
+      item("Financeiro acadêmico","/edu/financeiro",<PaymentsIcon/>,FINANCEIRO_ROLES),
       item("Frequência e documentos","/academico?secao=documentos",<DescriptionIcon/>),
       item("Alunos · secretaria","/edu/academico/alunos",<PeopleAltIcon/>),
       item("Matrizes e fluxograma","/edu/academico/matrizes",<HubIcon/>),
@@ -415,28 +417,28 @@ const allNavigationGroups:NavigationGroup[] = [
     label:"EduMaster · Financeiro",
     icon:tile(<AccountBalanceWalletIcon/>,"#0E7490"),
     items:[
-      item("Painel financeiro","/edu/financeiro",<SpaceDashboardIcon/>),
-      item("Contas a receber","/edu/financeiro?secao=receber",<PaymentsIcon/>),
-      item("Contas a pagar","/edu/financeiro?secao=pagar",<ReceiptLongIcon/>),
-      item("Conferência e autorização","/edu/financeiro?secao=fila",<AssignmentIcon/>),
-      item("Bancos e conciliação","/edu/financeiro?secao=bancos",<AccountBalanceIcon/>),
-      item("Notas fiscais","/edu/financeiro?secao=notas",<DescriptionIcon/>),
-      item("Recibos","/edu/financeiro?secao=recibos",<ReceiptLongIcon/>),
-      item("Permutas e bolsas","/edu/financeiro?secao=permutas",<PeopleAltIcon/>),
-      item("Remessas bancárias","/edu/financeiro?secao=remessas",<SendIcon/>),
-      item("Caixa de boletos (DDA)","/edu/financeiro?secao=boletos",<MarkEmailUnreadIcon/>),
+      item("Painel financeiro","/edu/financeiro",<SpaceDashboardIcon/>,FINANCEIRO_ROLES),
+      item("Contas a receber","/edu/financeiro?secao=receber",<PaymentsIcon/>,FINANCEIRO_ROLES),
+      item("Contas a pagar","/edu/financeiro?secao=pagar",<ReceiptLongIcon/>,FINANCEIRO_ROLES),
+      item("Conferência e autorização","/edu/financeiro?secao=fila",<AssignmentIcon/>,FINANCEIRO_ROLES),
+      item("Bancos e conciliação","/edu/financeiro?secao=bancos",<AccountBalanceIcon/>,FINANCEIRO_ROLES),
+      item("Notas fiscais","/edu/financeiro?secao=notas",<DescriptionIcon/>,FINANCEIRO_ROLES),
+      item("Recibos","/edu/financeiro?secao=recibos",<ReceiptLongIcon/>,FINANCEIRO_ROLES),
+      item("Permutas e bolsas","/edu/financeiro?secao=permutas",<PeopleAltIcon/>,FINANCEIRO_ROLES),
+      item("Remessas bancárias","/edu/financeiro?secao=remessas",<SendIcon/>,FINANCEIRO_ROLES),
+      item("Caixa de boletos (DDA)","/edu/financeiro?secao=boletos",<MarkEmailUnreadIcon/>,FINANCEIRO_ROLES),
     ]
   },
   {
     label:"EduMaster · Cobrança",
     icon:tile(<RequestPageIcon/>,"#B91C1C"),
     items:[
-      item("Painel","/edu/cobranca?aba=painel",<SpaceDashboardIcon/>),
-      item("Inadimplentes","/edu/cobranca?aba=inadimplentes",<PeopleAltIcon/>),
-      item("Acordos e Negociações","/edu/cobranca?aba=acordos",<DescriptionIcon/>),
-      item("Régua e Políticas","/edu/cobranca?aba=regua",<SettingsIcon/>),
-      item("Histórico de Contatos","/edu/cobranca?aba=historico",<ChatIcon/>),
-      item("Recebimentos","/edu/cobranca?aba=recebimentos",<PaymentsIcon/>),
+      item("Painel","/edu/cobranca?aba=painel",<SpaceDashboardIcon/>,FINANCEIRO_ROLES),
+      item("Inadimplentes","/edu/cobranca?aba=inadimplentes",<PeopleAltIcon/>,FINANCEIRO_ROLES),
+      item("Acordos e Negociações","/edu/cobranca?aba=acordos",<DescriptionIcon/>,FINANCEIRO_ROLES),
+      item("Régua e Políticas","/edu/cobranca?aba=regua",<SettingsIcon/>,FINANCEIRO_ROLES),
+      item("Histórico de Contatos","/edu/cobranca?aba=historico",<ChatIcon/>,FINANCEIRO_ROLES),
+      item("Recebimentos","/edu/cobranca?aba=recebimentos",<PaymentsIcon/>,FINANCEIRO_ROLES),
     ]
   },
   {

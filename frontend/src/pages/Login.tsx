@@ -19,10 +19,17 @@ import {
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-type Etapa = "credenciais" | "codigo" | "configurar2fa" | "aguardandoDispositivo";
+type Etapa = "credenciais" | "codigo" | "configurar2fa" | "aguardandoDispositivo" | "trocarSenha";
+type ModoLogin = "EMAIL" | "RA" | "LOGINALT";
 
 export default function Login() {
   const [etapa, setEtapa] = useState<Etapa>("credenciais");
+  const [modo, setModo] = useState<ModoLogin>("EMAIL");
+  const [identificador, setIdentificador] = useState("");
+  const [novaSenha1, setNovaSenha1] = useState("");
+  const [novaSenha2, setNovaSenha2] = useState("");
+  const [senhaErro, setSenhaErro] = useState("");
+  const [senhaBusy, setSenhaBusy] = useState(false);
   const [challengeToken, setChallengeToken] = useState("");
   const [deviceChallengeToken, setDeviceChallengeToken] = useState("");
   const [deviceRecusado, setDeviceRecusado] = useState(false);
@@ -129,7 +136,36 @@ export default function Login() {
     localStorage.setItem("dentalpos.clinicId", data.user?.clinicId || clinicId.trim());
     writeSessionUser(data.user);
     writeDemoAccess(data.demo);
+    if (data.user?.mustChangePassword) {
+      setEtapa("trocarSenha");
+      return;
+    }
     window.location.href = appRootUrl();
+  }
+
+  // Troca obrigatória no 1º acesso (ou após reset pelo administrador): o backend dispensa a senha atual
+  // quando mustChangePassword está marcado, já que o usuário acabou de provar que a sabe neste mesmo login.
+  async function trocarSenhaObrigatoria(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSenhaErro("");
+    if (novaSenha1 !== novaSenha2) { setSenhaErro("As senhas não coincidem."); return; }
+    setSenhaBusy(true);
+    try {
+      const token = localStorage.getItem("dentalpos.token") || "";
+      const response = await fetch(`${API}/auth/change-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ novaSenha: novaSenha1 }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Não foi possível trocar a senha.");
+      if (data.token) localStorage.setItem("dentalpos.token", data.token);
+      window.location.href = appRootUrl();
+    } catch (err) {
+      setSenhaErro(err instanceof Error ? err.message : "Não foi possível trocar a senha.");
+    } finally {
+      setSenhaBusy(false);
+    }
   }
 
   async function verificarCodigo(event: FormEvent<HTMLFormElement>) {
@@ -200,7 +236,7 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...(clinicId.trim() ? { clinicId: clinicId.trim() } : {}),
-          email,
+          ...(modo === "EMAIL" ? { email } : modo === "RA" ? { ra: identificador.trim() } : { loginAlt: identificador.trim() }),
           password,
           fingerprint: deviceFingerprint(),
         }),
@@ -279,7 +315,7 @@ export default function Login() {
       {EDU_ONLY ? <EduCapa /> : null}
       <Paper
         component="form"
-        onSubmit={etapa === "codigo" ? verificarCodigo : etapa === "credenciais" ? submit : (e: FormEvent) => e.preventDefault()}
+        onSubmit={etapa === "codigo" ? verificarCodigo : etapa === "credenciais" ? submit : etapa === "trocarSenha" ? trocarSenhaObrigatoria : (e: FormEvent) => e.preventDefault()}
         elevation={18}
         sx={{
           width: "min(460px,100%)",
@@ -430,21 +466,43 @@ export default function Login() {
           helperText={EDU_ONLY ? "Só é necessário quando o mesmo e-mail pertence a mais de uma instituição." : "Só é necessário quando o mesmo e-mail pertence a mais de uma clínica."}
           sx={{ mb: 2 }}
         />
-        <TextField
-          fullWidth
-          label="E-mail"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          sx={{ mb: 2 }}
-          required
-        />
+        {EDU_ONLY ? (
+          <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+            {([["EMAIL", "E-mail"], ["RA", "Aluno (RA)"], ["LOGINALT", "Professor/Gestor"]] as [ModoLogin, string][]).map(([v, label]) => (
+              <Button key={v} size="small" variant={modo === v ? "contained" : "outlined"} onClick={() => { setModo(v); setIdentificador(""); setError(""); }} sx={{ flex: 1 }}>
+                {label}
+              </Button>
+            ))}
+          </Box>
+        ) : null}
+        {modo === "EMAIL" ? (
+          <TextField
+            fullWidth
+            label="E-mail"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            sx={{ mb: 2 }}
+            required
+          />
+        ) : (
+          <TextField
+            fullWidth
+            label={modo === "RA" ? "RA (registro acadêmico)" : "Usuário (nome.sobrenome)"}
+            value={identificador}
+            onChange={(event) => setIdentificador(event.target.value)}
+            helperText={modo === "RA" ? "O RA informado pela secretaria." : "Ex.: joao.silva, como informado pela coordenação."}
+            sx={{ mb: 2 }}
+            required
+          />
+        )}
         <TextField
           fullWidth
           label="Senha"
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
+          helperText={modo !== "EMAIL" ? "No primeiro acesso, use sua data de nascimento (DDMMAAAA)." : undefined}
           sx={{ mb: 2 }}
           required
         />
@@ -483,19 +541,21 @@ export default function Login() {
         </Box>
         ) : null}
 
-        <Button
-          fullWidth
-          sx={{ mt: 1 }}
-          disabled={!email.trim()}
-          onClick={() => { setFaceErro(""); setFaceOpen(true); }}
-        >
-          Entrar com reconhecimento facial
-        </Button>
+        {modo === "EMAIL" ? (
+          <Button
+            fullWidth
+            sx={{ mt: 1 }}
+            disabled={!email.trim()}
+            onClick={() => { setFaceErro(""); setFaceOpen(true); }}
+          >
+            Entrar com reconhecimento facial
+          </Button>
+        ) : null}
         <Button
           fullWidth
           sx={{ mt: 1 }}
           onClick={() => {
-            setResetEmail(email);
+            setResetEmail(modo === "EMAIL" ? email : "");
             setResetClinicId(clinicId);
             setResetMessage("");
             setResetError("");
@@ -504,6 +564,42 @@ export default function Login() {
         >
           Esqueci minha senha
         </Button>
+        {modo !== "EMAIL" ? (
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+            A recuperação usa o e-mail cadastrado na sua ficha, mesmo fazendo login por {modo === "RA" ? "RA" : "usuário"}. Se não tiver acesso a ele, procure a administração.
+          </Typography>
+        ) : null}
+          </>
+        ) : null}
+
+        {etapa === "trocarSenha" ? (
+          <>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Por segurança, você precisa trocar sua senha agora antes de continuar.
+            </Alert>
+            {senhaErro ? <Alert severity="error" sx={{ mb: 2 }}>{senhaErro}</Alert> : null}
+            <TextField
+              fullWidth
+              label="Nova senha"
+              type="password"
+              value={novaSenha1}
+              onChange={(event) => setNovaSenha1(event.target.value)}
+              helperText="Pelo menos 10 caracteres, sem ser previsível."
+              sx={{ mb: 2 }}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Confirmar nova senha"
+              type="password"
+              value={novaSenha2}
+              onChange={(event) => setNovaSenha2(event.target.value)}
+              sx={{ mb: 2 }}
+              required
+            />
+            <Button fullWidth size="large" variant="contained" type="submit" disabled={senhaBusy || !novaSenha1 || !novaSenha2}>
+              {senhaBusy ? "Salvando..." : "Trocar senha e entrar"}
+            </Button>
           </>
         ) : null}
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2, textAlign: "center" }}>
