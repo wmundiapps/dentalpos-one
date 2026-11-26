@@ -7,7 +7,7 @@ Os trechos entre [colchetes] precisam ser confirmados ou preenchidos. Segue a es
 
 ## 1. Partes
 
-**CONTRATADA:** Instituto Ravel de Ensino Superior Ltda., CNPJ 03.162.275/0001-10, com sede na Av. XV de Novembro, 255, sala C, Maringá/PR, marca WMundi, titular do sistema EduMaster Pro, doravante "WMundi".
+**CONTRATADA:** Tecnoimplante Indústria e Comércio de Materiais Médicos e Odontológicos, CNPJ 11.223.140/0001-45, com sede na Av. XV de Novembro, 255, Sobreloja, sala B, Maringá/PR, marca WMundi, titular do sistema EduMaster Pro, doravante "WMundi". Contato: robsonravel@wmundi.com · www.wmundi.com · (44) 99946-6451.
 
 **CONTRATANTE:** [RAZÃO SOCIAL DA UNINGÁ], CNPJ [CNPJ], doravante "Uningá" ou "Instituição".
 
@@ -49,7 +49,7 @@ Os trechos entre [colchetes] precisam ser confirmados ou preenchidos. Segue a es
 
 ## 7. Disponibilidade, suporte e segurança
 
-Aplicam-se as cláusulas-padrão da WMundi (`docs/legal/CLAUSULAS-PADRAO-WMUNDI.md`): C1 (disponibilidade e atualizações), C2 (suporte por e-mail: [E-MAIL DE SUPORTE]), C3 (credenciais e segurança) e C7 (limitação de responsabilidade, limitada neste período ao valor zero, por não haver cobrança).
+Aplicam-se as cláusulas-padrão da WMundi (`docs/legal/CLAUSULAS-PADRAO-WMUNDI.md`): C1 (disponibilidade e atualizações), C2 (suporte por e-mail: robsonravel@wmundi.com), C3 (credenciais e segurança) e C7 (limitação de responsabilidade, limitada neste período ao valor zero, por não haver cobrança).
 
 ## 8. Encerramento antecipado
 
@@ -61,7 +61,7 @@ As comunicações entre as partes podem ser feitas por e-mail ou WhatsApp. Este 
 
 ---
 
-**WMundi Technologies** (Instituto Ravel de Ensino Superior Ltda.)
+**WMundi Technologies** (Tecnoimplante Indústria e Comércio de Materiais Médicos e Odontológicos)
 [NOME DO ASSINANTE] — Diretoria Comercial
 
 **Uningá**
