@@ -6,6 +6,7 @@ import { mountCrud, parseBody, pageParams, qs } from './crud'
 import { getBranding } from './branding'
 import { scheduleReminder, processDueReminders } from './reminders'
 import { audit } from './notify'
+import './relatorioProprietario' // registra o job diário no cron global (ver EduJobRun/registerEduJob)
 
 const router = Router()
 const MGMT = ['ADMIN', 'OWNER', 'RECTOR', 'BOARD', 'COORDINATOR', 'SECRETARY'] as const

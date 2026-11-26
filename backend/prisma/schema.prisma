@@ -116,7 +116,11 @@ model User {
   accessExpiresAt DateTime?
 
   /// Identificador alternativo de login (ex.: "nome.sobrenome" de professor/gestor de polo). RA do aluno usa o model Student.ra, não este campo.
-  loginAlt String? @unique
+  /// Unicidade garantida na aplicação (gerarLoginAlt), não por constraint de banco: um índice @unique aqui exige
+  /// --accept-data-loss no "prisma db push" do boot (trava o deploy), que este projeto não usa.
+  loginAlt String?
+
+  @@index([loginAlt])
   /// Data de nascimento: usada como senha inicial em login por RA/loginAlt. Troca-se a senha real no primeiro acesso (ver mustChangePassword).
   dataNascimento DateTime?
   /// true após provisionamento inicial ou reset pelo admin: a próxima ação do usuário tem que ser trocar a senha.
@@ -2847,6 +2851,13 @@ model EduNotification {
   @@index([tenantId, status, agendadoPara])
   @@index([tenantId, userId, status])
   @@index([tenantId, studentId])
+}
+
+// Controle de execução única por dia de jobs do cron global (ex.: relatório diário de auditoria ao proprietário),
+// que pode ser disparado mais de uma vez no mesmo dia por engano sem duplicar efeitos colaterais (como envio de e-mail).
+model EduJobRun {
+  chave       String   @id
+  executadoEm DateTime @default(now())
 }
 
 // Trilha de auditoria transversal dos módulos EduMaster.

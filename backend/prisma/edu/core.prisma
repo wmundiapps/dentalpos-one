@@ -192,6 +192,13 @@ model EduNotification {
   @@index([tenantId, studentId])
 }
 
+// Controle de execução única por dia de jobs do cron global (ex.: relatório diário de auditoria ao proprietário),
+// que pode ser disparado mais de uma vez no mesmo dia por engano sem duplicar efeitos colaterais (como envio de e-mail).
+model EduJobRun {
+  chave       String   @id
+  executadoEm DateTime @default(now())
+}
+
 // Trilha de auditoria transversal dos módulos EduMaster.
 model EduAuditEvent {
   id          String   @id @default(uuid())
