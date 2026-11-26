@@ -6,3 +6,5 @@ export const GESTAO_COM: AcademicRole[] = ['SUPPORT', 'MARKETING']
 export const COBRANCA: AcademicRole[] = ['FINANCE']
 export const MARKETING: AcademicRole[] = ['MARKETING']
 export const APROVADORES: AcademicRole[] = ['MARKETING', 'COORDINATOR']
+// Quem decide pedidos de acesso a conversa sigilosa: só Jurídico ou Reitoria (RECTOR já entra automaticamente em requireRole).
+export const APROVA_SIGILO: AcademicRole[] = ['LEGAL']

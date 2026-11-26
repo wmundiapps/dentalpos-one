@@ -12,6 +12,49 @@ const CANAIS_EXTERNOS = ["WHATSAPP", "TELEGRAM", "INSTAGRAM", "FACEBOOK"];
 
 const SECRETOS = /(token|secret|senha|password|key|sid)/i;
 
+// Passo a passo bem simples (explicado como se fosse para uma criança) de como conseguir as credenciais de cada canal real.
+const GUIA_PROVEDOR: Record<string, string[]> = {
+  META_CLOUD: [
+    "1. Peça para alguém da instituição criar uma conta em business.facebook.com (é de graça).",
+    "2. Dentro dela, procure \"WhatsApp\" e depois \"Introdução\" ou \"Configuração da API\".",
+    "3. O site vai pedir o número de WhatsApp que vai ser usado — pode ser um número novo, só para isso.",
+    "4. Depois de cadastrar, o próprio site mostra um código chamado \"Token de acesso\" e um \"ID do número de telefone\".",
+    "5. Copie esses dois códigos e cole aqui nos campos pedidos.",
+  ],
+  TELEGRAM_BOT: [
+    "1. Abra o Telegram no celular e procure por \"BotFather\" (é um robô oficial do próprio Telegram).",
+    "2. Mande a mensagem /newbot para ele.",
+    "3. Escolha um nome para o robô (ex.: Atendimento Uningá) e depois um nome de usuário terminando em \"bot\".",
+    "4. O BotFather vai responder com um código longo chamado \"token\". Copie esse código.",
+    "5. Cole esse código aqui no campo \"botToken\".",
+  ],
+  TWILIO: [
+    "1. Crie uma conta gratuita em twilio.com (o cadastro pede só e-mail e telefone).",
+    "2. Depois de entrar, a tela inicial (Console) já mostra dois códigos: \"Account SID\" e \"Auth Token\".",
+    "3. Copie os dois.",
+    "4. Na mesma tela, compre ou ative um número de telefone para enviar SMS/ligações (o site guia isso).",
+    "5. Cole o SID, o token e o número aqui nos campos pedidos.",
+  ],
+  RESEND: [
+    "1. Crie uma conta gratuita em resend.com.",
+    "2. Vá em \"API Keys\" e clique em criar uma nova chave.",
+    "3. Copie o código gerado (começa com \"re_\").",
+    "4. Cole esse código aqui no campo de chave de API.",
+  ],
+};
+GUIA_PROVEDOR.PROPRIO = ["Este canal usa as credenciais que o próprio provedor combinado com a instituição já forneceu. Peça o manual de integração a ele."];
+
+function GuiaConexao({ provedor }: { provedor: string }) {
+  const passos = GUIA_PROVEDOR[provedor];
+  if (!passos) return null;
+  return (
+    <Alert severity="info" sx={{ "& ul": { m: 0, pl: 2.5 } }}>
+      <Typography sx={{ fontWeight: 800, mb: 0.5 }}>Como conseguir as credenciais (passo a passo simples)</Typography>
+      {passos.map((p) => <Typography key={p} variant="body2">{p}</Typography>)}
+    </Alert>
+  );
+}
+
 function CanalDialog({ open, onClose, toast, onDone }: { open: boolean; onClose: () => void; toast: (t: Toast) => void; onDone: () => void }) {
   const prov = useLoad<any[]>(open ? `${BASE}/canais/provedores` : null);
   const [tipo, setTipo] = useState("");
@@ -34,6 +77,9 @@ function CanalDialog({ open, onClose, toast, onDone }: { open: boolean; onClose:
       <DialogTitle>Novo canal</DialogTitle>
       <DialogContent dividers sx={{ display: "grid", gap: 2, pt: 2 }}>
         <Alert severity="info">As credenciais são guardadas cifradas e nunca são exibidas novamente. Somente administradores podem cadastrar canais.</Alert>
+        {tipo && !GUIA_PROVEDOR[provedor] ? (
+          <Alert severity="warning">Se a instituição ainda não tem essa conta/API, vale a pena criar agora — é rápido e, na maioria dos casos, gratuito para começar. Escolha o provedor abaixo para ver o passo a passo.</Alert>
+        ) : null}
         <StateBox loading={prov.loading} error={prov.error}>
           <TextField select size="small" label="Tipo de canal" value={tipo} onChange={(e) => setTipo(e.target.value)}>
             {(prov.data || []).map((p) => <MenuItem key={p.tipo} value={p.tipo}>{ROTULO_CANAL[p.tipo] || p.tipo}</MenuItem>)}
@@ -43,6 +89,7 @@ function CanalDialog({ open, onClose, toast, onDone }: { open: boolean; onClose:
               {opcoes.map((p: any) => <MenuItem key={p.provedor} value={p.provedor}>{p.provedor}</MenuItem>)}
             </TextField>
           ) : null}
+          {provedor ? <GuiaConexao provedor={provedor} /> : null}
           <TextField size="small" label="Nome do canal" value={nome} onChange={(e) => setNome(e.target.value)} helperText="Ex.: WhatsApp da Secretaria" />
           {campos.map((c) => (
             <TextField key={c} size="small" label={c} type={SECRETOS.test(c) ? "password" : "text"} value={cfg[c] || ""} onChange={(e) => setCfg({ ...cfg, [c]: e.target.value })} autoComplete="off" />
@@ -242,14 +289,51 @@ function Config({ toast }: { toast: (t: Toast) => void }) {
   );
 }
 
+function Departamentos({ toast }: { toast: (t: Toast) => void }) {
+  const regras = useLoad<any>(`${BASE}/regras-departamento`);
+  const rows = asList(regras.data);
+  const [f, setF] = useState<any>({ departamento: "", palavras: "" });
+
+  async function criar() {
+    try {
+      const palavrasChave = f.palavras.split(",").map((p: string) => p.trim()).filter(Boolean);
+      await eduApi.post(`${BASE}/regras-departamento`, { departamento: f.departamento, palavrasChave });
+      setF({ departamento: "", palavras: "" }); toast({ type: "success", text: "Regra criada." }); regras.reload();
+    } catch (e: any) { toast({ type: "error", text: e.message }); }
+  }
+  async function remover(id: string) {
+    try { await eduApi.del(`${BASE}/regras-departamento/${id}`); toast({ type: "success", text: "Regra removida." }); regras.reload(); } catch (e: any) { toast({ type: "error", text: e.message }); }
+  }
+  return (
+    <Section title="Roteamento automático por departamento" description="Quando uma conversa nova chega, o sistema procura essas palavras na primeira mensagem e já encaminha para o departamento certo.">
+      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
+        <TextField size="small" label="Departamento" value={f.departamento} onChange={(e) => setF({ ...f, departamento: e.target.value })} placeholder="Ex.: Secretaria" />
+        <TextField size="small" label="Palavras-chave (separadas por vírgula)" value={f.palavras} onChange={(e) => setF({ ...f, palavras: e.target.value })} placeholder="Ex.: boleto, matrícula, histórico" sx={{ flex: 1, minWidth: 260 }} />
+        <Button variant="contained" disabled={!f.departamento || !f.palavras.trim()} onClick={criar}>Adicionar regra</Button>
+      </Box>
+      <StateBox loading={regras.loading} error={regras.error} onRetry={regras.reload} empty={!rows.length} emptyText="Nenhuma regra cadastrada ainda: as conversas novas ficam sem departamento automático.">
+        {rows.map((r: any) => (
+          <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 1, py: 1, borderBottom: 1, borderColor: "divider", flexWrap: "wrap" }}>
+            <Chip size="small" label={r.departamento} color="primary" />
+            {r.palavrasChave.map((p: string) => <Chip key={p} size="small" variant="outlined" label={p} />)}
+            <Box sx={{ flex: 1 }} />
+            <Button size="small" color="error" onClick={() => remover(r.id)}>Remover</Button>
+          </Box>
+        ))}
+      </StateBox>
+    </Section>
+  );
+}
+
 export default function CanaisTab({ toast }: { toast: (t: Toast) => void }) {
   const [sub, setSub] = useState(0);
   return (
     <Box>
-      <Tabs value={sub} onChange={(_, v) => setSub(v)} sx={{ mb: 2 }}><Tab label="Canais" /><Tab label="Caixa de saída" /><Tab label="Regras gerais" /></Tabs>
+      <Tabs value={sub} onChange={(_, v) => setSub(v)} sx={{ mb: 2 }}><Tab label="Canais" /><Tab label="Caixa de saída" /><Tab label="Regras gerais" /><Tab label="Departamentos" /></Tabs>
       {sub === 0 && <Canais toast={toast} />}
       {sub === 1 && <Outbox toast={toast} />}
       {sub === 2 && <Config toast={toast} />}
+      {sub === 3 && <Departamentos toast={toast} />}
     </Box>
   );
 }

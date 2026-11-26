@@ -5,6 +5,7 @@ import { completeReminders, scheduleReminder } from '../core/reminders'
 import { despacharPorId } from './dispatcher'
 import { InboundMsg } from './adapters'
 import { acharOuCriarContato, getConfig, registrarPreferencia } from './store'
+import { rotearDepartamento } from './seguranca'
 import {
   BotDef, BotEstado, calcularSla, detectarOptOut, dentroDaJanela, formatBRL, formatDateBR, normalizeText, passoBot, pontuarGatilhos, rankFaq, renderNo, validarBotDef, verificarCpfPrefixo,
 } from './pure'
@@ -73,8 +74,9 @@ export async function processarInbound(p: { tenantId: string; canalTipo: string;
   const agora = new Date()
   if (!conversa) {
     const sla = calcularSla(agora, cfg)
+    const departamento = await rotearDepartamento(tenantId, msg.texto)
     conversa = await prisma.comConversa.create({
-      data: { tenantId, contatoId: contato.id, canalTipo: canalTipo as any, canalId, chaveExterna: msg.chaveExterna, assunto: msg.assunto, status: 'ABERTA', botAtivo: cfg.botAtivo && canalTipo !== 'EMAIL', slaPrimeiraRespostaEm: sla.primeiraRespostaEm, slaResolucaoEm: sla.resolucaoEm },
+      data: { tenantId, contatoId: contato.id, canalTipo: canalTipo as any, canalId, chaveExterna: msg.chaveExterna, assunto: msg.assunto, status: 'ABERTA', departamento, botAtivo: cfg.botAtivo && canalTipo !== 'EMAIL', slaPrimeiraRespostaEm: sla.primeiraRespostaEm, slaResolucaoEm: sla.resolucaoEm },
     })
     await scheduleReminder({ tenantId, modulo: 'comunicacao', titulo: `SLA de 1ª resposta: ${contato.nome} (${canalTipo})`, dueAt: sla.primeiraRespostaEm, remindAt: new Date(sla.primeiraRespostaEm.getTime() - 10 * 60_000), refType: 'ComConversa', refId: conversa.id, assigneeRole: 'SUPPORT', severity: 'ATENCAO', dedupeKey: `com-sla-${conversa.id}` })
   }

@@ -17,6 +17,9 @@ import campanhas from './rotas-campanhas'
 import bot from './rotas-bot'
 import social from './rotas-social'
 import voz from './rotas-voz'
+import seguranca from './rotas-seguranca'
+import gravacoes from './rotas-gravacoes'
+import regras from './rotas-regras'
 
 // Módulo "comunicacao" (omnichannel). Autenticado em /api/edu/comunicacao;
 // webhooks públicos em /api/public/edu/comunicacao.
@@ -60,6 +63,9 @@ router.use(campanhas)
 router.use(bot)
 router.use(social)
 router.use(voz)
+router.use(seguranca)
+router.use(gravacoes)
+router.use(regras)
 
 router.use(academicErrorHandler)
 export default router

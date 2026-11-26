@@ -6,6 +6,9 @@ import SendIcon from "@mui/icons-material/Send";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { eduApi, qsOf } from "../../services/EduApi";
 import { BASE, ROTULO_CANAL, StateBox, StatusPill, asList, fmtDateTime, useLoad, type Toast } from "./common";
+import { AcessoAuditoriaDialog, BotaoSigilo, SemAcessoSigilo } from "./AcessoSigiloPanel";
+import GravacoesPanel from "./GravacoesPanel";
+import HistoricoRelacionado from "./HistoricoRelacionado";
 
 const STATUS = ["ABERTA", "PENDENTE", "EM_ATENDIMENTO", "AGUARDANDO_CONTATO", "RESOLVIDA", "ARQUIVADA"];
 const SLA_COR: Record<string, string> = { OK: "#2e7d32", ATENCAO: "#ed6c02", ESTOURADO: "#d32f2f", ENCERRADA: "#9e9e9e" };
@@ -48,8 +51,10 @@ function Thread({ id, toast, onChanged }: { id: string; toast: (t: Toast) => voi
   const [texto, setTexto] = useState("");
   const [nota, setNota] = useState(false);
   const [etq, setEtq] = useState("");
+  const [acessoOpen, setAcessoOpen] = useState(false);
   const fim = useRef<HTMLDivElement>(null);
   const c = conv.data;
+  const semAcesso = Boolean(conv.error && /sigilosa/i.test(conv.error));
 
   useEffect(() => { fim.current?.scrollIntoView({ block: "end" }); }, [c?.mensagens?.length]);
   useEffect(() => { if (c?.naoLidas) eduApi.post(`${BASE}/conversas/${id}/lida`).then(onChanged).catch(() => undefined); }, [c?.naoLidas, id, onChanged]);
@@ -62,15 +67,18 @@ function Thread({ id, toast, onChanged }: { id: string; toast: (t: Toast) => voi
   }
 
   return (
-    <StateBox loading={conv.loading && !c} error={conv.error} onRetry={conv.reload}>
+    <StateBox loading={conv.loading && !c} error={semAcesso ? null : conv.error} onRetry={conv.reload}>
+      {semAcesso ? <SemAcessoSigilo id={id} toast={toast} /> : null}
       {c ? (
         <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 520 }}>
           <Box sx={{ p: 1.5, borderBottom: 1, borderColor: "divider", display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
             <Semaforo sla={c.sla} />
             <Box sx={{ flex: 1, minWidth: 160 }}>
               <Typography sx={{ fontWeight: 800 }}>{c.contato?.nome}</Typography>
-              <Typography variant="caption" color="text.secondary">{ROTULO_CANAL[c.canalTipo] || c.canalTipo}{c.assunto ? ` · ${c.assunto}` : ""} · {c.botAtivo ? "chatbot respondendo" : c.atribuidoAId ? "com atendente" : "sem atendente"}</Typography>
+              <Typography variant="caption" color="text.secondary">{ROTULO_CANAL[c.canalTipo] || c.canalTipo}{c.assunto ? ` · ${c.assunto}` : ""} · {c.botAtivo ? "chatbot respondendo" : c.atribuidoAId ? "com atendente" : "sem atendente"}{c.departamento ? ` · ${c.departamento}` : ""}</Typography>
             </Box>
+            <BotaoSigilo id={id} sigilosa={c.sigilosa} toast={toast} onChanged={conv.reload} />
+            {c.sigilosa ? <Button size="small" onClick={() => setAcessoOpen(true)}>Acesso e auditoria</Button> : null}
             <TextField select size="small" value={c.status} onChange={(e) => act(() => eduApi.post(`${BASE}/conversas/${id}/status`, { status: e.target.value }), "Situação atualizada.")} sx={{ minWidth: 190 }}>
               {STATUS.map((s) => <MenuItem key={s} value={s}>{s.replace(/_/g, " ")}</MenuItem>)}
             </TextField>
@@ -106,8 +114,11 @@ function Thread({ id, toast, onChanged }: { id: string; toast: (t: Toast) => voi
               <Button variant="contained" endIcon={<SendIcon />} disabled={!texto.trim()} onClick={enviar}>{nota ? "Salvar nota" : "Enviar"}</Button>
             </Box>
           </Box>
+          <GravacoesPanel id={id} canalTipo={c.canalTipo} toast={toast} />
+          <HistoricoRelacionado id={id} />
         </Box>
       ) : null}
+      {c ? <AcessoAuditoriaDialog id={id} open={acessoOpen} onClose={() => setAcessoOpen(false)} toast={toast} /> : null}
     </StateBox>
   );
 }

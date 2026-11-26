@@ -9145,6 +9145,10 @@ model ComConversa {
   prioridade            Int      @default(0)
   atribuidoAId          String?
   etiquetas             String[] @default([])
+  /// Departamento competente para o assunto (roteamento automático por palavra-chave, ou ajuste manual do atendente).
+  departamento          String?
+  /// Conversa sigilosa: só quem está atendendo (enquanto ativa) ou quem tiver acesso aprovado por Jurídico/Reitoria pode ver.
+  sigilosa              Boolean  @default(false)
   botAtivo              Boolean  @default(true)
   botEstado             Json?
   naoLidas              Int      @default(0)
@@ -9159,6 +9163,9 @@ model ComConversa {
 
   contato               ComContato @relation(fields: [contatoId], references: [id], onDelete: Cascade)
   mensagens             ComMensagem[]
+  gravacoes             ComGravacao[]
+  acessoSolicitacoes    ComAcessoSolicitacao[]
+  acessoLogs            ComAcessoLog[]
 
   @@index([tenantId, status, ultimaMensagemEm])
   @@index([tenantId, atribuidoAId, status])
@@ -9477,6 +9484,94 @@ model ComWebhookLog {
   createdAt   DateTime @default(now())
 
   @@index([canalId, createdAt])
+}
+// ============================================================
+// EDUMASTER PRO — COMUNICAÇÃO OMNICHANNEL: SIGILO, GRAVAÇÃO E ROTEAMENTO (prefixo Com)
+// Complementa comunicacao.prisma (ComConversa/ComMensagem): arquivo de gravações de
+// voz/WhatsApp/Telegram com aviso de gravação, pedido/aprovação de acesso a conversas
+// sigilosas (só Jurídico ou Reitoria autorizam) com log de auditoria, e regras de
+// roteamento automático por departamento.
+// ============================================================
+
+// Regra de roteamento automático: se o texto da 1ª mensagem contém uma das palavras-chave,
+// a conversa recebe esse departamento (ComConversa.departamento) ao ser criada.
+model ComRegraDepartamento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  departamento  String
+  palavrasChave String[] @default([])
+  prioridade    Int      @default(0)
+  ativa         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, ativa, prioridade])
+}
+
+// Gravação de voz (ligação) ou de áudio recebido/enviado em WhatsApp/Telegram, arquivada junto da conversa.
+// avisoDadoEm registra quando o aviso automático de gravação foi dado (nunca grava sem avisar).
+model ComGravacao {
+  id          String    @id @default(uuid())
+  tenantId    String
+  conversaId  String
+  chamadaId   String?
+  canalTipo   ComCanalTipo
+  arquivoUrl  String?
+  duracaoSeg  Int?
+  transcricao String?
+  avisoTexto  String
+  avisoDadoEm DateTime  @default(now())
+  status      String    @default("GRAVANDO") // GRAVANDO | CONCLUIDA | CANCELADA
+  criadoPorId String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  conversa    ComConversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, conversaId, createdAt])
+}
+
+enum ComAcessoStatus {
+  PENDENTE
+  APROVADO
+  NEGADO
+}
+
+// Pedido de acesso a uma conversa sigilosa. Só JURÍDICO/RECTOR decidem (ver roles.ts: APROVA_SIGILO).
+model ComAcessoSolicitacao {
+  id            String          @id @default(uuid())
+  tenantId      String
+  conversaId    String
+  solicitanteId String
+  motivo        String
+  status        ComAcessoStatus @default(PENDENTE)
+  decisorId     String?
+  decididoEm    DateTime?
+  motivoDecisao String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  conversa      ComConversa     @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, conversaId, status])
+  @@index([tenantId, status, createdAt])
+}
+
+// Log de auditoria de acesso a conversa sigilosa: quem viu, pediu, aprovou ou negou, e quando.
+model ComAcessoLog {
+  id          String   @id @default(uuid())
+  tenantId    String
+  conversaId  String
+  userId      String
+  acao        String   // VISUALIZOU | SOLICITOU | APROVOU | NEGOU | MARCOU_SIGILOSA | REMOVEU_SIGILO
+  ip          String?
+  detalhes    String?
+  createdAt   DateTime @default(now())
+
+  conversa    ComConversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, conversaId, createdAt])
+  @@index([tenantId, userId, createdAt])
 }
 
 // ---- edu/contabil-carteira.prisma ----

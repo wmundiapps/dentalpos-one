@@ -313,8 +313,6 @@ const allNavigationGroups:NavigationGroup[] = [
     icon:tile(<WorkIcon/>,"#B45309"),
     items:[
       item("Apoio, ouvidoria e egressos","/edu/apoio",<SupportAgentIcon/>),
-      item("Comunicação omnichannel","/edu/comunicacao",<ChatIcon/>),
-      item("Acompanhamento do aluno","/edu/comunicacao?aba=acompanhamento",<SchoolIcon/>),
       item("Infraestrutura e patrimônio","/edu/infraestrutura",<CleaningServicesIcon/>),
       item("Infraestrutura · Planejamento","/edu/infraestrutura?secao=planejamento",<AccountTreeIcon/>),
       item("Agenda de infraestrutura","/edu/infraestrutura?secao=agenda",<EventIcon/>),
@@ -461,6 +459,8 @@ const allNavigationGroups:NavigationGroup[] = [
     icon:tile(<CampaignIcon/>,"#C026D3"),
     items:[
       item("Painel","/edu/marketing?secao=painel",<SpaceDashboardIcon/>),
+      item("Central omnichannel (atendimento)","/edu/comunicacao",<ChatIcon/>),
+      item("Acompanhamento do aluno","/edu/comunicacao?aba=acompanhamento",<SchoolIcon/>),
       item("Calendário","/edu/marketing?secao=calendario",<CalendarMonthIcon/>),
       item("Campanhas","/edu/marketing?secao=campanhas",<CampaignIcon/>),
       item("Leads e Funil","/edu/marketing?secao=leads",<FilterAltIcon/>),

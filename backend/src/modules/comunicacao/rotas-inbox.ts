@@ -10,6 +10,7 @@ import { enviarNaConversa, registrarPrimeiraResposta } from './inbox'
 import { ATENDE } from './roles'
 import { calcularSla, statusSla } from './pure'
 import { getConfig } from './store'
+import { podeVerConversa, registrarAcessoLog } from './seguranca'
 
 const router = Router()
 const STATUS = ['ABERTA', 'PENDENTE', 'EM_ATENDIMENTO', 'AGUARDANDO_CONTATO', 'RESOLVIDA', 'ARQUIVADA'] as const
@@ -88,6 +89,8 @@ router.get(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const c = await conversaOu404(req, res)
     if (!c) return
+    if (!(await podeVerConversa(req, c))) return res.status(403).json({ error: 'Conversa sigilosa: você não tem acesso. Peça liberação ao Jurídico ou à Reitoria.' })
+    if (c.sigilosa) await registrarAcessoLog({ tenantId: c.tenantId, conversaId: c.id, userId: getUserId(req), acao: 'VISUALIZOU', req })
     const mensagens = await prisma.comMensagem.findMany({ where: { tenantId: c.tenantId, conversaId: c.id }, orderBy: { createdAt: 'asc' }, take: 500 })
     res.json({ ...c, sla: statusSla(c, new Date()), mensagens })
   }),
