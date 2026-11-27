@@ -22,7 +22,20 @@ function nomeUsuario(u?: { firstName?: string | null; lastName?: string | null; 
   return nome || u.email || 'Usuário'
 }
 
-export async function gerarRelatorioProprietario(desde: Date, ate: Date) {
+export interface AtividadeLogin {
+  horario: string
+  nome: string
+  role: string
+  ip: string
+}
+
+export interface AtividadeUsuario {
+  nome: string
+  role: string
+  acoes: Array<{ chave: string; total: number }>
+}
+
+export async function coletarAtividade(desde: Date, ate: Date) {
   const logins = await prisma.auditLog.findMany({
     where: { module: 'auth', action: 'LOGIN', createdAt: { gte: desde, lt: ate } },
     include: { actor: { select: { firstName: true, lastName: true, email: true, role: true } } },
@@ -41,31 +54,50 @@ export async function gerarRelatorioProprietario(desde: Date, ate: Date) {
     : []
   const porId = new Map(usuarios.map((u) => [u.id, u]))
 
+  const loginsOut: AtividadeLogin[] = logins.map((l) => ({
+    horario: l.createdAt.toISOString(),
+    nome: nomeUsuario(l.actor),
+    role: l.actor?.role ?? 'N/D',
+    ip: l.ipAddress ?? 'N/D',
+  }))
+
+  const porUsuarioMap = new Map<string, { nome: string; role: string; acoes: Map<string, number> }>()
+  for (const e of eventos) {
+    const uid = e.userId || 'sem-usuario'
+    const u = e.userId ? porId.get(e.userId) : null
+    if (!porUsuarioMap.has(uid)) porUsuarioMap.set(uid, { nome: nomeUsuario(u), role: u?.role ?? 'N/D', acoes: new Map() })
+    const chave = `${e.modulo}.${e.acao}`
+    const slot = porUsuarioMap.get(uid)!
+    slot.acoes.set(chave, (slot.acoes.get(chave) ?? 0) + 1)
+  }
+  const porUsuario: AtividadeUsuario[] = [...porUsuarioMap.values()].map((info) => ({
+    nome: info.nome,
+    role: info.role,
+    acoes: [...info.acoes.entries()].map(([chave, total]) => ({ chave, total })),
+  }))
+
+  return { logins: loginsOut, totalEventos: eventos.length, porUsuario }
+}
+
+export async function gerarRelatorioProprietario(desde: Date, ate: Date) {
+  const { logins, totalEventos, porUsuario } = await coletarAtividade(desde, ate)
+
   const linhas: string[] = []
   linhas.push(`Relatório interno de atividade — ${desde.toISOString().slice(0, 10)}`)
   linhas.push('(controle interno WMundi; não enviado a nenhum outro destinatário)')
   linhas.push('')
   linhas.push(`Logins no período: ${logins.length}`)
   for (const l of logins) {
-    linhas.push(`  - ${l.createdAt.toISOString().slice(11, 16)}  ${nomeUsuario(l.actor)} (${l.actor?.role ?? 'N/D'})  ip=${l.ipAddress ?? 'N/D'}`)
+    linhas.push(`  - ${l.horario.slice(11, 16)}  ${l.nome} (${l.role})  ip=${l.ip}`)
   }
   linhas.push('')
 
-  const porUsuario = new Map<string, { nome: string; role: string; acoes: Map<string, number> }>()
-  for (const e of eventos) {
-    const uid = e.userId || 'sem-usuario'
-    const u = e.userId ? porId.get(e.userId) : null
-    if (!porUsuario.has(uid)) porUsuario.set(uid, { nome: nomeUsuario(u), role: u?.role ?? 'N/D', acoes: new Map() })
-    const chave = `${e.modulo}.${e.acao}`
-    const slot = porUsuario.get(uid)!
-    slot.acoes.set(chave, (slot.acoes.get(chave) ?? 0) + 1)
-  }
-  linhas.push(`Ações registradas no período: ${eventos.length}`)
-  for (const [, info] of porUsuario) {
+  linhas.push(`Ações registradas no período: ${totalEventos}`)
+  for (const info of porUsuario) {
     linhas.push(`  - ${info.nome} (${info.role}):`)
-    for (const [chave, n] of info.acoes) linhas.push(`      ${chave}: ${n}`)
+    for (const { chave, total } of info.acoes) linhas.push(`      ${chave}: ${total}`)
   }
-  if (!eventos.length) linhas.push('  (nenhuma ação registrada no período)')
+  if (!totalEventos) linhas.push('  (nenhuma ação registrada no período)')
 
   return linhas.join('\n')
 }

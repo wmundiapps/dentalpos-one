@@ -145,6 +145,7 @@ const Permissions = lazy(() => import("../pages/Permissions"));
 const OnlineReceipts = lazy(() => import("../pages/OnlineReceipts"));
 const Membership = lazy(() => import("../pages/Membership"));
 const Homologation = lazy(() => import("../pages/Homologation"));
+const PlatformActivity = lazy(() => import("../pages/PlatformActivity"));
 
 // Design oculto (sigilo): import preservado para retomar depois.
 // import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
@@ -463,6 +464,7 @@ export default function AppRoutes() {
       <Route path="/recebimentos-online" element={<OnlineReceipts />} />
       <Route path="/assinaturas" element={<Membership />} />
       <Route path="/homologacao" element={<WmundiStaffOnly><Homologation /></WmundiStaffOnly>} />
+      <Route path="/atividade-teste" element={<WmundiStaffOnly><PlatformActivity /></WmundiStaffOnly>} />
 
       <Route
         path="/design"

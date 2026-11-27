@@ -75,6 +75,7 @@ import * as webhookController from '../controllers/webhookController'
 import * as backofficeController from '../controllers/backofficeController'
 import * as fiscalController from '../controllers/fiscalController'
 import * as platformReadinessController from '../controllers/platformReadinessController'
+import * as platformActivityController from '../controllers/platformActivityController'
 import * as smartSchedulingController from '../controllers/smartSchedulingController'
 import * as demoController from '../controllers/demoController'
 import * as debugDemoController from '../controllers/debugDemoController'
@@ -664,6 +665,7 @@ router.get('/platform/feature-flags', requirePermission('settings.view'), platfo
 router.put('/platform/feature-flags/:key', requirePermission('settings.edit'), platformController.setFeatureFlag)
 router.get('/platform/storage', requirePermission('settings.view'), platformController.storage)
 router.get('/platform/readiness', requireWmundiStaff, platformReadinessController.readiness)
+router.get('/platform/atividade', requireWmundiStaff, platformActivityController.atividade)
 router.put('/platform/storage', requirePermission('settings.edit'), platformController.setStorage)
 router.get('/revah/senders', requirePermission('marketing.view'), revahSenderController.index)
 router.get('/ai/balance', requirePermission('dashboard.view'), aiController.balance)
