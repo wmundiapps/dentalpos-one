@@ -1,6 +1,7 @@
 /**
  * Cria/atualiza o usuário de apresentação do ambiente de demonstração (idempotente).
  * Variáveis: DEMO_USER_EMAIL, DEMO_USER_PASSWORD (obrigatórias), DEMO_USER_NAME, DEMO_USER_ROLE (padrão ADMIN), DEMO_TENANT (padrão sua-instituicao).
+ * DEMO_EXPIRES_AT (opcional, ISO): prazo de acesso só desta conta (accessExpiresAt) — nunca bloqueia a API inteira nem outras contas.
  */
 import bcrypt from 'bcryptjs'
 import { prisma } from '../src/lib/prisma'
@@ -14,16 +15,18 @@ async function main() {
   if (!clinic) { console.log(`[demo-user] instituição ${tenantId} não encontrada; rode o seed antes.`); return }
   const [firstName, ...rest] = String(process.env.DEMO_USER_NAME || 'Apresentação EduMaster').split(' ')
   const hash = await bcrypt.hash(password, 10)
+  const expiraRaw = process.env.DEMO_EXPIRES_AT ? new Date(process.env.DEMO_EXPIRES_AT) : null
+  const accessExpiresAt = expiraRaw && !Number.isNaN(expiraRaw.getTime()) ? expiraRaw : null
   const ex = await prisma.user.findFirst({ where: { clinicId: clinic.id, email } })
   if (ex) {
     // O papel também é reaplicado: o usuário de apresentação sempre tem acesso total (ADMIN), mesmo que tenha sido criado antes com outro papel.
-    await prisma.user.update({ where: { id: ex.id }, data: { password: hash, isActive: true, role: process.env.DEMO_USER_ROLE || 'ADMIN' } as any })
-    console.log(`[demo-user] atualizado: ${email}`)
+    await prisma.user.update({ where: { id: ex.id }, data: { password: hash, isActive: true, role: process.env.DEMO_USER_ROLE || 'ADMIN', accessExpiresAt } as any })
+    console.log(`[demo-user] atualizado: ${email}${accessExpiresAt ? ` (expira ${accessExpiresAt.toISOString()})` : ''}`)
   } else {
     await prisma.user.create({
-      data: { clinicId: clinic.id, tenantId, email, password: hash, firstName, lastName: rest.join(' ') || 'EduMaster', role: process.env.DEMO_USER_ROLE || 'ADMIN', isActive: true } as any,
+      data: { clinicId: clinic.id, tenantId, email, password: hash, firstName, lastName: rest.join(' ') || 'EduMaster', role: process.env.DEMO_USER_ROLE || 'ADMIN', isActive: true, accessExpiresAt } as any,
     })
-    console.log(`[demo-user] criado: ${email}`)
+    console.log(`[demo-user] criado: ${email}${accessExpiresAt ? ` (expira ${accessExpiresAt.toISOString()})` : ''}`)
   }
   // Vincula o usuário de apresentação a um colaborador do RH (senão Ponto, Férias e Avaliações mostram "não vinculado").
   try {

@@ -87,14 +87,9 @@ app.get('/api/demo-info', (_req, res) => {
   const ms = t - Date.now()
   res.json({ expiresAt: new Date(t).toISOString(), expired: ms <= 0, daysLeft: Math.max(0, Math.ceil(ms / 86400000)) })
 })
-app.use('/api', (req, res, next) => {
-  const raw = process.env.DEMO_EXPIRES_AT
-  const t = raw ? Date.parse(raw) : NaN
-  if (Number.isFinite(t) && Date.now() > t && req.path !== '/demo-info' && req.path !== '/health') {
-    return res.status(403).json({ error: 'Esta demonstração foi encerrada em ' + new Date(t).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + '. Solicite um novo acesso à WMundi Technologies.', demoExpired: true })
-  }
-  next()
-})
+// Nunca bloquear a API inteira por DEMO_EXPIRES_AT: isso derrubaria também contas que não são de demonstração
+// (ex.: o proprietário). O bloqueio de quem é de fato conta de demonstração é por usuário, via accessExpiresAt
+// (ver edu-demo-user.ts, edu-guest-user.ts, edu-uninga-test-users.ts e o check em authController.ts).
 
 // Limite por IP + conta: o campus compartilha poucos IPs (NAT), então um limite só por IP bloquearia alunos legítimos.
 // O limite por IP sozinho (AUTH_RATE_LIMIT_IP_MAX) segura varredura de várias contas a partir de uma única origem.
