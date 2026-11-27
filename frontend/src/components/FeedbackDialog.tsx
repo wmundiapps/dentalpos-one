@@ -1,8 +1,12 @@
 import { useState } from "react";
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Dialog, DialogContent, IconButton, MenuItem, TextField, Typography } from "@mui/material";
+import EmojiObjectsIcon from "@mui/icons-material/EmojiObjects";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
+import CloseIcon from "@mui/icons-material/Close";
 import { useLocation } from "react-router-dom";
 import { navigationItems } from "../config/navigation";
-import { createPlatformFeedback, FEEDBACK_PRIORITIES, FEEDBACK_TYPES } from "../services/PlatformFeedbackApi";
+import { createPlatformFeedback } from "../services/PlatformFeedbackApi";
 
 function moduleFromPath(pathname: string): string {
   const exact = navigationItems.find((i) => i.path.split("?")[0] === pathname);
@@ -14,11 +18,16 @@ function moduleFromPath(pathname: string): string {
   return pathname === "/" ? "Dashboard" : pathname;
 }
 
-const EMPTY = { type: "Bug", priority: "Média", title: "", description: "" };
+const DEPARTMENTS = ["Recepção / Agenda", "Clínico", "Financeiro", "Laboratório", "Estoque", "RH", "Marketing", "Outro / não sei"];
+const ORANGE = "#E07B2E";
 
+// Caixinha de sugestões: aberta pelo rodapé ou pelo cabeçalho, sem ficar flutuando sobre a tela do sistema.
 export default function FeedbackDialog({ open, onClose, onSent }: { open: boolean; onClose: () => void; onSent?: () => void }) {
   const location = useLocation();
-  const [form, setForm] = useState(EMPTY);
+  const [kind, setKind] = useState<"Sugestão" | "Bug">("Sugestão");
+  const [department, setDepartment] = useState("Outro / não sei");
+  const [description, setDescription] = useState("");
+  const [rating, setRating] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
@@ -32,14 +41,24 @@ export default function FeedbackDialog({ open, onClose, onSent }: { open: boolea
   };
 
   const submit = async () => {
-    if (form.title.trim().length < 3) { setError("Informe um título."); return; }
-    if (form.description.trim().length < 5) { setError("Descreva o que aconteceu ou o que você sugere."); return; }
+    const text = description.trim();
+    if (text.length < 5) { setError("Descreva a melhoria ou o erro que você encontrou."); return; }
     setBusy(true);
     setError("");
     try {
-      await createPlatformFeedback({ ...form, title: form.title.trim(), description: form.description.trim(), module: modulo, pagePath: `${location.pathname}${location.search}` });
+      await createPlatformFeedback({
+        type: kind,
+        priority: "Média",
+        title: `${kind === "Bug" ? "Erro" : "Sugestão"}: ${text.replace(/\s+/g, " ").slice(0, 100)}`,
+        description: `Departamento: ${department}\n\n${text}`,
+        module: modulo,
+        pagePath: `${location.pathname}${location.search}`,
+        ...(rating >= 1 ? { rating } : {}),
+      });
       setSent(true);
-      setForm(EMPTY);
+      setDescription("");
+      setRating(0);
+      setKind("Sugestão");
       onSent?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível enviar.");
@@ -48,40 +67,59 @@ export default function FeedbackDialog({ open, onClose, onSent }: { open: boolea
     }
   };
 
+  const field = { "& .MuiOutlinedInput-root": { borderRadius: 4, bgcolor: "background.paper" } } as const;
+
   return (
-    <Dialog open={open} onClose={close} fullWidth maxWidth="sm">
-      <DialogTitle sx={{ fontWeight: 800 }}>{"Relatar problema ou sugestão"}</DialogTitle>
-      <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+    <Dialog open={open} onClose={close} fullWidth maxWidth="sm"
+      slotProps={{ paper: { sx: { borderRadius: 6, border: `3px solid ${ORANGE}`, bgcolor: (t) => (t.palette.mode === "light" ? "#EEF1E2" : "#1B2433"), m: { xs: 1.5, sm: 3 }, width: { xs: "calc(100% - 24px)", sm: undefined } } } }}>
+      <DialogContent sx={{ p: { xs: 2, sm: 3 }, display: "grid", gap: 1.75, textAlign: "left" }}>
+        <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+          <EmojiObjectsIcon sx={{ color: ORANGE, fontSize: 44, flexShrink: 0 }} />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontWeight: 900, textTransform: "uppercase", fontSize: { xs: 17, sm: 20 }, lineHeight: 1.25 }}>
+              Qual melhoria você gostaria de implementar? Nos conte aqui na caixinha de sugestões
+            </Typography>
+            <Typography sx={{ fontWeight: 800, textTransform: "uppercase", fontSize: { xs: 13, sm: 15 }, lineHeight: 1.25, mt: 0.75 }}>
+              Caso queira relatar algum erro, pode usar esta mesma caixa
+            </Typography>
+          </Box>
+          <IconButton aria-label="Fechar" onClick={close} size="small" sx={{ mt: -0.5 }}><CloseIcon /></IconButton>
+        </Box>
+
         {sent ? (
-          <Alert severity="success">{"Obrigado! Sua sugestão ou elogio será avaliado e, caso seja aprovado, a implementação ou melhoria será aplicada."}</Alert>
+          <>
+            <Alert severity="success">Obrigado! Sua sugestão ou relato será avaliado e, se for aprovado, a melhoria será aplicada.</Alert>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button fullWidth variant="outlined" onClick={() => setSent(false)} sx={{ borderRadius: 4, color: ORANGE, borderColor: ORANGE }}>Enviar outra</Button>
+              <Button fullWidth variant="contained" onClick={close} sx={{ borderRadius: 4, bgcolor: ORANGE, "&:hover": { bgcolor: "#C96A22" } }}>Fechar</Button>
+            </Box>
+          </>
         ) : (
           <>
-            <Typography variant="body2" color="text.secondary">{`Tela atual: ${modulo}`}</Typography>
-            <TextField select label="Tipo" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-              {FEEDBACK_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Chip clickable label="Sugestão de melhoria" onClick={() => setKind("Sugestão")} sx={{ fontWeight: 800, bgcolor: kind === "Sugestão" ? ORANGE : "transparent", color: kind === "Sugestão" ? "#fff" : "text.primary", border: `1px solid ${ORANGE}` }} />
+              <Chip clickable label="Relatar erro" onClick={() => setKind("Bug")} sx={{ fontWeight: 800, bgcolor: kind === "Bug" ? ORANGE : "transparent", color: kind === "Bug" ? "#fff" : "text.primary", border: `1px solid ${ORANGE}` }} />
+            </Box>
+            <TextField label="Tela / funcionalidade" value={modulo} helperText="Preenchido automaticamente com a tela onde você está" slotProps={{ input: { readOnly: true } }} sx={field} />
+            <TextField select label="Para qual departamento é esta melhoria/erro?" value={department} onChange={(e) => setDepartment(e.target.value)} helperText={'Escolha o setor responsável; se não souber, deixe "Outro"'} sx={field}>
+              {DEPARTMENTS.map((d) => <MenuItem key={d} value={d}>{d}</MenuItem>)}
             </TextField>
-            <TextField required label={"Título"} placeholder={"Ex.: Botão Salvar não responde"} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} slotProps={{ htmlInput: { maxLength: 160 } }} />
-            <TextField required multiline minRows={4} label={"Descrição"} placeholder={"O que você fez, o que aconteceu e o que esperava que acontecesse."} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            <TextField select label="Prioridade" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
-              {FEEDBACK_PRIORITIES.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
-            </TextField>
+            <TextField multiline minRows={5} placeholder="Descreva em detalhes o problema encontrado ou a melhoria que gostaria de implementar: o que acontece, o que era esperado, e em qual situação..." value={description} onChange={(e) => setDescription(e.target.value)} sx={field} />
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap" }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, mr: 0.5 }}>Nota do sistema (opcional):</Typography>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <IconButton key={n} size="small" aria-label={`${n} estrela${n > 1 ? "s" : ""}`} onClick={() => setRating(rating === n ? 0 : n)}>
+                  {rating >= n ? <StarIcon fontSize="small" sx={{ color: "#F5A623" }} /> : <StarBorderIcon fontSize="small" sx={{ color: "#F5A623" }} />}
+                </IconButton>
+              ))}
+            </Box>
             {error && <Alert severity="error">{error}</Alert>}
+            <Button fullWidth variant="contained" disabled={busy} onClick={() => void submit()} sx={{ borderRadius: 4, py: 1.4, fontWeight: 900, fontSize: 16, bgcolor: ORANGE, "&:hover": { bgcolor: "#C96A22" } }}>
+              {busy ? "Enviando..." : "Enviar"}
+            </Button>
           </>
         )}
       </DialogContent>
-      <DialogActions>
-        {sent ? (
-          <>
-            <Button onClick={() => setSent(false)}>Enviar outro</Button>
-            <Button variant="contained" onClick={close}>Fechar</Button>
-          </>
-        ) : (
-          <>
-            <Button disabled={busy} onClick={close}>Cancelar</Button>
-            <Button variant="contained" disabled={busy} onClick={() => void submit()}>{busy ? "Enviando..." : "Enviar relato"}</Button>
-          </>
-        )}
-      </DialogActions>
     </Dialog>
   );
 }
