@@ -1215,60 +1215,6 @@ export default function Agenda() {
         </Box>
 
       </Paper>}
-      <Collapse in={showMore} unmountOnExit>
-        <Box sx={{ mb: 2 }}>
-      <AgendaPatientSearch
-        patients={backendPatients}
-        appointments={items}
-        onSchedule={(patient) => openNew({ patientName: patient.fullName, patientPhone: patient.phone || "", dateISO: date })}
-        onGoToDate={(dateISO) => { setDate(dateISO); setView("day"); }}
-        onOpenFile={(patient) => navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}`)}
-      />
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
-        <Button variant="outlined" onClick={() => setAbsenceOpen(true)}>Pacientes ausentes: convidar para retorno</Button>
-      </Box>
-      <AbsenceRecallBanner />
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
-        <Box sx={{ display: "flex", gap: 1, justifyContent: { xs: "center", lg: "flex-end" }, flexWrap: "wrap", mt: 1.25 }}>
-          <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
-          <Button onClick={() => void openOnlineSlots()}>Horários online</Button>
-          <Button color="warning" variant="outlined" onClick={() => setCloseAgendaOpen(true)}>Fechar agenda</Button>
-          <Button onClick={() => setAvailabilitySettingsOpen(true)}>Jornada / bloqueios</Button>
-          <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Inteligência</Button>
-        </Box>
-
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>
-          {([
-            ["Todos", statusMetrics.total],
-            ["Confirmado", statusMetrics.confirmed],
-            ["Aguardando", statusMetrics.waiting],
-            ["Em atendimento", statusMetrics.inCare],
-            ["Faltou", statusMetrics.noShow],
-          ] as Array<[StatusFilter, number]>).map(([label, count]) => (
-            <Chip
-              key={label}
-              clickable
-              onClick={() => setStatusFilter(label)}
-              variant={statusFilter === label ? "filled" : "outlined"}
-              color={label === "Faltou" ? "error" : label === "Confirmado" ? "success" : "default"}
-              label={`${label} • ${count}`}
-            />
-          ))}
-        </Box>
-          </Paper>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
-          <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório e agenda ficam visíveis para a equipe.</Typography>
-          {alerts.length === 0 ? <Alert severity="success">Nenhuma pendência crítica agora.</Alert> : (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" }, gap: 1, maxHeight: 420, overflow: "auto" }}>
-              {alerts.map((alert) => (
-                <Alert key={alert.id} severity={alert.severity}><b>{alert.title}</b><br />{alert.description}</Alert>
-              ))}
-            </Box>
-          )}
-        </Paper>
-        </Box>
-      </Collapse>
       <Box
         sx={{
           display: "grid",
@@ -1372,6 +1318,60 @@ export default function Agenda() {
           </AgendaMarkersContext.Provider>
         </Paper>
       </Box>
+      <Collapse in={showMore} unmountOnExit>
+        <Box sx={{ mb: 2 }}>
+      <AgendaPatientSearch
+        patients={backendPatients}
+        appointments={items}
+        onSchedule={(patient) => openNew({ patientName: patient.fullName, patientPhone: patient.phone || "", dateISO: date })}
+        onGoToDate={(dateISO) => { setDate(dateISO); setView("day"); }}
+        onOpenFile={(patient) => navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}`)}
+      />
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+        <Button variant="outlined" onClick={() => setAbsenceOpen(true)}>Pacientes ausentes: convidar para retorno</Button>
+      </Box>
+      <AbsenceRecallBanner />
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
+        <Box sx={{ display: "flex", gap: 1, justifyContent: { xs: "center", lg: "flex-end" }, flexWrap: "wrap", mt: 1.25 }}>
+          <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
+          <Button onClick={() => void openOnlineSlots()}>Horários online</Button>
+          <Button color="warning" variant="outlined" onClick={() => setCloseAgendaOpen(true)}>Fechar agenda</Button>
+          <Button onClick={() => setAvailabilitySettingsOpen(true)}>Jornada / bloqueios</Button>
+          <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Inteligência</Button>
+        </Box>
+
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>
+          {([
+            ["Todos", statusMetrics.total],
+            ["Confirmado", statusMetrics.confirmed],
+            ["Aguardando", statusMetrics.waiting],
+            ["Em atendimento", statusMetrics.inCare],
+            ["Faltou", statusMetrics.noShow],
+          ] as Array<[StatusFilter, number]>).map(([label, count]) => (
+            <Chip
+              key={label}
+              clickable
+              onClick={() => setStatusFilter(label)}
+              variant={statusFilter === label ? "filled" : "outlined"}
+              color={label === "Faltou" ? "error" : label === "Confirmado" ? "success" : "default"}
+              label={`${label} • ${count}`}
+            />
+          ))}
+        </Box>
+          </Paper>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
+          <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório e agenda ficam visíveis para a equipe.</Typography>
+          {alerts.length === 0 ? <Alert severity="success">Nenhuma pendência crítica agora.</Alert> : (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" }, gap: 1, maxHeight: 420, overflow: "auto" }}>
+              {alerts.map((alert) => (
+                <Alert key={alert.id} severity={alert.severity}><b>{alert.title}</b><br />{alert.description}</Alert>
+              ))}
+            </Box>
+          )}
+        </Paper>
+        </Box>
+      </Collapse>
 
       <Dialog open={compOpen} onClose={() => !compBusy && setCompOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Novo compromisso</DialogTitle>
