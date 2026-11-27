@@ -29,6 +29,8 @@ if [ "$EDU_POLISH" = "1" ]; then
 fi
 # Usuário de apresentação (se configurado por variável de ambiente)
 npx tsx scripts/edu-demo-user.ts || true
+# Vários links de demonstração ativos ao mesmo tempo, um por instituição/contato interessado (PROSPECT_USERS_JSON)
+npx tsx scripts/edu-prospect-demo-users.ts || true
 # Usuário convidado com prazo de acesso (GUEST_USER_EMAIL/GUEST_USER_PASSWORD/GUEST_EXPIRES_AT)
 npx tsx scripts/edu-guest-user.ts || true
 # Os 10 acessos de teste da Uningá, um por setor, com prazo de 1 semana

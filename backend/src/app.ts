@@ -128,14 +128,33 @@ app.use('/api/auth/register', authLimiter)
 app.use('/api/auth/2fa/verify', authLimiter)
 app.use('/api/auth/device/status', authLimiter)
 // Acesso direto à demonstração por link (sem digitar login e senha). Só existe com DEMO_ACCESS_KEY definida.
+// Compara em tempo constante só quando os tamanhos batem (evita lançar em chaves de tamanhos diferentes).
+function chaveConfere(enviada: Buffer, candidata: string): boolean {
+  if (!candidata) return false
+  const c = Buffer.from(candidata)
+  return enviada.length === c.length && timingSafeEqual(enviada, c)
+}
+
+// PROSPECT_USERS_JSON (opcional): vários links de demonstração ativos ao mesmo tempo, um por instituição/contato
+// interessado, cada um com sua própria chave de acesso e e-mail de login. Formato: [{"accessKey":"...","email":"..."}, ...]
+function prospectDemoEmail(enviada: Buffer): string | null {
+  try {
+    const lista = JSON.parse(process.env.PROSPECT_USERS_JSON || '[]')
+    if (!Array.isArray(lista)) return null
+    for (const item of lista) {
+      if (chaveConfere(enviada, String(item?.accessKey || ''))) return String(item?.email || '').toLowerCase() || null
+    }
+  } catch { /* PROSPECT_USERS_JSON ausente ou inválida: ignora */ }
+  return null
+}
+
 app.post('/api/demo-acesso', authLimiter, async (req, res) => {
   try {
-    const chave = String(process.env.DEMO_ACCESS_KEY || '')
-    const enviada = String(req.body?.k || '')
-    const a = Buffer.from(chave)
-    const b = Buffer.from(enviada)
-    if (!chave || a.length !== b.length || !timingSafeEqual(a, b)) return res.status(403).json({ error: 'Link de acesso inválido.' })
-    const email = String(process.env.DEMO_ACCESS_EMAIL || 'apresentacao@uninga.br').toLowerCase()
+    const enviada = Buffer.from(String(req.body?.k || ''))
+    const email = chaveConfere(enviada, String(process.env.DEMO_ACCESS_KEY || ''))
+      ? String(process.env.DEMO_ACCESS_EMAIL || 'apresentacao@uninga.br').toLowerCase()
+      : prospectDemoEmail(enviada)
+    if (!email) return res.status(403).json({ error: 'Link de acesso inválido.' })
     const user = await prisma.user.findFirst({ where: { email, isActive: true }, orderBy: { createdAt: 'asc' } })
     if (!user) return res.status(404).json({ error: 'Usuário da demonstração não encontrado.' })
     const demo = await getDemoAccess(user.clinicId)
