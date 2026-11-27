@@ -7,6 +7,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
 import { useCriticalAlerts } from "../../hooks/useCriticalAlerts";
+import { usePendingScope } from "../../hooks/usePendingVisibility";
 import PendingAlertsBar from "../PendingAlertsBar";
 import { ALWAYS, COLORS, DEPARTMENTS, departmentOf, type Department } from "../home/AlertsPanel";
 
@@ -45,6 +46,7 @@ export default function AlertsMenu({ collapsed }: { collapsed: boolean }) {
 export function AlertsDrawerHost() {
   const navigate = useNavigate();
   const { alerts } = useCriticalAlerts();
+  const { canManage } = usePendingScope();
   const [open, setOpen] = useState(false);
   const [dept, setDept] = useState<Department | null>(null);
 
@@ -56,7 +58,8 @@ export function AlertsDrawerHost() {
 
   const grouped = new Map<Department, typeof alerts>();
   alerts.forEach((a) => { const d = departmentOf(a); grouped.set(d, [...(grouped.get(d) || []), a]); });
-  const list = ([...DEPARTMENTS, "Outros"] as Department[]).filter((d) => ALWAYS.includes(d) || grouped.has(d));
+  // Admin e gestor veem todos os setores (inclusive os em dia); cada setor vê só os departamentos que têm alerta para ele.
+  const list = ([...DEPARTMENTS, "Outros"] as Department[]).filter((d) => grouped.has(d) || (canManage === true && ALWAYS.includes(d)));
   const close = () => { setOpen(false); setDept(null); };
   const levelOf = (d: Department) => ((grouped.get(d) || []).some((r) => r.severity === "error") ? "error" : (grouped.get(d) || []).length ? "warning" : "none") as "error" | "warning" | "none";
 
@@ -69,7 +72,8 @@ export function AlertsDrawerHost() {
           <Typography variant="h6" sx={{ fontWeight: 900, flex: 1 }}>{dept ? dept : "Alertas críticos"}</Typography>
           <IconButton onClick={close} aria-label="Fechar"><CloseIcon /></IconButton>
         </Box>
-        {!dept && <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>Toque no departamento para ver os alertas.</Typography>}
+        {!dept && <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>{canManage === true ? "Você vê os alertas de todos os setores. Toque no departamento para abrir." : "Alertas do seu setor. Toque no departamento para abrir."}</Typography>}
+        {!dept && list.length === 0 && <Typography sx={{ p: 2, textAlign: "center", fontWeight: 700 }} color="text.secondary">Nenhum alerta crítico no seu setor.</Typography>}
         {!dept && (
           <Box sx={{ display: "grid", gap: 0.8 }}>
             {list.map((d) => {
