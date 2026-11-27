@@ -23,6 +23,7 @@ import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
+import { EDU_ONLY } from "../config/appMode";
 import { educationalCourses, formatCoursePrice } from "../services/EducationService";
 
 type AcademicSection = "visao-geral" | "alunos" | "cursos" | "professores" | "turmas" | "financeiro" | "documentos";
@@ -55,7 +56,7 @@ const operationalAreas: Record<Exclude<AcademicSection, "visao-geral" | "cursos"
   ],
   financeiro: [
     { title: "Mensalidades e parcelas", description: "Integração planejada com o financeiro central para contas a receber, inadimplência e baixa de pagamentos." },
-    { title: "PIX, boleto e cartão", description: "Estrutura compatível com os provedores financeiros já preparados no CompletoDonto." },
+    { title: "PIX, boleto e cartão", description: "Estrutura compatível com os provedores financeiros já preparados no EduMaster Pro." },
     { title: "Visão acadêmico-financeira", description: "Separação por curso, turma, aluno e centro de resultado para análise gerencial." },
   ],
   documentos: [
@@ -83,7 +84,7 @@ export default function Academic() {
   return (
     <Box>
       <PageHeader
-        title="CompletoDonto Academy"
+        title={EDU_ONLY ? "Instituição Academy" : "DentalPos Academy"}
         description="Gestão acadêmica, cursos, professores, turmas, alunos, frequência, documentos e financeiro em um único ambiente."
         actionLabel="Cadastrar curso"
         actionIcon={<AddIcon />}

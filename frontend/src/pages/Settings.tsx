@@ -1,4 +1,5 @@
-﻿import { useNavigate } from "react-router-dom";
+import { EDU_ONLY } from "../config/appMode";
+import { useNavigate } from "react-router-dom";
 import { Box, Button, Divider, Paper, Typography } from "@mui/material";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
@@ -15,7 +16,7 @@ import DueRemindersSettingsCard from "../components/DueRemindersSettingsCard";
 import FinancialHoldSettingsCard from "../components/FinancialHoldSettingsCard";
 import DunningSettingsCard from "../components/DunningSettingsCard";
 import { useAppTheme } from "../contexts/AppThemeContext";
-const colors=[["Azul CompletoDonto","#1565C0"],["Azul Safira","#0B5FFF"],["Ciano Digital","#0891B2"],["Turquesa","#0F766E"],["Verde Clínica","#2E7D32"],["Esmeralda","#059669"],["Roxo Premium","#7B1FA2"],["Violeta","#6D28D9"],["Índigo","#4338CA"],["Magenta","#C026D3"],["Rosa","#DB2777"],["Vermelho","#C62828"],["Coral","#EA580C"],["Laranja Comercial","#EF6C00"],["Âmbar","#D97706"],["Dourado","#9A6700"],["Grafite","#334155"],["Preto Premium","#111827"]];
+const colors=[[EDU_ONLY?"Azul EduMaster":"Azul DentalPos","#1565C0"],["Azul Safira","#0B5FFF"],["Ciano Digital","#0891B2"],["Turquesa","#0F766E"],["Verde Clínica","#2E7D32"],["Esmeralda","#059669"],["Roxo Premium","#7B1FA2"],["Violeta","#6D28D9"],["Índigo","#4338CA"],["Magenta","#C026D3"],["Rosa","#DB2777"],["Vermelho","#C62828"],["Coral","#EA580C"],["Laranja Comercial","#EF6C00"],["Âmbar","#D97706"],["Dourado","#9A6700"],["Grafite","#334155"],["Preto Premium","#111827"]];
 export default function Settings(){
  const {mode,primaryColor,toggleMode,setPrimaryColor}=useAppTheme();
  const navigate=useNavigate();

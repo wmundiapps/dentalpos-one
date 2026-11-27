@@ -2,7 +2,7 @@ import { createTheme } from "@mui/material/styles";
 import type { PaletteMode } from "@mui/material";
 export function createAppTheme(mode:PaletteMode,primaryColor:string){
  return createTheme({
-  palette:{mode,primary:{main:primaryColor},secondary:{main:"#00ACC1"},background:{default:mode==="light"?"#F3F6FB":"#08111F",paper:mode==="light"?"#FFFFFF":"#111C2D"}},
+  palette:{mode,primary:{main:primaryColor},secondary:{main:"#EC6236"},error:{main:"#A32D3B"},background:{default:mode==="light"?"#F3F6FB":"#08111F",paper:mode==="light"?"#FFFFFF":"#111C2D"}},
   shape:{borderRadius:14},
   typography:{fontFamily:'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',h4:{fontWeight:800},h5:{fontWeight:800},h6:{fontWeight:800}},
   components:{

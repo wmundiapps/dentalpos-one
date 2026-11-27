@@ -13,6 +13,7 @@ export interface PlatformFeedback {
   title: string;
   description: string;
   module?: string | null;
+  departamento?: string | null;
   pagePath?: string | null;
   priority: string;
   status: string;
@@ -26,6 +27,7 @@ export interface PlatformFeedbackInput {
   title: string;
   description: string;
   module?: string;
+  departamento?: string;
   pagePath?: string;
   rating?: number;
 }

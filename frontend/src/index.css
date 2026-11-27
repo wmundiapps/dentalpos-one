@@ -55,7 +55,7 @@
   width: 100%;
   max-width: 100%;
   margin: 0;
-  text-align: center;
+  text-align: left;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -108,6 +108,16 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+/* Celular: cartões dentro de grades não podem alargar a página (min-width automático de itens de grid). */
+@media (max-width: 600px) {
+  main .MuiBox-root > .MuiPaper-root,
+  main .MuiBox-root > .MuiAlert-root,
+  main .MuiBox-root > .MuiBox-root { min-width: 0; }
+  main .MuiTextField-root { max-width: 100%; }
+  main table.MuiTable-root { display: block; max-width: 100%; overflow-x: auto; }
+  main .MuiPaper-root { min-width: 0; max-width: 100%; }
 }
 
 /* Acessibilidade (barra em components/AccessibilityTools.tsx): só age quando a pessoa liga uma opção. */

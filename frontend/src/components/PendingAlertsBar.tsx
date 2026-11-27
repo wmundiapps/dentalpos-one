@@ -4,6 +4,7 @@ import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import RiskPolicyDialog, { RISK_YELLOW } from "./RiskPolicyDialog";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { authorizeUnplannedNotice, confirmUnplannedExisting, loadPendingAlerts, PENDING_ALERTS_EVENT, type PendingAlerts } from "../services/PendingAlertsApi";
+import { readSessionUser } from "../services/DemoAccess";
 
 export default function PendingAlertsBar() {
   const [data, setData] = useState<PendingAlerts | null>(null);
@@ -14,6 +15,8 @@ export default function PendingAlertsBar() {
 
   const load = useCallback(async () => {
     if (!localStorage.getItem("dentalpos.token")) return;
+    // Alunos não têm alertas de gestão: evita um 403 a cada minuto.
+    if (String(readSessionUser()?.role || "").toUpperCase() === "STUDENT" || String(readSessionUser()?.role || "").toUpperCase() === "TEACHER" || String(readSessionUser()?.role || "").toUpperCase() === "CLIENTE_CONTABIL") return;
     try { setData(await loadPendingAlerts()); } catch { /* o aviso nunca atrapalha o uso do sistema */ }
   }, []);
 

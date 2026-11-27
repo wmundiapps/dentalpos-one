@@ -1,3 +1,4 @@
+import { APP_NAME } from "./config/appMode";
 import { useEffect, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, Typography } from "@mui/material";
 import Layout from "./components/Layout";
@@ -9,6 +10,13 @@ import ProfessionalFinder from "./pages/ProfessionalFinder";
 import TalkToUs from "./pages/TalkToUs";
 import Privacy from "./pages/Privacy";
 import PasswordReset from "./pages/PasswordReset";
+import CookieBanner from "./lgpd/CookieBanner";
+import PoliticaPrivacidade from "./lgpd/PoliticaPrivacidade";
+import TermosDeUso from "./lgpd/TermosDeUso";
+import PortalTitular from "./lgpd/PortalTitular";
+import RastreioPublico from "./pages/edu/RastreioPublico";
+import SitePublico from "./pages/public/SitePublico";
+import Descadastro from "./pages/public/Descadastro";
 import EmployeePortal from "./pages/EmployeePortal";
 import PoloPunch from "./pages/PoloPunch";
 import PatientSurveyPublic from "./pages/PatientSurveyPublic";
@@ -21,7 +29,14 @@ import {
   writeSessionUser,
 } from "./services/DemoAccess";
 
+import Apresentacao from "./edu/apresentacao/Apresentacao";
+import { EDU_ONLY } from "./config/appMode";
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+const PUBLIC_LGPD = ["/privacidade", "/termos", "/portal-titular", "/rastreio"];
+// Marketing: site institucional/landing pages e descadastro em 1 clique (sem login).
+const isPublicMkt = (p: string) => p.startsWith("/site/") || p.startsWith("/descadastro/");
 
 type SessionState = "checking" | "valid" | "invalid" | "unavailable" | "expired";
 
@@ -38,7 +53,7 @@ function clearSession() {
   clearClientSession();
 }
 
-export default function App() {
+function AppShell() {
   const appPath = currentAppPath().replace(/\/$/, "") || "/";
   const [session, setSession] = useState<SessionState>(() =>
     localStorage.getItem("dentalpos.token") ? "checking" : "invalid",
@@ -93,7 +108,21 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/cadastro" && appPath !== "/profissionais" && appPath !== "/falar" && appPath !== "/privacidade" && appPath !== "/redefinir-senha" && appPath !== "/colaborador" && !appPath.startsWith("/ponto/") && !appPath.startsWith("/avaliar/")) void validateSession();
+    if (
+      appPath !== "/agendamento-online" &&
+      appPath !== "/demo" &&
+      appPath !== "/experience" &&
+      appPath !== "/cadastro" &&
+      appPath !== "/profissionais" &&
+      appPath !== "/falar" &&
+      appPath !== "/privacidade" &&
+      appPath !== "/redefinir-senha" &&
+      appPath !== "/colaborador" &&
+      !appPath.startsWith("/ponto/") &&
+      !appPath.startsWith("/avaliar/") &&
+      !PUBLIC_LGPD.includes(appPath) &&
+      !isPublicMkt(appPath)
+    ) void validateSession();
   }, [appPath]);
 
   if (appPath.startsWith("/avaliar/")) {
@@ -132,6 +161,18 @@ export default function App() {
     return <PasswordReset />;
   }
 
+  // Apresentação pública do EduMaster (modo EduMaster): sem login.
+  if (EDU_ONLY && appPath === "/apresentacao") return <Apresentacao />;
+
+  // Páginas públicas de privacidade (LGPD): sem login.
+  // Rastreio público de protocolos (Central de Atendimento): sem login.
+  if (appPath === "/rastreio") return <RastreioPublico />;
+  if (appPath === "/privacidade") return <PoliticaPrivacidade />;
+  if (appPath === "/termos") return <TermosDeUso />;
+  if (appPath === "/portal-titular") return <PortalTitular />;
+  if (appPath.startsWith("/site/")) return <SitePublico />;
+  if (appPath.startsWith("/descadastro/")) return <Descadastro />;
+
   if (session === "invalid") return <Login />;
 
   if (session === "checking") {
@@ -166,7 +207,7 @@ export default function App() {
             Pacientes, agenda e histórico não são apagados automaticamente pelo vencimento do EXPERIENCE.
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Para reativar o acesso e continuar utilizando o CompletoDonto, solicite uma proposta comercial.
+            Para reativar o acesso e continuar utilizando o {APP_NAME}, solicite uma proposta comercial.
           </Typography>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
             <Button
@@ -196,7 +237,7 @@ export default function App() {
     return (
       <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center", p: 2 }}>
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 4, width: "min(520px,100%)" }}>
-          <Alert severity="warning" sx={{ mb: 2 }}>A API do CompletoDonto não respondeu. Nenhum dado foi alterado.</Alert>
+          <Alert severity="warning" sx={{ mb: 2 }}>A API do {APP_NAME} não respondeu. Nenhum dado foi alterado.</Alert>
           <Typography variant="h6" sx={{ fontWeight: 900 }}>Ambiente indisponível</Typography>
           <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
             Verifique o backend e tente novamente. Em homologação pública, esta tela evita operar com uma sessão não validada.
@@ -222,5 +263,15 @@ export default function App() {
     <Layout>
       <AppRoutes />
     </Layout>
+  );
+}
+
+/** Aviso de cookies (LGPD) em todas as telas: nada pré-marcado; cookies opcionais só com escolha do visitante. */
+export default function App() {
+  return (
+    <>
+      <AppShell />
+      <CookieBanner />
+    </>
   );
 }

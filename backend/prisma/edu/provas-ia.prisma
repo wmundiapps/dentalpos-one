@@ -1,0 +1,30 @@
+// ============================================================
+// EDUMASTER PRO — PROVAS COM CORREÇÃO POR IA
+// Extensão do schema.prisma (depois de academico, financeiro, conteudo).
+// Usa Assessment, Question, AssessmentAttempt, AnswerSubmission que já
+// existem em schema-academico.prisma — aqui só adicionamos o que faltava
+// para a correção por IA funcionar de verdade: rubrica de correção e
+// log de geração de questões por IA a partir do conteúdo.
+// ============================================================
+
+model GradingRubric {
+  id              String   @id @default(uuid())
+  questionId      String   @unique   // 1 rubrica por questão dissertativa
+  criterios       String        // texto livre: o que a IA deve considerar pontos/erros
+  notaMaxima      Float    @default(10)
+
+  @@index([questionId])
+}
+
+model AIGenerationLog {
+  id              String   @id @default(uuid())
+  tenantId        String
+  contentItemId   String?       // conteúdo usado como base, quando aplicável
+  assessmentId    String?
+  prompt          String
+  respostaBruta   String        // resposta crua da IA, para auditoria
+  criadoEm        DateTime @default(now())
+  criadoPorUserId String
+
+  @@index([tenantId])
+}

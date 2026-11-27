@@ -1,0 +1,245 @@
+// ============================================================
+// EDUMASTER PRO — NOTAS (diário de classe, boletim, histórico, revisão)
+// Prefixo Nt. Referências a outros módulos = String sem @relation.
+// ============================================================
+
+enum NtEscopoRegra {
+  TENANT
+  CURSO
+  TURMA
+}
+
+enum NtRegraMedia {
+  ARITMETICA
+  PONDERADA
+}
+
+enum NtRegraRecuperacao {
+  NENHUMA
+  SUBSTITUI_MENOR      // nota da recuperação substitui a menor nota de componente (se maior)
+  SUBSTITUI_MEDIA      // substitui a média parcial (se maior)
+  MEDIA_COM_PARCIAL    // (parcial*pesoParcial + rec*pesoExame)
+}
+
+enum NtRegraExame {
+  NENHUM
+  MEDIA_PONDERADA      // parcial*pesoParcial + exame*pesoExame
+  SUBSTITUI            // exame substitui a média parcial
+}
+
+enum NtTipoComponente {
+  AVALIACAO
+  RECUPERACAO
+  EXAME
+}
+
+enum NtStatusDiario {
+  ABERTO
+  FECHADO
+}
+
+enum NtOrigemNota {
+  MANUAL
+  IMPORTACAO
+  PROVA
+  CORRECAO
+  REVISAO
+}
+
+enum NtSituacao {
+  EM_CURSO
+  APROVADO
+  REPROVADO_NOTA
+  REPROVADO_FREQ
+  RECUPERACAO
+  EXAME
+}
+
+enum NtStatusRevisao {
+  SOLICITADA
+  PARECER_EMITIDO
+  DEFERIDA
+  INDEFERIDA
+  CANCELADA
+}
+
+// Regra de avaliação configurável por tenant, curso ou turma.
+// componentes = modelo [{codigo,nome,peso,notaMaxima,tipo,obrigatorio}] aplicável às turmas.
+model NtRegraAvaliacao {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  nome                  String
+  escopo                NtEscopoRegra @default(TENANT)
+  programId             String?
+  classSectionId        String?
+  padrao                Boolean  @default(false)
+  regraMedia            NtRegraMedia @default(PONDERADA)
+  notaMaxima            Float    @default(10)
+  mediaAprovacao        Float    @default(7)
+  mediaMinimaRecuperacao Float   @default(4)   // abaixo disso reprova direto (sem rec/exame)
+  recuperacao           NtRegraRecuperacao @default(SUBSTITUI_MENOR)
+  exame                 NtRegraExame @default(MEDIA_PONDERADA)
+  pesoParcial           Float    @default(0.6)
+  pesoExame             Float    @default(0.4)
+  mediaAprovacaoExame   Float    @default(5)
+  frequenciaMinima      Float    @default(75)
+  abonaJustificadas     Boolean  @default(true)
+  arredondamento        String   @default("UM_DECIMAL")   // NENHUM | UM_DECIMAL | MEIO_PONTO | INTEIRO
+  diasRevisao           Int      @default(7)     // prazo p/ aluno pedir revisão após fechamento
+  componentes           Json?
+  ativo                 Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([tenantId, escopo])
+  @@index([tenantId, programId])
+  @@index([tenantId, classSectionId])
+}
+
+// Componente de avaliação de uma turma (P1, P2, Trabalho, Recuperação, Exame...).
+model NtComponente {
+  id              String   @id @default(uuid())
+  tenantId        String
+  classSectionId  String
+  codigo          String
+  nome            String
+  tipo            NtTipoComponente @default(AVALIACAO)
+  peso            Float    @default(1)
+  notaMaxima      Float    @default(10)
+  obrigatorio     Boolean  @default(true)
+  dataPrevista    DateTime?
+  assessmentId    String?          // prova do módulo provas-ia vinculada
+  ordem           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  lancamentos     NtLancamento[]
+
+  @@unique([classSectionId, codigo])
+  @@index([tenantId, classSectionId])
+}
+
+model NtLancamento {
+  id              String   @id @default(uuid())
+  tenantId        String
+  classSectionId  String
+  componenteId    String
+  studentId       String
+  valor           Float?
+  ausente         Boolean  @default(false)   // faltou à avaliação (conta zero se componente obrigatório)
+  observacao      String?
+  origem          NtOrigemNota @default(MANUAL)
+  attemptId       String?
+  lancadoPorId    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  componente      NtComponente @relation(fields: [componenteId], references: [id], onDelete: Cascade)
+  historico       NtLancamentoHistorico[]
+
+  @@unique([componenteId, studentId])
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, studentId])
+}
+
+// Trilha de auditoria de TODA alteração de nota.
+model NtLancamentoHistorico {
+  id              String   @id @default(uuid())
+  tenantId        String
+  lancamentoId    String
+  classSectionId  String
+  studentId       String
+  componenteId    String
+  valorAnterior   Float?
+  valorNovo       Float?
+  ausenteAnterior Boolean?
+  ausenteNovo     Boolean?
+  origem          NtOrigemNota
+  motivo          String?
+  usuarioId       String?
+  createdAt       DateTime @default(now())
+
+  lancamento      NtLancamento @relation(fields: [lancamentoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, lancamentoId])
+  @@index([tenantId, classSectionId])
+}
+
+// Diário da turma: estado (aberto/fechado), regra congelada e prazo de lançamento.
+model NtDiario {
+  id              String   @id @default(uuid())
+  tenantId        String
+  classSectionId  String
+  status          NtStatusDiario @default(ABERTO)
+  regraId         String?
+  regraSnapshot   Json?          // regra vigente congelada no fechamento
+  prazoLancamento DateTime?
+  fechadoEm       DateTime?
+  fechadoPorId    String?
+  fechamentoObs   String?
+  reabertoEm      DateTime?
+  reabertoPorId   String?
+  reaberturaMotivo String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([classSectionId])
+  @@index([tenantId, status])
+}
+
+// Resultado consolidado do aluno na turma (cache recalculável).
+model NtResultado {
+  id              String   @id @default(uuid())
+  tenantId        String
+  classSectionId  String
+  studentId       String
+  enrollmentId    String?
+  disciplineId    String?
+  termId          String?
+  mediaParcial    Float?
+  notaRecuperacao Float?
+  notaExame       Float?
+  mediaFinal      Float?
+  frequenciaPct   Float?
+  aulasTotal      Int      @default(0)
+  faltas          Int      @default(0)
+  situacao        NtSituacao @default(EM_CURSO)
+  pendencias      Int      @default(0)
+  encerrado       Boolean  @default(false)
+  calculadoEm     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([classSectionId, studentId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, termId])
+  @@index([tenantId, situacao])
+}
+
+// Pedido de revisão de nota: aluno -> parecer do professor -> decisão da coordenação.
+model NtRevisao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  studentId       String
+  classSectionId  String
+  componenteId    String
+  lancamentoId    String?
+  notaOriginal    Float?
+  justificativa   String
+  status          NtStatusRevisao @default(SOLICITADA)
+  parecer         String?
+  parecerNotaSugerida Float?
+  parecerPorId    String?
+  parecerEm       DateTime?
+  decisao         String?
+  notaNova        Float?
+  decididoPorId   String?
+  decididoEm      DateTime?
+  prazoParecer    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, classSectionId])
+}

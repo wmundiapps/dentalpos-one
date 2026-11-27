@@ -1,0 +1,383 @@
+// ============================================================
+// EDUMASTER PRO — REITORIA, parte 2 (prefixo Rei)
+// Agenda executiva, monitor do DOU, acordos e convênios, investimentos por
+// disciplina, resumos de avaliação de pessoas e comparativo com outras IES.
+// Sem @relation para módulos de outros agentes (Jurídico, RH): só ids soltos.
+// ============================================================
+
+// ---------------- AGENDA EXECUTIVA ----------------
+
+enum ReiTipoCompromisso {
+  COMPROMISSO
+  REUNIAO
+  AUDIENCIA
+  PRAZO_REGULATORIO
+  PRAZO_JURIDICO
+  EFEMERIDE
+  ANIVERSARIO
+  VIAGEM
+  OUTRO
+}
+
+enum ReiStatusCompromisso {
+  AGENDADO
+  CONFIRMADO
+  REALIZADO
+  CANCELADO
+  ADIADO
+}
+
+enum ReiPrioridade {
+  BAIXA
+  NORMAL
+  ALTA
+  CRITICA
+}
+
+enum ReiRespostaConvite {
+  PENDENTE
+  ACEITO
+  RECUSADO
+  TALVEZ
+}
+
+model ReiCompromisso {
+  id               String   @id @default(uuid())
+  tenantId         String
+  tipo             ReiTipoCompromisso @default(COMPROMISSO)
+  titulo           String
+  descricao        String?
+  local            String?
+  linkVideo        String?
+  inicio           DateTime
+  fim              DateTime
+  diaInteiro       Boolean  @default(false)
+  status           ReiStatusCompromisso @default(AGENDADO)
+  prioridade       ReiPrioridade @default(NORMAL)
+  privado          Boolean  @default(false)
+  organizadorUserId String?
+  organizadorNome  String?
+  recorrencia      String   @default("NENHUMA")   // NENHUMA | SEMANAL | MENSAL | ANUAL
+  recorrenciaAte   DateTime?
+  lembretesMin     Int[]    @default([])          // minutos de antecedência (ex.: 60, 1440)
+  pauta            Json?                          // [{titulo, responsavel, minutos}]
+  ata              String?
+  ataRegistradaEm  DateTime?
+  ataAprovadaEm    DateTime?
+  decisoes         Json?                          // [{texto, responsavel, prazo}]
+  origemKey        String?                        // geração automática (idempotência)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  convites         ReiConvite[]
+
+  @@unique([tenantId, origemKey])
+  @@index([tenantId, inicio])
+  @@index([tenantId, tipo, inicio])
+}
+
+model ReiConvite {
+  id             String   @id @default(uuid())
+  tenantId       String
+  compromissoId  String
+  userId         String?
+  nome           String
+  email          String?
+  papel          String   @default("PARTICIPANTE")   // PARTICIPANTE | PRESIDENTE | SECRETARIO | OBSERVADOR
+  resposta       ReiRespostaConvite @default(PENDENTE)
+  respondidoEm   DateTime?
+  justificativa  String?
+  presente       Boolean?
+  createdAt      DateTime @default(now())
+
+  compromisso    ReiCompromisso @relation(fields: [compromissoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, compromissoId])
+  @@index([tenantId, userId])
+}
+
+// ---------------- MONITOR DO DIÁRIO OFICIAL DA UNIÃO ----------------
+
+enum ReiRelevanciaDou {
+  ALTA
+  MEDIA
+  BAIXA
+  NENHUMA
+}
+
+enum ReiStatusDou {
+  NOVA
+  EM_ANALISE
+  EM_TRATAMENTO
+  CONCLUIDA
+  DESCARTADA
+}
+
+// Palavras-chave configuráveis da instituição (nome, CNPJ, código e-MEC, cursos...)
+model ReiDouPalavra {
+  id        String   @id @default(uuid())
+  tenantId  String
+  termo     String
+  tipo      String   @default("OUTRO")   // INSTITUICAO | CNPJ | EMEC | CURSO | ORGAO | OUTRO
+  peso      Int      @default(5)         // 1..10 (soma para o score)
+  programId String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, termo])
+  @@index([tenantId, ativo])
+}
+
+// Provedor/fonte de coleta (INLABS XML, RSS ou colagem manual)
+model ReiDouFonte {
+  id               String   @id @default(uuid())
+  tenantId         String
+  nome             String
+  tipo             String   @default("INLABS_XML")   // INLABS_XML | RSS | MANUAL
+  url              String?
+  ativo            Boolean  @default(true)
+  ultimaColetaEm   DateTime?
+  ultimaColetaStatus String?
+  ultimaColetaQtd  Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId, ativo])
+}
+
+model ReiDouColeta {
+  id         String   @id @default(uuid())
+  tenantId   String
+  fonteId    String?
+  modo       String                       // XML | RSS | TEXTO | URL | JSON
+  total      Int      @default(0)         // itens lidos
+  novas      Int      @default(0)         // gravadas como relevantes
+  duplicadas Int      @default(0)
+  descartadas Int     @default(0)         // sem relevância para a instituição
+  erro       String?
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+model ReiDouPublicacao {
+  id               String   @id @default(uuid())
+  tenantId         String
+  identificador    String                      // hash de dedupe
+  dataPublicacao   DateTime
+  secao            Int?
+  pagina           String?
+  orgao            String?                     // MEC | INEP | CNE | SERES | CAPES | OUTRO
+  orgaoRaw         String?
+  tipoAto          String   @default("OUTRO")  // PORTARIA | RESOLUCAO | DESPACHO | PARECER | EDITAL | OUTRO
+  numero           String?
+  titulo           String
+  ementa           String?
+  texto            String?
+  url              String?
+  fonte            String   @default("MANUAL") // MANUAL | XML | RSS | TEXTO | URL
+  relevancia       ReiRelevanciaDou @default(NENHUMA)
+  score            Int      @default(0)
+  tema             String   @default("OUTRO")
+  palavrasEncontradas String[] @default([])
+  prazoAcaoEm      DateTime?
+  responsavelUserId String?
+  responsavelNome  String?
+  status           ReiStatusDou @default(NOVA)
+  regAtoId         String?                     // vínculo com RegAto (sem @relation)
+  observacoes      String?
+  tratadaEm        DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, identificador])
+  @@index([tenantId, status, relevancia])
+  @@index([tenantId, dataPublicacao])
+  @@index([tenantId, prazoAcaoEm])
+}
+
+// ---------------- ACORDOS E CONVÊNIOS ----------------
+
+enum ReiTipoConvenio {
+  CONVENIO
+  ACORDO_COOPERACAO
+  TERMO_PARCERIA
+  CONTRATO
+  ESTAGIO
+  INTERNACIONAL
+  OUTRO
+}
+
+enum ReiStatusConvenio {
+  RASCUNHO
+  EM_NEGOCIACAO
+  VIGENTE
+  SUSPENSO
+  ENCERRADO
+  RESCINDIDO
+}
+
+model ReiConvenio {
+  id               String   @id @default(uuid())
+  tenantId         String
+  numero           String
+  tipo             ReiTipoConvenio @default(CONVENIO)
+  titulo           String
+  objeto           String?
+  parteNome        String
+  parteCnpj        String?
+  parteTipo        String   @default("EMPRESA")    // EMPRESA | IES | ORGAO_PUBLICO | ONG | OUTRO
+  abrangencia      String   @default("NACIONAL")   // NACIONAL | INTERNACIONAL
+  pais             String?
+  area             String?                          // ex.: estágio, pesquisa, mobilidade
+  programId        String?
+  responsavelUserId String?
+  responsavelNome  String?
+  assinadoEm       DateTime?
+  inicio           DateTime
+  fim              DateTime?
+  vigenciaIndeterminada Boolean @default(false)
+  renovacaoAutomatica Boolean @default(false)
+  avisoDias        Int[]    @default([90, 60, 30])
+  valor            Float?
+  status           ReiStatusConvenio @default(VIGENTE)
+  juridicoRef      String?                          // id no módulo Jurídico (sem @relation)
+  apoEmpresaId     String?                          // vínculo com ApoEmpresa (estágio)
+  anexos           Json?
+  observacoes      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  eventos          ReiConvenioEvento[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status, fim])
+}
+
+model ReiConvenioEvento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  convenioId  String
+  tipo        String   @default("NOTA")   // ADITIVO | RENOVACAO | ALTERACAO | RESCISAO | NOTA
+  descricao   String
+  novoFim     DateTime?
+  valor       Float?
+  data        DateTime @default(now())
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  convenio    ReiConvenio @relation(fields: [convenioId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, convenioId])
+}
+
+// ---------------- INVESTIMENTOS (melhorias/equipamentos) POR DISCIPLINA ----------------
+
+model ReiInvestimento {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tipo         String   @default("MELHORIA")    // MELHORIA | EQUIPAMENTO | REFORMA | SOFTWARE | ACERVO | OUTRO
+  titulo       String
+  descricao    String?
+  valor        Float    @default(0)
+  data         DateTime @default(now())
+  status       String   @default("PLANEJADO")    // PLANEJADO | EM_EXECUCAO | CONCLUIDO | CANCELADO
+  programId    String?
+  infProjetoId String?                           // InfProjeto (sem relation)
+  infBemId     String?                           // InfBem (sem relation)
+  observacoes  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  disciplinas  ReiInvestimentoDisciplina[]
+
+  @@index([tenantId, data])
+  @@index([tenantId, tipo, status])
+  @@unique([tenantId, infProjetoId])
+  @@unique([tenantId, infBemId])
+}
+
+model ReiInvestimentoDisciplina {
+  id             String   @id @default(uuid())
+  tenantId       String
+  investimentoId String
+  disciplineId   String                            // Discipline (sem relation)
+  percentual     Float    @default(100)            // rateio do valor (0..100)
+  createdAt      DateTime @default(now())
+
+  investimento   ReiInvestimento @relation(fields: [investimentoId], references: [id], onDelete: Cascade)
+
+  @@unique([investimentoId, disciplineId])
+  @@index([tenantId, disciplineId])
+}
+
+// ---------------- AVALIAÇÃO DE PESSOAS (resumos agregados; sem dado individual) ----------------
+
+model ReiAvaliacaoPessoalResumo {
+  id            String   @id @default(uuid())
+  tenantId      String
+  ciclo         String
+  setor         String
+  grupo         String   @default("ADMINISTRATIVO")   // ADMINISTRATIVO | DOCENTE | COORDENACAO | APOIO | OUTRO
+  avaliados     Int      @default(0)
+  concluidas    Int      @default(0)
+  notaMedia     Float?
+  escalaMax     Int      @default(5)
+  distribuicao  Json?                                  // {"1":0,"2":1,...}
+  pontosFortes  String[] @default([])
+  pontosAtencao String[] @default([])
+  fonte         String   @default("MANUAL")            // MANUAL | RH
+  origemRef     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, ciclo, setor, grupo])
+  @@index([tenantId, ciclo])
+}
+
+// ---------------- COMPARATIVO COM OUTRAS IES ----------------
+
+model ReiIes {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tipo        String   @default("CONCORRENTE")   // PROPRIA | CONCORRENTE | REFERENCIA
+  nome        String
+  sigla       String?
+  cnpj        String?
+  codigoEmec  String?
+  uf          String?
+  municipio   String?
+  categoria   String?                              // PRIVADA_COM_FINS | PRIVADA_SEM_FINS | PUBLICA_FEDERAL | ...
+  organizacao String?                              // UNIVERSIDADE | CENTRO_UNIVERSITARIO | FACULDADE | IF
+  site        String?
+  ativo       Boolean  @default(true)
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  indicadores ReiIesIndicador[]
+
+  @@unique([tenantId, codigoEmec])
+  @@unique([tenantId, cnpj])
+  @@index([tenantId, tipo])
+}
+
+model ReiIesIndicador {
+  id         String   @id @default(uuid())
+  tenantId   String
+  iesId      String
+  ano        Int
+  indicador  String                              // CPC | CC | IGC | ENADE | IDD | MENSALIDADE | NUM_CURSOS | NUM_ALUNOS | NUM_DOCENTES | PCT_DOUTORES | INGRESSANTES | CONCLUINTES
+  cursoNome  String   @default("")               // vazio = institucional
+  valor      Float
+  fonte      String   @default("MANUAL")         // MANUAL | INEP_CSV | EMEC
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ies        ReiIes @relation(fields: [iesId], references: [id], onDelete: Cascade)
+
+  @@unique([iesId, ano, indicador, cursoNome])
+  @@index([tenantId, indicador, ano])
+}

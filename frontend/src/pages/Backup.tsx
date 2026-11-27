@@ -9,7 +9,7 @@ export default function Backup() {
     <Box>
       <PageHeader
         title="Backup e Recuperação"
-        description="Política de cópia, retenção e teste de restauração do CompletoDonto."
+        description="Política de cópia, retenção e teste de restauração do sistema."
       />
 
       <Alert severity="warning" sx={{ mb: 3 }}>

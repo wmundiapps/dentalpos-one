@@ -1,0 +1,202 @@
+[
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Campos de prática · Estágios",
+  "rota": "/edu/campos-pratica?secao=estagios",
+  "titulo_chamada": "Estágios sob controle, do convênio ao relatório final",
+  "descricao": "Cadastre concedentes, convênios com vigência e vagas por curso. Ao abrir um estágio, o sistema confere sozinho se a matrícula está ativa, se existe vaga livre, se o convênio cobre todo o período e se a jornada respeita a Lei 11.788/2008 (6 h por dia e 30 h por semana). Termo de compromisso, plano de atividades e seguro seguem um checklist documental, e o estágio só começa quando tudo está em dia.\n\nO aluno lança as horas, o orientador valida, o relatório parcial e o final seguem fluxo próprio e as avaliações do orientador, do supervisor de campo e a autoavaliação fecham a nota. O painel por curso mostra vagas, andamento e progresso de horas, e os alertas avisam antes de um convênio ou seguro vencer, sem ninguém precisar lembrar.",
+  "funcionalidades": [
+   "Concedentes, convênios com vigência e vagas por curso",
+   "Validações automáticas da Lei 11.788/2008",
+   "Checklist documental: termo, plano de atividades e seguro",
+   "Horas lançadas pelo aluno e validadas pelo orientador",
+   "Relatórios parcial e final e avaliações de orientador, supervisor e autoavaliação",
+   "Painel por curso e alertas de vencimento"
+  ],
+  "automacoes": [
+   "Bloqueio de estágio sem vaga, sem convênio vigente ou acima da jornada legal",
+   "Alertas de convênio e seguro a vencer e de horas sem validação",
+   "Cálculo da nota final a partir das avaliações"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Lei 11.788/2008 (Lei do Estágio)"
+  ],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/campos-pratica?secao=estagios",
+    "legenda": "Estágios"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Campos de prática · Convênios e campos",
+  "rota": "/edu/campos-pratica?secao=convenios",
+  "titulo_chamada": "Convênios e campos de estágio sempre vigentes",
+  "descricao": "Reúna em uma tela todas as empresas e instituições concedentes, a situação de cada convênio (vigente, vencendo ou vencido) e as vagas disponíveis por curso. A secretaria enxerga de relance onde ainda há vaga e o que precisa ser renovado.",
+  "funcionalidades": [
+   "Situação dos convênios: vigente, vencendo, vencido",
+   "Campos de estágio e vagas por curso",
+   "Disponibilidade de vagas em tempo real"
+  ],
+  "automacoes": [
+   "Aviso antecipado de vencimento de convênio"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Lei 11.788/2008"
+  ],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/campos-pratica?secao=convenios",
+    "legenda": "Convênios"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Campos de prática · Clínicas-escola e agendas",
+  "rota": "/edu/campos-pratica?secao=clinicas",
+  "titulo_chamada": "Agendas de clínicas-escola com supervisão garantida",
+  "descricao": "Psicologia, biomedicina, fonoaudiologia, medicina veterinária, odontologia e medicina ganham agenda própria, com consultórios, escalas de supervisor e alunos. O aluno só atende quando há supervisor escalado no mesmo horário e o sistema impede conflitos de sala, supervisor, aluno e paciente.\n\nO paciente recebe lembrete da consulta, o supervisor revisa e finaliza o registro, e os relatórios por curso mostram atendimentos, faltas e tempo médio de espera. Como dado de saúde é sensível, CPF, contato e resumo do atendimento ficam cifrados, com níveis de confidencialidade e registro de todo acesso, em linha com a LGPD.",
+  "funcionalidades": [
+   "Unidades e consultórios por curso",
+   "Escalas de supervisor com alunos",
+   "Agenda com bloqueio de conflitos",
+   "Fila de espera, confirmação, falta e remarcação",
+   "Registro do atendimento com revisão do supervisor",
+   "Relatórios por curso, com exportação"
+  ],
+  "automacoes": [
+   "Lembretes de consulta para paciente, aluno e supervisor",
+   "Bloqueio de atendimento sem supervisor escalado",
+   "Cancelamento automático de agendas ao revogar consentimento"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018), art. 11 (dados de saúde) e art. 14 (menores)"
+  ],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/campos-pratica?secao=clinicas",
+    "legenda": "Clínicas-escola"
+   },
+   {
+    "rota": "/edu/campos-pratica?secao=agenda",
+    "legenda": "Agenda"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Campos de prática · Pacientes e tutores",
+  "rota": "/edu/campos-pratica?secao=pacientes",
+  "titulo_chamada": "Cadastro de pacientes com consentimento e proteção reforçada",
+  "descricao": "O cadastro exige consentimento com finalidade, exige responsável para menores, registra a base legal e permite anonimização. Os dados pessoais ficam cifrados e cada leitura é registrada na trilha de acesso, dando segurança jurídica à clínica-escola.",
+  "funcionalidades": [
+   "Consentimento versionado e revogável",
+   "Responsável obrigatório para menores",
+   "Anonimização a pedido do titular",
+   "Dados cifrados e log de acesso"
+  ],
+  "automacoes": [
+   "Cancelamento de atendimentos futuros ao revogar consentimento"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD, arts. 11, 14 e 18"
+  ],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/campos-pratica?secao=pacientes",
+    "legenda": "Pacientes"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Campos de prática · Agronomia e controle de culturas",
+  "rota": "/edu/campos-pratica?secao=agro",
+  "titulo_chamada": "Do talhão à colheita: o núcleo de agronomia na palma da mão",
+  "descricao": "Cadastre áreas, talhões e culturas com janela de plantio e cultivares. Cada ciclo reúne safra, talhão, cultura e a turma da aula prática, e o aluno registra atividades de campo (preparo, adubação, plantio, defensivos, irrigação, colheita) e monitoramento de pragas, doenças e daninhas com foto.\n\nO sistema calcula custo por hectare e por quilo, produtividade por talhão e safra, controla o período de carência de defensivos e avisa plantio atrasado, colheita próxima e infestação alta. É a aula prática de agronomia com controle de verdade.",
+  "funcionalidades": [
+   "Áreas, talhões, culturas, cultivares e janela de plantio",
+   "Ciclos por safra ligados à turma e disciplina",
+   "Atividades de campo com insumo e custo",
+   "Monitoramento de pragas e doenças com foto",
+   "Produtividade e custo por talhão, safra e cultura",
+   "Calendário agrícola"
+  ],
+  "automacoes": [
+   "Alertas de plantio, colheita, carência e infestação",
+   "Cálculo automático de custos e produtividade"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Boas práticas agrícolas e receituário agronômico (Lei 14.785/2023, defensivos)"
+  ],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/campos-pratica?secao=agro",
+    "legenda": "Agronomia"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Campos de prática · Núcleo animal (pequenos e grandes)",
+  "rota": "/edu/campos-pratica?secao=animal",
+  "titulo_chamada": "Pequenos e grandes animais com prontuário e agenda",
+  "descricao": "Cães, gatos, coelhos e aves de um lado; bovinos, equinos, ovinos, caprinos e suínos do outro. O sistema cadastra tutores, propriedades e animais, controla atendimentos, baias, internações e vacinação, e registra as aulas práticas de medicina veterinária.\n\nCalendários de vacina e alertas evitam esquecimentos, e o aluno só atua sob supervisão, com registro revisado pelo professor.",
+  "funcionalidades": [
+   "Tutores, propriedades e animais por porte",
+   "Atendimentos, baias e internações",
+   "Controle de vacinação com calendário",
+   "Aulas práticas registradas por turma"
+  ],
+  "automacoes": [
+   "Alertas de vacinas e retornos",
+   "Validação de espécie conforme o porte"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Resoluções do CFMV sobre prontuário e responsabilidade técnica"
+  ],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/campos-pratica?secao=animal",
+    "legenda": "Núcleo animal"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Campos de prática · Painel geral",
+  "rota": "/edu/campos-pratica?secao=painel",
+  "titulo_chamada": "Todos os campos de prática em um painel",
+  "descricao": "Estágios, clínicas, agronomia e núcleo animal reunidos em indicadores e alertas, para a coordenação decidir sem abrir várias telas.",
+  "funcionalidades": [
+   "Indicadores por campo de prática",
+   "Alertas consolidados"
+  ],
+  "automacoes": [
+   "Atualização automática dos indicadores"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/campos-pratica?secao=painel",
+    "legenda": "Painel"
+   }
+  ]
+ }
+]

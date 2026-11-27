@@ -15,7 +15,7 @@ async function audit(data: Parameters<typeof writeAudit>[0]) {
   try { await writeAudit(data) } catch (e) { console.error(e) }
 }
 
-async function notifyAdmin(row: { id: string; clinicId: string; type: string; title: string; description: string; priority: string; rating: number | null; userName: string | null; userEmail: string | null; pagePath: string | null; module: string | null }) {
+async function notifyAdmin(row: { id: string; clinicId: string; type: string; title: string; description: string; priority: string; rating: number | null; userName: string | null; userEmail: string | null; pagePath: string | null; module: string | null; departamento?: string | null }) {
   try {
     const apiKey = process.env.RESEND_API_KEY || ''
     if (!apiKey) { console.error('RESEND_API_KEY n\u00e3o configurada \u2014 aviso de feedback n\u00e3o enviado.'); return }
@@ -23,29 +23,30 @@ async function notifyAdmin(row: { id: string; clinicId: string; type: string; ti
     const isEvaluation = row.type === 'Avalia\u00e7\u00e3o'
     const stars = row.rating ? `${'\u2605'.repeat(row.rating)}${'\u2606'.repeat(5 - row.rating)} (${row.rating}/5)` : null
     const content = [
-      isEvaluation ? 'Nova avalia\u00e7\u00e3o do sistema CompletoDonto:' : `Novo relato no CompletoDonto (${row.type}):`,
+      isEvaluation ? 'Nova avalia\u00e7\u00e3o do sistema:' : `Novo relato (${row.type}):`,
       '',
-      `Cl\u00ednica: ${clinic?.name || row.clinicId}`,
-      clinic?.phone ? `Telefone da cl\u00ednica: ${clinic.phone}` : null,
+      `Empresa: ${clinic?.name || row.clinicId}`,
+      clinic?.phone ? `Telefone da empresa: ${clinic.phone}` : null,
       `Usu\u00e1rio: ${row.userName || '-'}${row.userEmail ? ` <${row.userEmail}>` : ''}`,
       `Tipo: ${row.type}`,
       stars ? `Nota: ${stars}` : null,
       !isEvaluation ? `Prioridade: ${row.priority}` : null,
       !isEvaluation ? `T\u00edtulo: ${row.title}` : null,
       row.module ? `M\u00f3dulo: ${row.module}` : null,
+      row.departamento ? `Departamento: ${row.departamento}` : null,
       row.pagePath ? `Tela: ${row.pagePath}` : null,
       '',
       isEvaluation ? 'Sugest\u00e3o:' : 'Descri\u00e7\u00e3o:',
       row.description || '(sem texto)',
       '',
-      'Ver todos: https://app.completodonto.com.br/sugestoes-problemas',
+      'Ver todos: https://app.dentalpos.com.br/sugestoes-problemas',
     ].filter((line): line is string => line !== null).join('\n')
     const subject = isEvaluation
-      ? `Avalia\u00e7\u00e3o ${row.rating}/5 \u2014 ${clinic?.name || 'cl\u00ednica'}`
-      : `${row.type} \u2014 ${row.title} \u2014 ${clinic?.name || 'cl\u00ednica'}`
+      ? `Avalia\u00e7\u00e3o ${row.rating}/5 \u2014 ${clinic?.name || 'empresa'}`
+      : `${row.type} \u2014 ${row.title} \u2014 ${clinic?.name || 'empresa'}`
     await dispatchRevah('EMAIL', ADMIN_EMAIL, content, {
       apiKey,
-      from: 'CompletoDonto <contato@dentalpos.com.br>',
+      from: 'WMundi feedback <contato@dentalpos.com.br>',
       subject,
     })
   } catch (error) {
@@ -74,7 +75,7 @@ export async function create(req: AuthRequest, res: Response) {
     const userName = user ? (`${user.firstName} ${user.lastName}`.trim() || user.email) : email
     const row = await prisma.platformFeedback.create({ data: {
       clinicId, tenantId, userId, userName, userEmail: user?.email || email, type, title: title || 'Avalia\u00e7\u00e3o do sistema', description: description || '', priority, rating,
-      module: txt(b.module, 80) || null, pagePath: txt(b.pagePath, 300) || null, userAgent: txt(req.get('user-agent'), 300) || null,
+      module: txt(b.module, 80) || null, departamento: txt(b.departamento, 80) || null, pagePath: txt(b.pagePath, 300) || null, userAgent: txt(req.get('user-agent'), 300) || null,
     } })
     await audit({ clinicId, tenantId, actorId: userId, module: 'feedback', action: 'PLATFORM_FEEDBACK_CREATE', entityType: 'PlatformFeedback', entityId: row.id, afterData: row, summary: `${type}: ${title}` })
     await notifyAdmin(row)

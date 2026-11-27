@@ -1,0 +1,166 @@
+// ============================================================
+// EDUMASTER PRO — FINANCEIRO / CONTÁBIL / FISCAL
+// Extensão de schema-academico.prisma no mesmo schema.prisma.
+// Referencia Student (do Núcleo Acadêmico) via studentId.
+// Reaproveita o gateway Asaas/Stripe que já existe no DentalPos One:
+// os campos gatewayId/gatewayStatus abaixo são para plugar nesse
+// gateway já implementado, não para reimplementá-lo.
+// ============================================================
+
+model EduCostCenter {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String        // ex: "Coordenação de Farmácia", "Manutenção"
+  descricao   String?
+
+  contasPagar AccountPayable[]
+
+  @@index([tenantId])
+}
+
+model ChartOfAccount {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String        // ex: "1.1.1", "3.1.1", "4.1.1"
+  nome          String        // ex: "Caixa", "Receita de Mensalidades"
+  tipo          AccountType
+
+  lancamentosDebito   AccountingEntry[] @relation("Debito")
+  lancamentosCredito  AccountingEntry[] @relation("Credito")
+
+  @@unique([tenantId, codigo])
+}
+
+enum AccountType {
+  ATIVO
+  PASSIVO
+  PATRIMONIO_LIQUIDO
+  RECEITA
+  DESPESA
+}
+
+model AccountPayable {
+  id              String   @id @default(uuid())
+  tenantId        String
+  costCenterId    String?
+  descricao       String
+  fornecedor      String?
+  categoria       String?       // ex: "aluguel", "folha", "manutenção"
+  valor           Float
+  dataVencimento  DateTime
+  dataPagamento   DateTime?
+  status          FinancialStatus @default(PENDENTE)
+  createdAt       DateTime @default(now())
+
+  costCenter      EduCostCenter? @relation(fields: [costCenterId], references: [id])
+  transacoes      PaymentTransaction[]
+
+  @@index([tenantId, status])
+}
+
+model AccountReceivable {
+  id              String   @id @default(uuid())
+  tenantId        String
+  studentId       String        // referencia Student do Núcleo Acadêmico
+  enrollmentId    String?       // referencia Enrollment do Núcleo Acadêmico
+  descricao       String        // ex: "Mensalidade 05/12 — Farmácia"
+  numeroParcela   Int?
+  valor           Float
+  dataVencimento  DateTime
+  dataPagamento   DateTime?
+  status          FinancialStatus @default(PENDENTE)
+  gatewayId       String?       // id da cobrança no Asaas/Stripe já existente
+  gatewayStatus   String?
+  createdAt       DateTime @default(now())
+
+  transacoes      PaymentTransaction[]
+  notasFiscais    FiscalInvoice[]
+
+  @@index([tenantId, status])
+  @@index([studentId])
+}
+
+enum FinancialStatus {
+  PENDENTE
+  PAGO
+  ATRASADO
+  CANCELADO
+}
+
+model PaymentTransaction {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  tipo                  TransactionType
+  valor                 Float
+  dataTransacao         DateTime @default(now())
+  formaPagamento        FormaPagamento
+  accountPayableId      String?
+  accountReceivableId   String?
+
+  accountPayable        AccountPayable?    @relation(fields: [accountPayableId], references: [id])
+  accountReceivable     AccountReceivable? @relation(fields: [accountReceivableId], references: [id])
+  lancamentoContabil    AccountingEntry?
+
+  @@index([tenantId])
+}
+
+enum TransactionType {
+  RECEITA
+  DESPESA
+}
+
+enum FormaPagamento {
+  PIX
+  BOLETO
+  CARTAO
+  DINHEIRO
+  TRANSFERENCIA
+}
+
+model AccountingEntry {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  data                  DateTime @default(now())
+  contaDebitoId         String
+  contaCreditoId        String
+  valor                 Float
+  historico             String
+  paymentTransactionId  String?  @unique
+
+  contaDebito           ChartOfAccount     @relation("Debito", fields: [contaDebitoId], references: [id])
+  contaCredito          ChartOfAccount     @relation("Credito", fields: [contaCreditoId], references: [id])
+  paymentTransaction    PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id])
+
+  @@index([tenantId, data])
+}
+
+model FiscalInvoice {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  accountReceivableId   String?
+  tipo                  FiscalInvoiceType
+  numero                String?
+  valor                 Float
+  status                FiscalInvoiceStatus @default(PENDENTE)
+  urlPdf                String?
+  urlXml                String?
+  emitidoEm             DateTime?
+  createdAt             DateTime @default(now())
+
+  accountReceivable     AccountReceivable? @relation(fields: [accountReceivableId], references: [id])
+
+  @@index([tenantId, status])
+}
+
+enum FiscalInvoiceType {
+  NFSE
+  NFE
+  RECIBO
+}
+
+enum FiscalInvoiceStatus {
+  PENDENTE
+  EMITIDA
+  CANCELADA
+  ERRO
+}

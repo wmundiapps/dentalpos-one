@@ -2,17 +2,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Checkbox, Chip, FormControlLabel, List, ListItemButton, ListItemText, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PageHeader from "../components/PageHeader";
+import { EDU_ONLY } from "../config/appMode";
 import { navigationGroups } from "../config/navigation";
 import { ALWAYS_ALLOWED, defaultMenuCodes, menuCode, resetMenuAccess } from "../config/menuAccess";
 import { AccessApi, type AccessProfile, type AccessUser, type PermissionItem } from "../services/AccessApi";
 
-const PROFILE_NAMES: Record<string, string> = {
+const PROFILE_NAMES_BASE: Record<string, string> = {
   DENTISTA: "Dentista", AUXILIAR: "Auxiliares", RECEPCAO: "Recepção", FINANCEIRO: "Financeiro", ADMINISTRACAO: "Administração",
   LABORATORIO: "Laboratório", CONTADOR: "Contabilidade", JURIDICO: "Jurídico", GESTOR: "Gestor", RH: "Recursos Humanos", ADMIN: "Administrador (Master)",
   MARKETING: "Marketing", VENDAS: "Vendas", MARKETPLACE: "Marketplace", COMPRAS: "Compras e estoque", EDUCACIONAL: "Educacional",
 };
-PROFILE_NAMES.PONTO = "Aparelho do ponto (só bate ponto)"; PROFILE_NAMES.DENTISTA = "Clínico (dentistas)"; PROFILE_NAMES.ADMINISTRACAO = "Administração / Escritório";
-const PROFILE_ORDER = ["ADMIN", "GESTOR", "ADMINISTRACAO", "RH", "RECEPCAO", "DENTISTA", "AUXILIAR", "LABORATORIO", "FINANCEIRO", "CONTADOR", "JURIDICO", "MARKETING", "VENDAS", "MARKETPLACE", "COMPRAS", "EDUCACIONAL", "PONTO"];
+const PROFILE_NAMES: Record<string, string> = EDU_ONLY
+  ? { ...PROFILE_NAMES_BASE, DENTISTA: "Docentes e profissionais", AUXILIAR: "Apoio", RECEPCAO: "Atendimento e secretaria", LABORATORIO: "Laboratórios" }
+  : { ...PROFILE_NAMES_BASE, PONTO: "Aparelho do ponto (só bate ponto)", DENTISTA: "Clínico (dentistas)", ADMINISTRACAO: "Administração / Escritório" };
+const PROFILE_ORDER = EDU_ONLY
+  ? ["DENTISTA", "AUXILIAR", "RECEPCAO", "FINANCEIRO", "ADMINISTRACAO", "LABORATORIO", "CONTADOR", "JURIDICO", "GESTOR", "RH", "ADMIN"]
+  : ["ADMIN", "GESTOR", "ADMINISTRACAO", "RH", "RECEPCAO", "DENTISTA", "AUXILIAR", "LABORATORIO", "FINANCEIRO", "CONTADOR", "JURIDICO", "MARKETING", "VENDAS", "MARKETPLACE", "COMPRAS", "EDUCACIONAL", "PONTO"];
 
 // Itens do menu na mesma ordem do menu lateral (um item que aparece em dois grupos entra só no primeiro).
 const MENU_GROUPS = (() => {
@@ -21,11 +26,12 @@ const MENU_GROUPS = (() => {
   return all;
 })();
 const ALL_ITEMS = MENU_GROUPS.flatMap((g) => g.items);
-const MODULE_NAMES: Record<string, string> = {
+const MODULE_NAMES_BASE: Record<string, string> = {
   dashboard: "Painel inicial", agenda: "Agenda e painel de atendimentos", patients: "Pacientes", clinical: "Clínico / prontuário", laboratory: "Laboratório",
-  finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", timeclock: "Ponto por rosto (aparelho da clínica)", sales: "Vendas", marketing: "Marketing e Revah",
-  documents: "Documentos", settings: "Configurações (inclui importar pacientes)", users: "Usuários e permissões", audit: "Auditoria",
+  design: "Design 3D", finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", timeclock: "Ponto por rosto (aparelho da clínica)", sales: "Vendas", marketing: "Marketing e Revah",
+  documents: "Documentos", settings: "Configurações (inclui importar clientes, alunos e pacientes)", users: "Usuários e permissões", audit: "Auditoria",
 };
+const MODULE_NAMES: Record<string, string> = EDU_ONLY ? { ...MODULE_NAMES_BASE, agenda: "Agenda e atendimentos", patients: "Alunos e clientes", clinical: "Acadêmico e ficha do aluno", laboratory: "Laboratórios", design: "Design", marketing: "Marketing" } : MODULE_NAMES_BASE;
 const ACTION_NAMES: Record<string, string> = {
   view: "Ver", create: "Criar", edit: "Editar", cancel: "Cancelar", approve: "Aprovar", values: "Ver valores", sensitive: "Dados sensíveis",
   send: "Enviar", portal: "Portal do contador", manage: "Gerenciar",

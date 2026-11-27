@@ -75,6 +75,7 @@ import * as webhookController from '../controllers/webhookController'
 import * as backofficeController from '../controllers/backofficeController'
 import * as fiscalController from '../controllers/fiscalController'
 import * as platformReadinessController from '../controllers/platformReadinessController'
+import * as platformActivityController from '../controllers/platformActivityController'
 import * as smartSchedulingController from '../controllers/smartSchedulingController'
 import * as demoController from '../controllers/demoController'
 import * as debugDemoController from '../controllers/debugDemoController'
@@ -91,6 +92,15 @@ import * as financialAlertResolutionController from '../controllers/financialAle
 import * as operationalAlertResolutionController from '../controllers/operationalAlertResolutionController'
 import { prospectPublicRouter, prospectAdminRouter } from './prospectRoutes'
 import * as reportController5787 from '../controllers/reportController5787'
+import eduRoutes, { eduPublicRouter } from '../modules/edu.routes'
+import { bloqueioClienteContabil } from '../modules/contabil/carteira/routes'
+import { runEduJobs } from '../modules/core/jobs'
+import { processDueReminders } from '../modules/core/reminders'
+import segurancaRoutes from '../modules/seguranca/routes'
+import { verificar2fa } from '../modules/seguranca/verificar2fa'
+import { statusDispositivo } from '../modules/seguranca/verificarDispositivo'
+import { uploadGuard } from '../modules/seguranca/uploadGuard'
+import { timingSafeEqual } from 'crypto'
 
 const router = Router()
 
@@ -99,15 +109,20 @@ const router = Router()
 // ======================
 
 router.post('/auth/register', authController.register)
-router.post('/auth/login', authController.login)
+// Login por e-mail OU por identificador alternativo (ra: aluno; loginAlt: professor/gestor de polo) — resolverIdentificador
+// traduz para email+clinicId e segue para o mesmo login(), sem duplicar bloqueio/2FA/auditoria.
+router.post('/auth/login', authController.resolverIdentificador, authController.login)
 router.post('/auth/login/2fa', authController.login2fa)
+router.post('/auth/2fa/verify', verificar2fa)
 router.get('/auth/2fa/status', authMiddleware, twoFactor.status)
 router.post('/auth/2fa/setup', authMiddleware, twoFactor.setup)
 router.post('/auth/2fa/enable', authMiddleware, twoFactor.enable)
 router.post('/auth/2fa/disable', authMiddleware, twoFactor.disable)
 router.post('/auth/2fa/backup-codes', authMiddleware, twoFactor.backupCodes)
+router.post('/auth/device/status', statusDispositivo)
 router.post('/auth/password-reset/request', authController.requestPasswordReset)
 router.post('/auth/password-reset/confirm', authController.resetPassword)
+router.post('/auth/change-password', authMiddleware, authController.changePassword)
 router.get('/marketing/config', marketingController.config)
 router.post('/marketing/lead', marketingController.lead)
 router.get('/webhooks/whatsapp-sales', marketingController.whatsappVerify)
@@ -134,6 +149,30 @@ router.all('/cron/reminders', cronController.reminders)
 router.all('/cron/revah-sync', revahBridgeController.cronSync)
 router.use(prospectPublicRouter)
 router.post('/revah-bridge/webhook/:clinicId', revahBridgeController.webhook)
+
+// SEGURANÇA — 2FA/eventos (autenticação própria: aceita também o token restrito de configuração de 2FA)
+router.use('/security', segurancaRoutes)
+
+// EDUMASTER PRO — rotas públicas e cron
+// Varredura de anexos/URLs e moderação de texto nos formulários públicos (ver modules/seguranca/uploadGuard.ts).
+router.use('/public', uploadGuard)
+router.use('/public/edu', eduPublicRouter)
+router.all('/cron/edu', async (req, res) => {
+  const expected = process.env.CRON_SECRET || ''
+  const header = req.header('authorization') || ''
+  const provided = header.startsWith('Bearer ') ? header.slice(7) : ''
+  const a = Buffer.from(provided)
+  const b = Buffer.from(expected)
+  if (!expected || a.length !== b.length || !timingSafeEqual(a, b)) return res.status(401).json({ error: 'Não autorizado.' })
+  try {
+    const reminders = await processDueReminders()
+    const jobs = await runEduJobs()
+    return res.json({ ok: true, reminders, jobs })
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Falha ao processar rotinas educacionais.' })
+  }
+})
 
 // PONTO DO POLO (celular do polo: PIN do aparelho + CPF + rosto, só dentro do raio do polo)
 // Avaliacao do paciente pelo link publico da clinica (Clube).
@@ -163,6 +202,10 @@ router.post('/public/booking/:clinicId', publicBookingController.store)
 
 router.use(authMiddleware)
 router.use(tenantMiddleware)
+// Cliente final da contabilidade (CLIENTE_CONTABIL): só alcança o portal; todo o resto da API responde 403.
+router.use(bloqueioClienteContabil)
+// Varredura anti-malware/SSRF de qualquer anexo (data URL, base64, URL externa) enviado por usuários autenticados.
+router.use(uploadGuard)
 router.use(prospectAdminRouter)
 
 // Clinical modules integrated by Chat 8. Authentication and tenant context are already resolved above.
@@ -170,6 +213,9 @@ router.use(clinicalRecordRoutes)
 router.use(dentalChartRoutes)
 router.use('/specialty-clinical', specialtyClinicalRoutes)
 router.use(specializedClinicalRoutes)
+
+// EduMaster Pro — gerenciador educacional (autenticação e tenant já resolvidos acima)
+router.use('/edu', eduRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 
@@ -619,6 +665,7 @@ router.get('/platform/feature-flags', requirePermission('settings.view'), platfo
 router.put('/platform/feature-flags/:key', requirePermission('settings.edit'), platformController.setFeatureFlag)
 router.get('/platform/storage', requirePermission('settings.view'), platformController.storage)
 router.get('/platform/readiness', requireWmundiStaff, platformReadinessController.readiness)
+router.get('/platform/atividade', requireWmundiStaff, platformActivityController.atividade)
 router.put('/platform/storage', requirePermission('settings.edit'), platformController.setStorage)
 router.get('/revah/senders', requirePermission('marketing.view'), revahSenderController.index)
 router.get('/ai/balance', requirePermission('dashboard.view'), aiController.balance)

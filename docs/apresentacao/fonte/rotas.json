@@ -1,0 +1,370 @@
+[
+ {
+  "titulo": "Financeiro acadêmico",
+  "rota": "/edu/financeiro"
+ },
+ {
+  "titulo": "Alunos · secretaria",
+  "rota": "/edu/academico/alunos"
+ },
+ {
+  "titulo": "Matrizes e fluxograma",
+  "rota": "/edu/academico/matrizes"
+ },
+ {
+  "titulo": "Salas e horários",
+  "rota": "/edu/academico/salas"
+ },
+ {
+  "titulo": "Programas de desenvolvimento",
+  "rota": "/edu/academico/desenvolvimento"
+ },
+ {
+  "titulo": "Pesquisa, extensão e ligas",
+  "rota": "/edu/academico/pesquisa-extensao"
+ },
+ {
+  "titulo": "Painel executivo",
+  "rota": "/edu"
+ },
+ {
+  "titulo": "Minha mesa e lembretes",
+  "rota": "/edu/minha-mesa"
+ },
+ {
+  "titulo": "Agenda da Reitoria",
+  "rota": "/edu/reitoria/agenda"
+ },
+ {
+  "titulo": "Diário Oficial (DOU)",
+  "rota": "/edu/reitoria/dou"
+ },
+ {
+  "titulo": "Painéis executivos",
+  "rota": "/edu/reitoria/paineis"
+ },
+ {
+  "titulo": "Acordos e convênios",
+  "rota": "/edu/reitoria/convenios"
+ },
+ {
+  "titulo": "Pessoas e avaliações",
+  "rota": "/edu/reitoria/pessoas"
+ },
+ {
+  "titulo": "Graduação e pós",
+  "rota": "/edu/reitoria/niveis"
+ },
+ {
+  "titulo": "Comparativo com outras IES",
+  "rota": "/edu/reitoria/comparativo"
+ },
+ {
+  "titulo": "Jornadas e fluxogramas",
+  "rota": "/edu/jornadas"
+ },
+ {
+  "titulo": "Regulatório MEC",
+  "rota": "/edu/regulatorio"
+ },
+ {
+  "titulo": "Governança e PDI",
+  "rota": "/edu/governanca"
+ },
+ {
+  "titulo": "Identidade e logomarcas",
+  "rota": "/edu/identidade"
+ },
+ {
+  "titulo": "Admissões e vestibular",
+  "rota": "/edu/admissoes"
+ },
+ {
+  "titulo": "Secretaria e certificados",
+  "rota": "/edu/secretaria"
+ },
+ {
+  "titulo": "Calendário e salas",
+  "rota": "/edu/calendario"
+ },
+ {
+  "titulo": "Notas e diário",
+  "rota": "/edu/notas"
+ },
+ {
+  "titulo": "Modalidades, EAD e pós",
+  "rota": "/edu/modalidades"
+ },
+ {
+  "titulo": "ENADE, OAB e desempenho",
+  "rota": "/edu/desempenho"
+ },
+ {
+  "titulo": "Biblioteca",
+  "rota": "/edu/biblioteca"
+ },
+ {
+  "titulo": "Presença e acesso",
+  "rota": "/edu/presenca"
+ },
+ {
+  "titulo": "Pesquisa e revista",
+  "rota": "/edu/pesquisa"
+ },
+ {
+  "titulo": "Portal do aluno",
+  "rota": "/edu/portal-aluno"
+ },
+ {
+  "titulo": "Início e ambientes de ensino",
+  "rota": "/edu/inicio"
+ },
+ {
+  "titulo": "Portal do professor",
+  "rota": "/edu/portal-professor"
+ },
+ {
+  "titulo": "Minha biometria e carteirinha",
+  "rota": "/edu/minha-biometria"
+ },
+ {
+  "titulo": "Apoio, ouvidoria e egressos",
+  "rota": "/edu/apoio"
+ },
+ {
+  "titulo": "Comunicação omnichannel",
+  "rota": "/edu/comunicacao"
+ },
+ {
+  "titulo": "Infraestrutura e patrimônio",
+  "rota": "/edu/infraestrutura"
+ },
+ {
+  "titulo": "Agenda de infraestrutura",
+  "rota": "/edu/infraestrutura?secao=agenda"
+ },
+ {
+  "titulo": "Solicitações e OS (com fotos)",
+  "rota": "/edu/infraestrutura?secao=solicitacoes"
+ },
+ {
+  "titulo": "Frota",
+  "rota": "/edu/infraestrutura?secao=frota"
+ },
+ {
+  "titulo": "Segurança patrimonial",
+  "rota": "/edu/infraestrutura?secao=seguranca"
+ },
+ {
+  "titulo": "Compras, estoque e vendas",
+  "rota": "/edu/suprimentos"
+ },
+ {
+  "titulo": "Central / caixa",
+  "rota": "/edu/atendimento?secao=central"
+ },
+ {
+  "titulo": "Protocolos e jornada",
+  "rota": "/edu/atendimento?secao=protocolos"
+ },
+ {
+  "titulo": "Documentos recebidos",
+  "rota": "/edu/atendimento?secao=documentos"
+ },
+ {
+  "titulo": "Base de conhecimento e IA",
+  "rota": "/edu/atendimento?secao=conhecimento"
+ },
+ {
+  "titulo": "Emissão de documentos",
+  "rota": "/edu/atendimento?secao=emissao"
+ },
+ {
+  "titulo": "Catálogo de serviços",
+  "rota": "/edu/atendimento?secao=catalogo"
+ },
+ {
+  "titulo": "Painel / SLA",
+  "rota": "/edu/atendimento?secao=painel"
+ },
+ {
+  "titulo": "Painel",
+  "rota": "/edu/juridico?secao=painel"
+ },
+ {
+  "titulo": "Documentos",
+  "rota": "/edu/juridico?secao=documentos"
+ },
+ {
+  "titulo": "Contratos",
+  "rota": "/edu/juridico?secao=contratos"
+ },
+ {
+  "titulo": "Imóveis",
+  "rota": "/edu/juridico?secao=imoveis"
+ },
+ {
+  "titulo": "Polos",
+  "rota": "/edu/juridico?secao=polos"
+ },
+ {
+  "titulo": "Processos",
+  "rota": "/edu/juridico?secao=processos"
+ },
+ {
+  "titulo": "Inteligência",
+  "rota": "/edu/juridico?secao=inteligencia"
+ },
+ {
+  "titulo": "Riscos e Seguros",
+  "rota": "/edu/juridico?secao=riscos"
+ },
+ {
+  "titulo": "RH: Painel",
+  "rota": "/edu/rh?secao=painel"
+ },
+ {
+  "titulo": "Colaboradores",
+  "rota": "/edu/rh?secao=colaboradores"
+ },
+ {
+  "titulo": "Ponto e Banco de Horas",
+  "rota": "/edu/rh?secao=ponto"
+ },
+ {
+  "titulo": "Atestados e Licenças",
+  "rota": "/edu/rh?secao=saude"
+ },
+ {
+  "titulo": "Férias",
+  "rota": "/edu/rh?secao=ferias"
+ },
+ {
+  "titulo": "Carreira e Bonificações",
+  "rota": "/edu/rh?secao=carreira"
+ },
+ {
+  "titulo": "Advertências",
+  "rota": "/edu/rh?secao=advertencias"
+ },
+ {
+  "titulo": "Admissão e Desligamento",
+  "rota": "/edu/rh?secao=ciclo"
+ },
+ {
+  "titulo": "Avaliações",
+  "rota": "/edu/rh?secao=avaliacoes"
+ },
+ {
+  "titulo": "Folha",
+  "rota": "/edu/rh?secao=folha"
+ },
+ {
+  "titulo": "Pró-labore e Terceiros",
+  "rota": "/edu/rh?secao=socios"
+ },
+ {
+  "titulo": "Contas a receber",
+  "rota": "/edu/financeiro?secao=receber"
+ },
+ {
+  "titulo": "Contas a pagar",
+  "rota": "/edu/financeiro?secao=pagar"
+ },
+ {
+  "titulo": "Conferência e autorização",
+  "rota": "/edu/financeiro?secao=fila"
+ },
+ {
+  "titulo": "Bancos e conciliação",
+  "rota": "/edu/financeiro?secao=bancos"
+ },
+ {
+  "titulo": "Notas fiscais",
+  "rota": "/edu/financeiro?secao=notas"
+ },
+ {
+  "titulo": "Recibos",
+  "rota": "/edu/financeiro?secao=recibos"
+ },
+ {
+  "titulo": "Permutas e bolsas",
+  "rota": "/edu/financeiro?secao=permutas"
+ },
+ {
+  "titulo": "Remessas bancárias",
+  "rota": "/edu/financeiro?secao=remessas"
+ },
+ {
+  "titulo": "Painel",
+  "rota": "/edu/cobranca?aba=painel"
+ },
+ {
+  "titulo": "Inadimplentes",
+  "rota": "/edu/cobranca?aba=inadimplentes"
+ },
+ {
+  "titulo": "Acordos e Negociações",
+  "rota": "/edu/cobranca?aba=acordos"
+ },
+ {
+  "titulo": "Régua e Políticas",
+  "rota": "/edu/cobranca?aba=regua"
+ },
+ {
+  "titulo": "Histórico de Contatos",
+  "rota": "/edu/cobranca?aba=historico"
+ },
+ {
+  "titulo": "Recebimentos",
+  "rota": "/edu/cobranca?aba=recebimentos"
+ },
+ {
+  "titulo": "Painel",
+  "rota": "/edu/marketing?secao=painel"
+ },
+ {
+  "titulo": "Calendário",
+  "rota": "/edu/marketing?secao=calendario"
+ },
+ {
+  "titulo": "Campanhas",
+  "rota": "/edu/marketing?secao=campanhas"
+ },
+ {
+  "titulo": "Leads e Funil",
+  "rota": "/edu/marketing?secao=leads"
+ },
+ {
+  "titulo": "Canais e Disparos",
+  "rota": "/edu/marketing?secao=canais"
+ },
+ {
+  "titulo": "Mídia offline",
+  "rota": "/edu/marketing?secao=offline"
+ },
+ {
+  "titulo": "Gerador IA",
+  "rota": "/edu/marketing?secao=ia"
+ },
+ {
+  "titulo": "Site e Landing pages",
+  "rota": "/edu/marketing?secao=site"
+ },
+ {
+  "titulo": "Eventos",
+  "rota": "/edu/marketing?secao=eventos"
+ },
+ {
+  "titulo": "Conformidade LGPD",
+  "rota": "/edu/marketing?secao=lgpd"
+ },
+ {
+  "titulo": "Central LGPD",
+  "rota": "/edu/lgpd"
+ },
+ {
+  "titulo": "Central de feedback (EduMaster)",
+  "rota": "/edu/feedback"
+ }
+]

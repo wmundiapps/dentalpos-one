@@ -15,7 +15,7 @@ export const marketingCampaigns: MarketingCampaign[] = !DEMO_DATA_ON ? [] : [
     startDate: "01/08/2026",
     endDate: "31/08/2026",
     status: "Em execução",
-    responsible: "Equipe WMundi",
+    responsible: "Equipe WMundi®",
   },
   {
     id: 2,

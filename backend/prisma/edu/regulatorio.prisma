@@ -1,0 +1,313 @@
+// ============================================================
+// EDUMASTER PRO — REGULATÓRIO (MEC/INEP) — prefixo Reg
+// ============================================================
+
+enum RegTipoProcesso {
+  CREDENCIAMENTO
+  RECREDENCIAMENTO
+  AUTORIZACAO_CURSO
+  RECONHECIMENTO_CURSO
+  RENOVACAO_RECONHECIMENTO
+  ADITAMENTO_VAGAS
+  ADITAMENTO_ENDERECO
+  ADITAMENTO_POLO_EAD
+  TRANSFERENCIA_MANTENCA
+  OUTRO
+}
+
+enum RegEtapa {
+  PREPARACAO
+  PROTOCOLADO
+  EM_ANALISE
+  DILIGENCIA
+  AVALIACAO_IN_LOCO
+  DECISAO
+  PUBLICADO
+  ARQUIVADO
+}
+
+enum RegResultado {
+  PENDENTE
+  DEFERIDO
+  INDEFERIDO
+  ARQUIVADO
+}
+
+model RegProcesso {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tipo            RegTipoProcesso
+  etapa           RegEtapa @default(PREPARACAO)
+  resultado       RegResultado @default(PENDENTE)
+  titulo          String
+  programId       String?       // AcademicProgram (sem relation)
+  cursoNome       String?
+  protocoloEmec   String?
+  numeroProcesso  String?
+  responsavelId   String?
+  vagasSolicitadas Int?
+  enderecoNovo    String?
+  conceitoObtido  Int?
+  protocoladoEm   DateTime?
+  prazoProtocolo  DateTime?     // prazo interno/legal para protocolar
+  avaliacaoPrevistaEm DateTime?
+  decisaoPrevistaEm DateTime?
+  publicadoEm     DateTime?
+  observacoes     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  historico       RegProcessoHistorico[]
+  diligencias     RegDiligencia[]
+  checklists      RegChecklist[]
+
+  @@index([tenantId, etapa])
+  @@index([tenantId, tipo])
+  @@index([tenantId, programId])
+}
+
+model RegProcessoHistorico {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String
+  etapaDe     RegEtapa?
+  etapaPara   RegEtapa
+  userId      String?
+  observacao  String?
+  createdAt   DateTime @default(now())
+
+  processo    RegProcesso @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, processoId])
+}
+
+enum RegDiligenciaStatus {
+  ABERTA
+  RESPONDIDA
+  CUMPRIDA
+  VENCIDA
+  CANCELADA
+}
+
+model RegDiligencia {
+  id            String   @id @default(uuid())
+  tenantId      String
+  processoId    String
+  descricao     String
+  exigencias    Json?          // [{texto, atendida}]
+  recebidaEm    DateTime @default(now())
+  prazoResposta DateTime
+  status        RegDiligenciaStatus @default(ABERTA)
+  responsavelId String?
+  resposta      String?
+  respondidaEm  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  processo      RegProcesso @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, prazoResposta])
+  @@index([tenantId, processoId])
+}
+
+enum RegTipoAto {
+  PORTARIA_CREDENCIAMENTO
+  PORTARIA_RECREDENCIAMENTO
+  PORTARIA_AUTORIZACAO
+  PORTARIA_RECONHECIMENTO
+  PORTARIA_RENOVACAO
+  PORTARIA_ADITAMENTO
+  RESOLUCAO
+  PARECER
+  OUTRO
+}
+
+// Repositório de atos regulatórios (portarias/DOU)
+model RegAto {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tipo            RegTipoAto
+  numero          String
+  orgao           String   @default("MEC")
+  dataPublicacao  DateTime
+  referenciaDou   String?
+  programId       String?
+  cursoNome       String?
+  escopo          String   @default("CURSO")   // CURSO | INSTITUICAO
+  processoId      String?
+  vigenciaInicio  DateTime?
+  vencimento      DateTime?       // fim da vigência (nulo = sem prazo)
+  vagasAutorizadas Int?
+  cicloAvaliativoAnos Int?
+  conceito        Int?
+  revogado        Boolean  @default(false)
+  anexos          Json?            // [{nome,url,dataUrl,mime}]
+  observacoes     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, tipo, numero])
+  @@index([tenantId, vencimento])
+  @@index([tenantId, programId])
+}
+
+enum RegInstrumento {
+  INSTITUCIONAL
+  CURSO_AUTORIZACAO
+  CURSO_RECONHECIMENTO
+  CURSO_RENOVACAO
+  DOCUMENTAL
+}
+
+enum RegDimensao {
+  ORGANIZACAO_DIDATICO_PEDAGOGICA
+  CORPO_DOCENTE_TUTORIAL
+  INFRAESTRUTURA
+  DOCUMENTAL
+  GESTAO_INSTITUCIONAL
+}
+
+model RegChecklistModelo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  chave       String
+  nome        String
+  tipoProcesso RegTipoProcesso?
+  instrumento RegInstrumento @default(DOCUMENTAL)
+  descricao   String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  itens       RegChecklistModeloItem[]
+
+  @@unique([tenantId, chave])
+  @@index([tenantId, tipoProcesso])
+}
+
+model RegChecklistModeloItem {
+  id          String   @id @default(uuid())
+  tenantId    String
+  modeloId    String
+  ordem       Int      @default(0)
+  dimensao    RegDimensao @default(DOCUMENTAL)
+  titulo      String
+  descricao   String?
+  obrigatorio Boolean  @default(true)
+  peso        Int      @default(1)
+  prazoDias   Int?             // prazo relativo (dias após criação do checklist)
+  responsavelRole String?
+
+  modelo      RegChecklistModelo @relation(fields: [modeloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, modeloId])
+}
+
+model RegChecklist {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  modeloId    String?
+  instrumento RegInstrumento @default(DOCUMENTAL)
+  processoId  String?
+  programId   String?
+  prontidao   Float    @default(0)      // 0..100 (cache)
+  prazo       DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  processo    RegProcesso? @relation(fields: [processoId], references: [id], onDelete: SetNull)
+  itens       RegChecklistItem[]
+
+  @@index([tenantId, processoId])
+  @@index([tenantId, programId])
+}
+
+enum RegItemStatus {
+  PENDENTE
+  EM_ANDAMENTO
+  ATENDIDO
+  NAO_APLICAVEL
+}
+
+model RegChecklistItem {
+  id            String   @id @default(uuid())
+  tenantId      String
+  checklistId   String
+  ordem         Int      @default(0)
+  dimensao      RegDimensao @default(DOCUMENTAL)
+  titulo        String
+  descricao     String?
+  obrigatorio   Boolean  @default(true)
+  peso          Int      @default(1)
+  status        RegItemStatus @default(PENDENTE)
+  responsavelId String?
+  prazo         DateTime?
+  evidenciaUrl  String?
+  evidenciaTexto String?
+  evidencias    Json?            // [{nome,url,dataUrl}]
+  conferenciaIA Json?            // última conferência por IA/manual
+  concluidoEm   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  checklist     RegChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, checklistId])
+  @@index([tenantId, status, prazo])
+}
+
+// Autoavaliação por indicador (conceito 1-5)
+model RegIndicador {
+  id            String   @id @default(uuid())
+  tenantId      String
+  instrumento   RegInstrumento
+  dimensao      RegDimensao
+  codigo        String           // ex.: 1.1
+  nome          String
+  programId     String?
+  conceito      Int?             // 1..5
+  justificativa String?
+  planoMelhoria String?
+  responsavelId String?
+  prazoMelhoria DateTime?
+  avaliadoEm    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, instrumento, dimensao])
+  @@index([tenantId, programId])
+}
+
+model RegSimulacao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tipo        String           // CPC | CC
+  programId   String?
+  rotulo      String?
+  entrada     Json
+  resultado   Json
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, tipo, createdAt])
+}
+
+model RegAnaliseDocumento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tipoDocumento String           // PORTARIA | RELATORIO_AVALIACAO | DILIGENCIA | OUTRO
+  titulo      String?
+  processoId  String?
+  texto       String
+  modo        String   @default("MANUAL")   // IA | HEURISTICO | MANUAL
+  resumo      String?
+  prazos      Json?
+  exigencias  Json?
+  tarefasCriadas Json?
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, processoId])
+  @@index([tenantId, createdAt])
+}

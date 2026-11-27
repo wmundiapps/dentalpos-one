@@ -1,0 +1,111 @@
+[
+ {
+  "item": "Provas",
+  "existe": "PARCIAL",
+  "modulo": "Provas com correção por IA (provas-ia) + Calendário · Provas + Desempenho · Simulados",
+  "rota": "/edu/portal-professor ; /edu/calendario ; /edu/desempenho",
+  "como_funciona": "O professor gera/monta a prova (IA a partir do resumo de aula ou do banco de questões), múltipla escolha corrigida na hora e dissertativa corrigida por IA com rubrica; o Calendário agenda provas, salas e fiscais.",
+  "observacao": "Não há tela para o aluno responder prova/simulado: só a API."
+ },
+ {
+  "item": "Certificados",
+  "existe": true,
+  "modulo": "Secretaria e certificados · Certificados",
+  "rota": "/edu/secretaria",
+  "como_funciona": "Emissão individual ou em lote por modelos (curso, extensão, evento, pós, monitoria, participação) com número, código, QR e verificação pública; revogação e reemissão."
+ },
+ {
+  "item": "Conteúdo",
+  "existe": "PARCIAL",
+  "modulo": "Sala virtual (portal do aluno/professor) e módulo conteudo",
+  "rota": "/edu/portal-aluno?aba=salas",
+  "como_funciona": "Professor publica materiais em trilhas, aulas gravadas/ao vivo e atividades; aluno acompanha progresso. Módulo conteudo (API) guarda itens por disciplina e flashcards SM-2.",
+  "observacao": "Módulo conteudo e flashcards não têm tela própria."
+ },
+ {
+  "item": "Biblioteca",
+  "existe": true,
+  "modulo": "Biblioteca (fora do meu conjunto) + provedores de biblioteca no módulo conteudo",
+  "rota": "/edu/biblioteca",
+  "como_funciona": "Acervo, circulação, biblioteca virtual e repositório institucional; no conteudo, provedores com assinatura do aluno e cobrança automática (API)."
+ },
+ {
+  "item": "Local para armazenar videoaulas",
+  "existe": false,
+  "modulo": "Nenhum armazenamento próprio",
+  "rota": "/edu/portal-aluno?aba=salas",
+  "como_funciona": "Videoaulas são cadastradas por URL (YouTube, Drive, nuvem); o sistema registra progresso, mas não hospeda nem transmite o arquivo.",
+  "observacao": "Lacuna: não há upload/hospedagem de vídeo."
+ },
+ {
+  "item": "Locais para PDFs",
+  "existe": false,
+  "modulo": "Nenhum armazenamento próprio",
+  "rota": "/edu/portal-aluno?aba=salas",
+  "como_funciona": "PDFs e arquivos entram como link (campo 'Link do arquivo (nuvem, Drive…)'); não há upload.",
+  "observacao": "Lacuna: sem repositório de arquivos."
+ },
+ {
+  "item": "Avaliação de histórico escolar e equivalência de disciplinas",
+  "existe": "PARCIAL",
+  "modulo": "Matrizes e fluxograma · Equivalências; Secretaria · aproveitamento de estudos; Portal do aluno · processos",
+  "rota": "/edu/academico/matrizes ; /edu/secretaria",
+  "como_funciona": "Coordenação cadastra equivalências com percentual de aproveitamento (aplicadas no simulador de integralização); aluno abre processo de aproveitamento com disciplina de origem, carga e nota, passando por conferência, análise de equivalência e lançamento no histórico.",
+  "observacao": "Não compara ementas automaticamente nem importa histórico de outra IES."
+ },
+ {
+  "item": "Avisos de provas",
+  "existe": true,
+  "modulo": "Calendário · Provas",
+  "rota": "/edu/calendario",
+  "como_funciona": "Job avisa alunos 7 e 1 dia antes, fiscais e professores recebem lembretes e remarcação; também no painel do aluno.",
+  "observacao": "Entrega externa depende dos canais configurados."
+ },
+ {
+  "item": "Área para revista científica",
+  "existe": true,
+  "modulo": "Pesquisa e revista · Periódico",
+  "rota": "/edu/pesquisa",
+  "como_funciona": "Periódico estilo OJS: submissão, triagem, pareceristas duplo-cego, decisão, edições com DOI e API pública com Dublin Core/JSON-LD.",
+  "observacao": "Portal público é API JSON, sem página web; DOI por prefixo informado."
+ },
+ {
+  "item": "Acompanhamento de comissões de avaliação do MEC",
+  "existe": "PARCIAL",
+  "modulo": "Regulatório MEC · Processos e diligências",
+  "rota": "/edu/regulatorio",
+  "como_funciona": "Etapa AVALIAÇÃO IN LOCO no processo, data prevista, lembrete D-15 para preparar a visita, diligências com prazo, checklists por dimensão do instrumento e simulador de CC.",
+  "observacao": "Não há cadastro dos avaliadores nem da agenda da visita."
+ },
+ {
+  "item": "Comissão própria de avaliação (CPA)",
+  "existe": true,
+  "modulo": "Governança e PDI · CPA",
+  "rota": "/edu/governanca",
+  "como_funciona": "Composição validada (Lei 10.861/2004), ciclos, questionários anônimos por código, resultados por eixo SINAES, relatórios e plano de ação.",
+  "observacao": "Resposta anônima só via API pública, sem página web."
+ },
+ {
+  "item": "Calendários com checklist para implantação, avaliação e reconhecimento de cursos",
+  "existe": "PARCIAL",
+  "modulo": "Regulatório · Checklists + Agenda da Reitoria + Painel regulatório",
+  "rota": "/edu/regulatorio ; /edu/reitoria/agenda",
+  "como_funciona": "Checklists de autorização, reconhecimento e renovação com prazo por item e lembretes; marcos (protocolo, in loco, decisão, vencimento de atos) aparecem na Agenda da Reitoria e no painel.",
+  "observacao": "Não existe uma tela única de calendário com checklist."
+ },
+ {
+  "item": "Checklist para recredenciamento",
+  "existe": true,
+  "modulo": "Regulatório · Checklists de prontidão",
+  "rota": "/edu/regulatorio",
+  "como_funciona": "Modelo 'Credenciamento / Recredenciamento institucional' com documentos e eixos, prontidão ponderada, evidências e conferência por IA."
+ },
+ {
+  "item": "Ambiente do aluno",
+  "existe": true,
+  "modulo": "Portal do aluno + Ambientes de ensino",
+  "rota": "/edu/portal-aluno ; /edu/inicio",
+  "como_funciona": "Portal com notas, frequência, salas virtuais, horários, fluxograma, requerimentos, financeiro, biblioteca, mensagens, documentos, carteirinha, LGPD e avaliação docente.",
+  "observacao": "Boleto/Pix simulados."
+ }
+]

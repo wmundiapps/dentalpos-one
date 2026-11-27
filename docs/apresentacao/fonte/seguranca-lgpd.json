@@ -1,0 +1,410 @@
+[
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "Autenticação em duas etapas (2FA TOTP)",
+  "o_que_faz": "Código de 6 dígitos de aplicativo autenticador (RFC 6238, SHA-1, passo de 30 s, janela de ±1 passo, segredo de 160 bits), com ativação por QR e confirmação do primeiro código.",
+  "beneficio": "Mesmo que a senha vaze, o invasor não entra sem o celular do usuário.",
+  "onde": "backend/src/modules/seguranca/totp.ts, doisFatores.ts; tela /seguranca",
+  "observacao_honesta": "Protege contra roubo de senha; não contra phishing em tempo real nem malware no aparelho."
+ },
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "Anti-reutilização de código 2FA",
+  "o_que_faz": "O último passo de tempo aceito é guardado e um código já usado não vale de novo; comparações em tempo constante.",
+  "beneficio": "Impede que um código espiado seja reaproveitado.",
+  "onde": "seguranca/doisFatores.ts, totp.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "Códigos de recuperação de uso único",
+  "o_que_faz": "8 códigos gerados na ativação, mostrados uma única vez e guardados apenas como HMAC-SHA256; novos códigos invalidam os antigos.",
+  "beneficio": "O usuário que perde o celular volta a entrar sem abrir brecha para terceiros.",
+  "onde": "seguranca/cripto.ts, routes.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "2FA obrigatório por perfil",
+  "o_que_faz": "A variável REQUIRE_2FA_ROLES lista perfis (por exemplo ADMIN, OWNER, RECTOR) que precisam de 2FA; quem não tem recebe um token restrito que só serve para configurar. Perfis obrigados não podem desativar o 2FA.",
+  "beneficio": "A instituição impõe proteção reforçada aos cargos de maior risco.",
+  "onde": "seguranca/routes.ts, login.ts; frontend pages/Login.tsx",
+  "observacao_honesta": "Por padrão ninguém é obrigado; precisa ser configurado."
+ },
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "Tokens de escopo restrito",
+  "o_que_faz": "Os tokens de desafio 2FA e de configuração (scope 2fa e 2fa-setup) nunca são aceitos pelo middleware de autenticação.",
+  "beneficio": "Uma etapa intermediária do login não serve de chave para a API.",
+  "onde": "seguranca/tokens.ts, routes.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "Bloqueio progressivo de login",
+  "o_que_faz": "5 falhas por e-mail e IP bloqueiam por 15 min, depois 1 h, depois 4 h; a mensagem ao cliente é sempre genérica (e-mail inexistente também conta).",
+  "beneficio": "Torna inviável adivinhar senhas por força bruta e não revela quem tem conta.",
+  "onde": "seguranca/tentativas.ts, login.ts",
+  "observacao_honesta": "Não impede ataques distribuídos por muitos IPs; limites globais e 2FA mitigam."
+ },
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "Limite de tentativas do 2FA",
+  "o_que_faz": "5 erros de código em 15 min por usuário e IP bloqueiam; vale para verificar, desativar e regenerar códigos.",
+  "beneficio": "Impede adivinhar o código de 6 dígitos.",
+  "onde": "seguranca/tentativas.ts, verificar2fa.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "Limitadores de taxa (rate limit)",
+  "o_que_faz": "Limite de 10 tentativas por 15 min em login, cadastro, redefinição de senha e verificação 2FA, e 1.200 requisições por 15 min na API (configuráveis por variável de ambiente).",
+  "beneficio": "Reduz abuso automatizado e picos maliciosos.",
+  "onde": "backend/src/app.ts",
+  "observacao_honesta": "Contadores em memória por processo; em várias instâncias o limite efetivo se multiplica."
+ },
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "Política de senha forte",
+  "o_que_faz": "Mínimo de 10 caracteres e rejeição de senhas comuns em cadastro e troca.",
+  "beneficio": "Evita senhas óbvias em novas contas.",
+  "onde": "seguranca/senha.ts",
+  "observacao_honesta": "Vale só para novas senhas; antigas continuam válidas até a troca."
+ },
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "Reset administrativo auditado de 2FA",
+  "o_que_faz": "A administração remove o 2FA de um usuário do mesmo tenant que perdeu aparelho e códigos; a ação grava evento de severidade crítica.",
+  "beneficio": "Suporte seguro, sem deixar usuário preso nem abrir exceções invisíveis.",
+  "onde": "seguranca/routes.ts (POST /api/security/2fa/admin-reset)",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Autenticação e acesso",
+  "controle": "Reautenticação 2FA em pagamentos",
+  "o_que_faz": "Autorizar, baixar ou enviar remessa acima de um valor configurável exige código 2FA do próprio usuário.",
+  "beneficio": "Pagamentos de alto valor só saem com a presença real do autorizador.",
+  "onde": "tesouraria/workflow.ts, remessas.ts; tela Bancos e conciliação",
+  "observacao_honesta": "Depende de configurar o valor de corte; sem 2FA ativo o usuário é barrado."
+ },
+ {
+  "categoria": "Criptografia e proteção de dados",
+  "controle": "Criptografia AES-256-GCM de segredos",
+  "o_que_faz": "Segredos 2FA são cifrados com AES-256-GCM e IV aleatório de 12 bytes; a chave vem de SECURITY_ENC_KEY (ou derivada do JWT_SECRET por HKDF) e permite rotação.",
+  "beneficio": "Um vazamento do banco não expõe os segredos de autenticação.",
+  "onde": "seguranca/cripto.ts",
+  "observacao_honesta": "Quem controla o banco e a chave consegue ler; guarde a chave como segredo."
+ },
+ {
+  "categoria": "Criptografia e proteção de dados",
+  "controle": "Dados de RH cifrados em repouso",
+  "o_que_faz": "CPF, conta bancária, chave Pix, CID, CRM e restrições do ASO são cifrados; CPF também gera HMAC para unicidade sem exposição.",
+  "beneficio": "Dados pessoais e de saúde dos colaboradores protegidos mesmo diante de acesso ao banco.",
+  "onde": "rh/cadastro.ts, rh/README.md",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Criptografia e proteção de dados",
+  "controle": "Mascaramento em listas e telas",
+  "o_que_faz": "CPF aparece como ***.***.***-NN; e-mail, telefone e nome são mascarados em listagens, contatos de cobrança e destinos de envio; consulta completa exige motivo e fica em log.",
+  "beneficio": "Quem não precisa ver o dado completo não o vê.",
+  "onde": "lgpd/mascara.ts; rh; cobranca/contato.ts; marketing",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Criptografia e proteção de dados",
+  "controle": "Redação de logs",
+  "o_que_faz": "console.* e o log HTTP passam por redação de JWT, Bearer, senhas e CPF formatado, e a URL é sanitizada; auditoria e eventos de segurança também passam por redação.",
+  "beneficio": "Logs úteis ao suporte sem virar vazamento de dados pessoais.",
+  "onde": "backend/src/app.ts; lgpd/mascara.ts; core/notify.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Criptografia e proteção de dados",
+  "controle": "Transporte seguro (HSTS)",
+  "o_que_faz": "Em produção o servidor envia Strict-Transport-Security via helmet e o frontend, HSTS de 2 anos com subdomínios.",
+  "beneficio": "Obriga o navegador a usar HTTPS.",
+  "onde": "backend/src/app.ts; frontend/vercel.json",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Criptografia e proteção de dados",
+  "controle": "Respostas da API sem cache",
+  "o_que_faz": "Todas as respostas da API saem com Cache-Control no-store e Pragma no-cache.",
+  "beneficio": "Dados sensíveis não ficam guardados em caches de navegador ou intermediários.",
+  "onde": "backend/src/app.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Criptografia e proteção de dados",
+  "controle": "Isolamento por tenant",
+  "o_que_faz": "Todo registro dos módulos tem tenantId; leitura ou alteração de outro tenant devolve 404 e referências cruzadas são conferidas no tenant.",
+  "beneficio": "Uma instituição nunca enxerga os dados de outra.",
+  "onde": "Módulos jurídico, tesouraria, rh, lgpd, marketing (READMEs e testes e2e)",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Navegador, CSP e cabeçalhos",
+  "controle": "Content-Security-Policy no frontend",
+  "o_que_faz": "CSP restritiva no site: scripts apenas do próprio domínio, object-src none, frame-ancestors none, base-uri self e form-action self, com lista fechada de destinos de conexão.",
+  "beneficio": "Dificulta injeção de scripts (XSS) e clickjacking.",
+  "onde": "frontend/vercel.json",
+  "observacao_honesta": "Usa style-src com unsafe-inline."
+ },
+ {
+  "categoria": "Navegador, CSP e cabeçalhos",
+  "controle": "Cabeçalhos de segurança do frontend",
+  "o_que_faz": "X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy bloqueando câmera, microfone e geolocalização, e COOP same-origin.",
+  "beneficio": "Fecha vetores comuns de ataque via navegador.",
+  "onde": "frontend/vercel.json",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Navegador, CSP e cabeçalhos",
+  "controle": "Cabeçalhos e CSP da API",
+  "o_que_faz": "A API envia Permissions-Policy restritiva, Referrer-Policy no-referrer, CORP same-site, nosniff, X-Frame-Options DENY e CSP default-src none; frame-ancestors none em respostas JSON, além do helmet.",
+  "beneficio": "A API não pode ser embutida nem interpretada como página.",
+  "onde": "seguranca/origem.ts (apiSecurityHeaders); app.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Navegador, CSP e cabeçalhos",
+  "controle": "Barreira de origem (originGuard)",
+  "o_que_faz": "POST, PUT, PATCH e DELETE com Origin ou Referer fora da lista permitida recebem 403 e geram evento; o CORS usa a mesma lista.",
+  "beneficio": "Impede que outro site use a sessão de um usuário logado (CSRF).",
+  "onde": "seguranca/origem.ts; app.ts",
+  "observacao_honesta": "Protege navegadores; quem chama sem Origin (webhooks, cron, scripts) segue permitido; não impede copiar o frontend."
+ },
+ {
+  "categoria": "Navegador, CSP e cabeçalhos",
+  "controle": "CSP sandbox em arquivos servidos",
+  "o_que_faz": "Arquivos do repositório, anexos de fotos, feedback, minutas e páginas públicas são servidos com CSP restritiva, nosniff e attachment para tipos não seguros.",
+  "beneficio": "Um arquivo malicioso enviado por alguém não executa no navegador de quem o abrir.",
+  "onde": "biblioteca/repositorio.ts; infraestrutura; juridico/polos.ts; marketing/publico.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Uploads, moderação e rede",
+  "controle": "Scanner de uploads em camadas",
+  "o_que_faz": "Verifica nome e dupla extensão, tipo real por magic bytes, divergência entre extensão, conteúdo e MIME, allowlist e tamanho por categoria, PDFs com JavaScript ou ação automática, SVG com script, HTML disfarçado, macros em Office, ZIP com executável, traversal ou senha, polyglots, imagens-bomba e CSV com DDE, mais o teste EICAR.",
+  "beneficio": "Reduz o risco de malware e documentos armadilhados chegarem a funcionários e alunos.",
+  "onde": "seguranca/uploads.ts, zip.ts, tipos.ts",
+  "observacao_honesta": "Malware novo ou ofuscado pode passar; é análise estática."
+ },
+ {
+  "categoria": "Uploads, moderação e rede",
+  "controle": "Guarda global de uploads (uploadGuard)",
+  "o_que_faz": "Middleware inspeciona todo corpo JSON de POST, PUT e PATCH em /api/public e rotas autenticadas: qualquer data URL ou campo base64 passa pelo scanner; falha interna da varredura recusa o arquivo (fail-closed).",
+  "beneficio": "Uma só proteção cobre todos os módulos, sem depender de cada tela lembrar.",
+  "onde": "seguranca/uploadGuard.ts; src/routes/index.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Uploads, moderação e rede",
+  "controle": "Antivírus ClamAV opcional",
+  "o_que_faz": "Integração com ClamAV via clamd TCP quando configurado.",
+  "beneficio": "Adiciona assinaturas de vírus atualizadas ao scanner embutido.",
+  "onde": "seguranca/antivirus.ts",
+  "observacao_honesta": "Opcional; só funciona se CLAMAV_HOST estiver configurado."
+ },
+ {
+  "categoria": "Uploads, moderação e rede",
+  "controle": "Consulta de hash ao VirusTotal opcional",
+  "o_que_faz": "Consulta apenas o SHA-256 do arquivo; o arquivo nunca é enviado.",
+  "beneficio": "Reputação de arquivos conhecidos sem expor o conteúdo.",
+  "onde": "seguranca/antivirus.ts",
+  "observacao_honesta": "Opcional; arquivo inédito retorna desconhecido e é tratado como limpo."
+ },
+ {
+  "categoria": "Uploads, moderação e rede",
+  "controle": "Proteção contra bomba de descompressão",
+  "o_que_faz": "Limites de megapixels de imagem, razão de compressão de ZIP e tamanho descomprimido.",
+  "beneficio": "Evita derrubar o servidor com arquivos compactados maliciosos.",
+  "onde": "seguranca/uploads.ts, zip.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Uploads, moderação e rede",
+  "controle": "Moderação de imagens por IA",
+  "o_que_faz": "Imagem enviada pode ser avaliada por IA com visão para recusar conteúdo sexual explícito e violência gratuita, preservando fotos clínicas e anatomia; política flag (padrão), strict ou off.",
+  "beneficio": "Ambiente institucional livre de conteúdo impróprio.",
+  "onde": "seguranca/moderacao.ts",
+  "observacao_honesta": "Exige chave ANTHROPIC_API_KEY; é probabilística; imagens acima de 5 MB e vídeos não são moderados."
+ },
+ {
+  "categoria": "Uploads, moderação e rede",
+  "controle": "Moderação de texto e links",
+  "o_que_faz": "Em formulários públicos, ouvidoria e chat, bloqueia domínios adultos ou de malware e javascript: e script, e marca para revisão URLs encurtadas, homoglifos, links para IP, TLD abusado e frases de phishing; não bloqueia termos médicos.",
+  "beneficio": "Barra golpes sem censurar vocabulário legítimo.",
+  "onde": "seguranca/moderacao.ts",
+  "observacao_honesta": "Baseada em listas e padrões, não em semântica."
+ },
+ {
+  "categoria": "Uploads, moderação e rede",
+  "controle": "Anti-SSRF em links de anexo",
+  "o_que_faz": "Campos de URL só aceitam https público, sem IP privado, localhost, metadados de nuvem, credenciais, javascript:, data: ou file:.",
+  "beneficio": "Impede guardar links para a rede interna ou esquemas perigosos.",
+  "onde": "seguranca/url.ts, uploadGuard.ts",
+  "observacao_honesta": "A checagem de DNS é de melhor esforço (DNS rebinding)."
+ },
+ {
+  "categoria": "Uploads, moderação e rede",
+  "controle": "Proteção dos endpoints públicos",
+  "o_que_faz": "Limite por IP, honeypot e moderação de texto em formulários, chat e portal do titular; bloqueio após 5 erros de código no portal.",
+  "beneficio": "Reduz spam e abuso nas páginas abertas ao público.",
+  "onde": "marketing/publico.ts; lgpd/solicitacoes.ts",
+  "observacao_honesta": "Limites em memória por processo."
+ },
+ {
+  "categoria": "Auditoria e rastreabilidade",
+  "controle": "Trilha de auditoria global",
+  "o_que_faz": "Função audit() registra no EduAuditEvent módulo, ação, usuário, referência e detalhes (com redação de dados pessoais) em criações, alterações e decisões de todos os módulos.",
+  "beneficio": "É possível responder quem fez o quê e quando.",
+  "onde": "core/notify.ts; módulos",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Auditoria e rastreabilidade",
+  "controle": "Trilha por título a pagar",
+  "o_que_faz": "Cada transição do título grava evento com usuário e papel; o conteúdo autorizado é congelado por hash.",
+  "beneficio": "Fraude ou alteração após autorização é detectada e bloqueada.",
+  "onde": "tesouraria/workflow.ts, TesTituloEvento",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Auditoria e rastreabilidade",
+  "controle": "Segregação de funções",
+  "o_que_faz": "Quem lança não confere nem autoriza, quem registra a permuta não a aprova, quem aprova ajuste, férias ou licença não o faz sobre si, quem conferiu o acerto não paga.",
+  "beneficio": "Controle interno aplicado pelo sistema, não por confiança.",
+  "onde": "tesouraria; rh; cobranca (alçadas)",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Auditoria e rastreabilidade",
+  "controle": "Eventos de segurança",
+  "o_que_faz": "SegEvento registra login falho, bloqueio, 2FA, upload bloqueado, origem negada e moderação, consultáveis por administradores do tenant com filtros e severidade.",
+  "beneficio": "Visibilidade para detectar ataques e erros.",
+  "onde": "seguranca/eventos.ts; tela /seguranca/eventos",
+  "observacao_honesta": "Exige aplicar a migração das tabelas Seg*."
+ },
+ {
+  "categoria": "Auditoria e rastreabilidade",
+  "controle": "Log de acesso a dado sensível",
+  "o_que_faz": "LgpAcessoSensivel grava usuário, papel, recurso e titular nos acessos a saúde, remuneração, disciplinar, identificação, avaliação, dado judicial e antecedentes, e em rotas de apoio, AEE, ocorrências e bolsas.",
+  "beneficio": "Transparência sobre quem consultou dados delicados.",
+  "onde": "lgpd/sensiveis.ts; rh; juridico; Central LGPD",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Auditoria e rastreabilidade",
+  "controle": "Registro de cada contato de cobrança",
+  "o_que_faz": "Canal, resultado, base legal, destino mascarado e usuário ou régua são gravados em cada contato, inclusive bloqueados.",
+  "beneficio": "Prova de conformidade em reclamações.",
+  "onde": "cobranca/contato.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "Auditoria e rastreabilidade",
+  "controle": "Exportações CSV auditadas",
+  "o_que_faz": "Exportações da cobrança são auditadas e neutralizam injeção de fórmula.",
+  "beneficio": "Evita vazamento silencioso e ataques via planilha.",
+  "onde": "cobranca; marketing",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Consentimentos versionados",
+  "o_que_faz": "Texto exibido, versão, hash, origem e revogação ficam guardados; textos publicados são imutáveis; menores exigem responsável legal.",
+  "beneficio": "Prova do consentimento e respeito às finalidades.",
+  "onde": "lgpd/consentimentos.ts, textos.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Direitos do titular (art. 18)",
+  "o_que_faz": "Protocolo, fila do DPO com semáforo de 15 dias (uma prorrogação de +15 justificada), verificação de identidade obrigatória, pacote de dados em JSON, correção e resposta com trilha.",
+  "beneficio": "Atendimento organizado dentro do prazo legal.",
+  "onde": "lgpd/solicitacoes.ts, pacote.ts; Portal do Titular /portal-titular",
+  "observacao_honesta": "A verificação de identidade é registrada, não automatizada."
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Anonimização e eliminação com exceção do art. 16",
+  "o_que_faz": "Plano em dry-run por padrão e execução em uma transação com confirmação; histórico escolar, notas, frequência, diplomas, financeiro/fiscal, estágio e disciplinar são mantidos com fundamento explícito.",
+  "beneficio": "Atende ao titular sem apagar o que a lei manda guardar.",
+  "onde": "lgpd/anonimizar.ts, catalogo.ts",
+  "observacao_honesta": "Texto livre e anexos não são varridos."
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Descoberta de dados não classificados",
+  "o_que_faz": "Tabelas com studentId, candidatoId ou egressoId fora do catálogo são descobertas pelo schema, exportadas e tratadas como mantidas.",
+  "beneficio": "Reduz o risco de esquecer dados de um titular.",
+  "onde": "lgpd/catalogo.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Inventário de tratamento (ROPA, art. 37)",
+  "o_que_faz": "Atividades pré-populadas com base legal, categorias, compartilhamento, retenção e medidas de segurança, exportáveis em CSV.",
+  "beneficio": "Documentação exigida pela LGPD pronta para revisão.",
+  "onde": "lgpd/ropa.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Política de retenção e expurgo",
+  "o_que_faz": "Alvos como candidatos não matriculados, contatos inativos, mensagens, eventos de segurança e acessos sensíveis, com prazo configurável respeitando mínimo; job em dry-run por padrão.",
+  "beneficio": "Só guarda o dado enquanto necessário.",
+  "onde": "lgpd/retencao.ts",
+  "observacao_honesta": "Execução real exige LGPD_RETENCAO_EXECUTAR=true ou confirmação manual."
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Gestão de incidentes (art. 48)",
+  "o_que_faz": "Prazo de 3 dias úteis com feriados nacionais, checklist, comunicação à ANPD e aos titulares e linha do tempo.",
+  "beneficio": "Resposta organizada a vazamentos.",
+  "onde": "lgpd/incidentes.ts, prazos.ts",
+  "observacao_honesta": "Feriados locais não entram no cálculo."
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Encarregado (DPO)",
+  "o_que_faz": "Designação com canal do titular e vínculo a usuário para acesso à Central LGPD.",
+  "beneficio": "Ponto de contato formal com titulares e ANPD.",
+  "onde": "lgpd/dpo.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Cookies e Política de Privacidade públicas",
+  "o_que_faz": "Banner de cookies com consentimento por finalidade, Política de Privacidade e Termos de Uso públicos.",
+  "beneficio": "Transparência para o titular.",
+  "onde": "frontend/src/lgpd/",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Supressão global no marketing",
+  "o_que_faz": "Lista de supressão com hash e máscara, opt-out por qualquer canal, opt-in obrigatório, limites e janela de horário e descadastro em um clique.",
+  "beneficio": "Marketing que respeita a vontade do titular em todos os canais.",
+  "onde": "marketing/compliance.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Minimização para a Reitoria",
+  "o_que_faz": "Resumos de RH e avaliações sem nomes, CPF, salários individuais, CID ou notas individuais, e grupos com menos de 3 pessoas suprimidos (k-anonimato).",
+  "beneficio": "Gestão baseada em indicadores, sem expor pessoas.",
+  "onde": "rh/painel.ts; rh/avaliacoes.ts",
+  "observacao_honesta": ""
+ },
+ {
+  "categoria": "LGPD: direitos, consentimento e retenção",
+  "controle": "Sigilo no Jurídico",
+  "o_que_faz": "Documentos confidenciais e processos criminais ou em segredo de justiça só para jurídico e reitoria; financeiro e secretaria veem CPF/CNPJ mascarado.",
+  "beneficio": "Informação jurídica sensível protegida por papel.",
+  "onde": "juridico/README.md",
+  "observacao_honesta": ""
+ }
+]
