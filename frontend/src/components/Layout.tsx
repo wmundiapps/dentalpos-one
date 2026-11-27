@@ -9,7 +9,6 @@ import SubscriptionBanner from "./SubscriptionBanner";
 import EvaluationWidget from "./EvaluationWidget";
 import Footer from "./Footer";
 import Header from "./Header";
-import PendingAlertsBar from "./PendingAlertsBar";
 import PendingLockGate from "./PendingLockGate";
 import ToastHost from "./ToastHost";
 import PrintHeader from "./PrintHeader";
@@ -50,7 +49,6 @@ export default function Layout({
         <Header />
         <Box className="no-print"><DemoBanner /></Box>
         <Box className="no-print"><SubscriptionBanner /></Box>
-        <Box className="no-print" sx={{ display: { xs: "none", md: "block" } }}><PendingAlertsBar /></Box>
         <ToastHost />
 
         <Box

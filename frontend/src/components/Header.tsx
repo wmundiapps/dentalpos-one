@@ -19,7 +19,8 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
+import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import { openAlerts } from "./alerts/AlertsMenu";
 import { useCriticalAlerts } from "../hooks/useCriticalAlerts";
 import { usePendingCount } from "../services/PendingAlertsApi";
@@ -66,7 +67,6 @@ export default function Header() {
   const { alerts: criticalAlerts } = useCriticalAlerts();
   const pendingCount = usePendingCount(location.pathname);
   const alertTotal = criticalAlerts.length + pendingCount;
-  const alertError = pendingCount > 0 || criticalAlerts.some((a) => a.severity === "error");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
@@ -232,9 +232,9 @@ export default function Header() {
         <Box sx={{ flexGrow: 1 }} />
 
         <IconButton aria-label="Pesquisar módulos" onClick={() => setSearchOpen((v) => !v)} sx={{ display: { xs: "inline-flex", md: "none" } }}><SearchIcon /></IconButton>
-        <Tooltip title={alertTotal ? `${alertTotal} alerta(s) e pendência(s)` : "Alertas críticos"}>
-          <IconButton aria-label="Alertas críticos" onClick={() => openAlerts()} sx={{ color: alertTotal ? (alertError ? "error.main" : "warning.main") : "text.secondary" }}>
-            <Badge badgeContent={alertTotal} color={alertError ? "error" : "warning"} max={99}>{alertTotal ? <NotificationsActiveIcon /> : <NotificationsNoneIcon />}</Badge>
+        <Tooltip title={alertTotal ? `${alertTotal} alerta(s) crítico(s) no seu setor` : "Alertas críticos: nenhum no momento"}>
+          <IconButton aria-label="Alertas críticos" onClick={() => openAlerts()} sx={{ color: alertTotal ? "#F5B700" : "text.disabled" }}>
+            <Badge badgeContent={alertTotal} color="error" max={99} overlap="circular">{alertTotal ? <ReportProblemIcon sx={{ fontSize: 28 }} /> : <ReportProblemOutlinedIcon sx={{ fontSize: 28 }} />}</Badge>
           </IconButton>
         </Tooltip>
         <IconButton aria-label="Caixinha de sugestões" onClick={() => setFeedbackOpen(true)} sx={{ display: { xs: "inline-flex", md: "none" }, color: "#E07B2E" }}><EmojiObjectsOutlinedIcon /></IconButton>
