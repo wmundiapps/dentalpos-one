@@ -1,5 +1,6 @@
 import { Box, Paper, Typography } from "@mui/material";
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import InstitutionLogo, { useBranding } from "./InstitutionLogo";
 import { AmbienteChip } from "./ambiente/useAmbiente";
 
@@ -16,6 +17,9 @@ interface Props {
 /** Moldura padrão das telas EduMaster: faixa institucional com espaço de destaque para a logomarca + conteúdo. */
 export default function EduShell({ title, subtitle, actions, children, hero = true, onLogoClick }: Props) {
   const b = useBranding();
+  const navigate = useNavigate();
+  // Sem uma ação própria (ex.: a própria tela de Identidade), o clique leva para lá: é onde a logo de verdade é enviada.
+  const irParaIdentidade = () => navigate("/edu/identidade");
   const primary = b?.cores.primaria || "#0F5FDB";
   const secondary = b?.cores.secundaria || "#0B1F3A";
   return (
@@ -30,7 +34,7 @@ export default function EduShell({ title, subtitle, actions, children, hero = tr
           }}
         >
           <Box sx={{ bgcolor: "rgba(255,255,255,.96)", borderRadius: 3, p: 1.5, display: "flex", alignItems: "center", justifyContent: "center", minWidth: { xs: 0, md: 260 }, maxWidth: "100%", boxSizing: "border-box", minHeight: 100, boxShadow: "0 10px 30px rgba(0,0,0,.18)" }}>
-            <InstitutionLogo variant="hero" onPlaceholderClick={onLogoClick} />
+            <InstitutionLogo variant="hero" onPlaceholderClick={onLogoClick || irParaIdentidade} />
           </Box>
           <Box sx={{ flex: 1, minWidth: { xs: 0, md: 220 }, flexBasis: { xs: "100%", md: "auto" } }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
