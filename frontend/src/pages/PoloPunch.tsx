@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, TextField, Typography } from "@mui/material";
 import FacePunchKiosk from "./FacePunchKiosk";
-import { COARSE_HELP, COARSE_LIMIT, GEO_HELP, useBestLocation } from "../hooks/useBestLocation";
+import { GEO_HELP, useBestLocation } from "../hooks/useBestLocation";
 import type { PunchApi } from "../services/HrFaceApi";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -21,10 +21,12 @@ function CalibrateStep({ name, onConfirm }: { name: string; onConfirm: (g: { lat
   const [, setTick] = useState(0);
   useEffect(() => { const t = window.setInterval(() => setTick((n) => n + 1), 1500); return () => window.clearInterval(t); }, []);
 
-  // Libera com ±60 m na hora; se o aparelho não passar disso, aceita até ±100 m depois de 25 s de busca (melhor leitura obtida).
+  // Libera por etapas, para não prender a pessoa: ±60 m na hora; ±100 m após 8 s; ±300 m após 15 s; e, se o aparelho só tem localização aproximada
+  // (±2,5 km no máximo), libera após 30 s e o polo passa a aceitar a região (o RH pode acertar o ponto exato depois).
   const secs = loc.secondsSearching();
   const acc = loc.accuracy;
-  const good = acc !== null && (acc <= 60 || (acc <= 100 && secs >= 25));
+  const good = acc !== null && (acc <= 60 || (acc <= 100 && secs >= 8) || (acc <= 300 && secs >= 15) || (acc <= 2500 && secs >= 30));
+  const approxOnly = acc !== null && acc > 100;
   const confirm = async () => {
     const g = loc.best.current;
     if (!g) return;
@@ -40,9 +42,9 @@ function CalibrateStep({ name, onConfirm }: { name: string; onConfirm: (g: { lat
       {loc.status === "denied" ? <Alert severity="warning" action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>A localização está bloqueada neste aparelho. {GEO_HELP}</Alert>
         : loc.status === "unavailable" ? <Alert severity="warning" action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Este aparelho não conseguiu achar o local. {GEO_HELP}</Alert>
         : acc === null ? <Alert severity="info" icon={<CircularProgress size={20} />} action={secs >= 30 ? <Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button> : undefined}>Procurando o sinal de GPS… ({secs} s). {secs >= 20 ? GEO_HELP : "Pode levar alguns segundos."}</Alert>
-        : acc > COARSE_LIMIT ? <Alert severity="warning" action={<Button color="inherit" size="small" onClick={loc.restart}>Tentar de novo</Button>}>Localização aproximada (±{acc} m). {COARSE_HELP}</Alert>
+        : good && approxOnly ? <Alert severity="warning">Localização aproximada (±{acc} m). Pode confirmar: este polo vai aceitar o ponto na região. Se puder, ligue a localização precisa do celular (Android: Configurações &gt; Localização &gt; Precisão da localização do Google).</Alert>
         : good ? <Alert severity="success">Localização encontrada (precisão ±{acc} m). Pode confirmar.</Alert>
-        : <Alert severity="info">Melhorando a precisão… agora ±{acc} m. Libera a ±60 m, ou a ±100 m depois de {Math.max(0, 25 - secs)} s. Se puder, chegue perto de uma janela ou área aberta.</Alert>}
+        : <Alert severity="info" icon={<CircularProgress size={20} />}>Buscando a localização… agora ±{acc} m. {secs < 30 ? `Aguarde: libera em até ${Math.max(1, 30 - secs)} s.` : "Já pode confirmar em instantes."} Se puder, chegue perto de uma janela.</Alert>}
       {error && <Alert severity="error">{error}</Alert>}
       <Button variant="contained" size="large" disabled={busy || !good} onClick={() => void confirm()}>{busy ? "Gravando…" : "Confirmar que estou no polo"}</Button>
     </Paper>
