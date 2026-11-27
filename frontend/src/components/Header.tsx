@@ -29,7 +29,7 @@ import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchIcon from "@mui/icons-material/Search";
 import LogoutIcon from "@mui/icons-material/Logout";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
+import EmojiObjectsOutlinedIcon from "@mui/icons-material/EmojiObjectsOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import FeedbackDialog from "./FeedbackDialog";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
@@ -240,7 +240,7 @@ export default function Header() {
         <IconButton aria-label="Mais opções" onClick={(e) => setMoreAnchor(e.currentTarget)} sx={{ display: { xs: "inline-flex", md: "none" } }}><MoreVertIcon /></IconButton>
         <Menu anchorEl={moreAnchor} open={Boolean(moreAnchor)} onClose={() => setMoreAnchor(null)}>
           <MenuItem onClick={() => { setMoreAnchor(null); window.print(); }}><ListItemIcon><PrintOutlinedIcon fontSize="small" /></ListItemIcon><ListItemText>Imprimir esta tela</ListItemText></MenuItem>
-          <MenuItem onClick={() => { setMoreAnchor(null); setFeedbackOpen(true); }}><ListItemIcon><FeedbackOutlinedIcon fontSize="small" /></ListItemIcon><ListItemText>Relatar problema ou sugestão</ListItemText></MenuItem>
+          <MenuItem onClick={() => { setMoreAnchor(null); setFeedbackOpen(true); }}><ListItemIcon><EmojiObjectsOutlinedIcon fontSize="small" /></ListItemIcon><ListItemText>Caixinha de sugestões</ListItemText></MenuItem>
           <MenuItem onClick={() => { setMoreAnchor(null); toggleMode(); }}><ListItemIcon>{mode === "light" ? <DarkModeOutlinedIcon fontSize="small" /> : <LightModeOutlinedIcon fontSize="small" />}</ListItemIcon><ListItemText>{mode === "light" ? "Modo escuro" : "Modo claro"}</ListItemText></MenuItem>
           {!demo?.isDemo ? <MenuItem onClick={() => { setMoreAnchor(null); navigate("/notificacoes"); }}><ListItemIcon><Badge badgeContent={unreadCount} color="error"><NotificationsNoneIcon fontSize="small" /></Badge></ListItemIcon><ListItemText>Notificações</ListItemText></MenuItem> : null}
           <MenuItem onClick={() => { setMoreAnchor(null); clearClientSession(); window.location.href = appRootUrl(); }}><ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon><ListItemText>Sair com segurança</ListItemText></MenuItem>
@@ -252,9 +252,9 @@ export default function Header() {
             <PrintOutlinedIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title={"Relatar problema ou sugestão"}>
+        <Tooltip title={"Caixinha de sugestões"}>
           <IconButton onClick={() => setFeedbackOpen(true)} sx={{ color: "warning.main" }}>
-            <FeedbackOutlinedIcon />
+            <EmojiObjectsOutlinedIcon />
           </IconButton>
         </Tooltip>
         <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
