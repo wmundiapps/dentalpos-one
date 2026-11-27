@@ -527,16 +527,12 @@ export function getOperationalAlerts(): OperationalAlert[] {
   const agendaRows = getAppointments();
   agendaRows.forEach((appointment) => {
     const days = daysBetween(appointment.dateISO);
-    if (days === 0 && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado" && appointment.status !== "Finalizado") {
-      alerts.push({ id: `agenda-today-${appointment.id}`, area: "Agenda", severity: "info", title: "Consulta hoje", description: `${appointment.time} • ${appointment.patientName} • ${appointment.procedure}. Próximo: ${appointment.nextProcedure}`, dueISO: appointment.dateISO, route: "/agenda" });
-    } else if (days === 1 && appointment.reminders.oneDayBefore) {
-      alerts.push({ id: `agenda-tomorrow-${appointment.id}`, area: "Agenda", severity: "info", title: "Lembrete de consulta para amanhã", description: `${appointment.patientName} às ${appointment.time}.`, dueISO: appointment.dateISO, route: "/agenda" });
-    }
+    // Agenda do dia (hoje e amanhã) não entra nos alertas críticos: só aparece o que ficou pendente de dias anteriores.
     const futureForPatient = agendaRows.some(a=>a.patientName.toLowerCase()===appointment.patientName.toLowerCase() && a.dateISO>todayISO() && !["Cancelado","Desmarcado","Faltou"].includes(a.status));
-    if (appointment.status === "Faltou" && days <= 0 && !futureForPatient) {
+    if (appointment.status === "Faltou" && days < 0 && !futureForPatient) {
       alerts.push({ id:`agenda-noshow-${appointment.id}`, area:"Pacientes", severity:"warning", title:"Falta ainda não remarcada", description:`${appointment.patientName} faltou em ${appointment.dateISO.split("-").reverse().join("/")} e ainda não possui novo agendamento.`, dueISO:appointment.dateISO, route:"/agenda" });
     }
-    if (appointment.status === "Finalizado" && days <= 0 && days >= -7 && !futureForPatient) {
+    if (appointment.status === "Finalizado" && days < 0 && days >= -7 && !futureForPatient) {
       alerts.push({ id:`agenda-return-${appointment.id}`, area:"Pacientes", severity:"info", title:"Atendimento concluído sem próximo retorno", description:`${appointment.patientName} foi atendido e não possui retorno futuro registrado. Próximo procedimento informado: ${appointment.nextProcedure}.`, dueISO:appointment.dateISO, route:"/agenda" });
     }
     if (appointment.status === "Finalizado") {
