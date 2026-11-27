@@ -237,6 +237,7 @@ export default function Header() {
             <Badge badgeContent={alertTotal} color={alertError ? "error" : "warning"} max={99}>{alertTotal ? <NotificationsActiveIcon /> : <NotificationsNoneIcon />}</Badge>
           </IconButton>
         </Tooltip>
+        <IconButton aria-label="Caixinha de sugestões" onClick={() => setFeedbackOpen(true)} sx={{ display: { xs: "inline-flex", md: "none" }, color: "#E07B2E" }}><EmojiObjectsOutlinedIcon /></IconButton>
         <IconButton aria-label="Mais opções" onClick={(e) => setMoreAnchor(e.currentTarget)} sx={{ display: { xs: "inline-flex", md: "none" } }}><MoreVertIcon /></IconButton>
         <Menu anchorEl={moreAnchor} open={Boolean(moreAnchor)} onClose={() => setMoreAnchor(null)}>
           <MenuItem onClick={() => { setMoreAnchor(null); window.print(); }}><ListItemIcon><PrintOutlinedIcon fontSize="small" /></ListItemIcon><ListItemText>Imprimir esta tela</ListItemText></MenuItem>
