@@ -256,3 +256,24 @@ export async function pendingReceipt(req: AuthRequest, res: Response) {
     return res.status(500).json({ error: 'Erro ao listar as ordens pendentes.' })
   }
 }
+
+// Cancelar a ordem (recusada pelo laboratório ou enviada por engano / refeita em outra): sai das pendências. Exige o motivo.
+export async function cancelOrder(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, userId } = ctx(req)
+    const order = await loadOrder(req)
+    if (!order) return res.status(404).json({ error: 'Ordem de serviço não encontrada.' })
+    if (!['SENT', 'REFUSED'].includes(order.status)) return res.status(409).json({ error: 'Só dá para cancelar ordem recusada ou ainda sem recebimento. Ordem em andamento no laboratório segue pelo andamento/erros.' })
+    const reason = text(req.body?.reason, 500)
+    if (reason.length < 3) return res.status(400).json({ error: 'Informe o motivo do cancelamento.' })
+    const name = await userName(userId)
+    const entry = { at: new Date().toISOString(), byName: name, stage: 'CANCELLED', note: reason, readyBy: null }
+    const log = [...(Array.isArray(order.progressLog) ? (order.progressLog as unknown[]) : []), entry].slice(-30)
+    const updated = await prisma.labServiceOrder.update({ where: { id: order.id }, data: { status: 'CANCELLED', progressNote: reason, progressAt: new Date(), progressByName: name, progressLog: log as unknown as Prisma.InputJsonValue } })
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: 'LAB_ORDER_CANCELLED', entityType: 'LabServiceOrder', entityId: order.id, summary: `${order.protocol}: ordem cancelada (${order.status === 'REFUSED' ? 'recusada pelo laboratório' : 'sem recebimento'}) — ${reason}` })
+    return res.json((await labOnly(req)) ? hide(updated) : updated)
+  } catch (error) {
+    console.error('Erro ao cancelar ordem de serviço:', error)
+    return res.status(500).json({ error: 'Erro ao cancelar a ordem.' })
+  }
+}
