@@ -122,3 +122,26 @@ test('filtro de texto das campanhas: recusa conteúdo adulto e link de executáv
   assert.equal(checkText('Disputa de preços, reputação e computador novo'), null)
   assert.equal(checkText('Baixe o PDF: https://site.com.br/catalogo.pdf'), null)
 })
+
+test('REVAH Ads: respeita os limites do Meta e passa pelo filtro de conteúdo', async () => {
+  const { finalizeResult } = await import('../src/services/ads')
+  const v = (i: number, extra: any = {}) => ({ angle: 'oferta', primaryText: 'Sorriso novo em Maringá', headline: 'H'.repeat(60), description: 'D'.repeat(50), cta: 'SEND_WHATSAPP_MESSAGE' as const, creativeBrief: 'foto', ...extra, _i: i })
+  const r = finalizeResult({
+    strategy: 's', campaignObjective: 'OUTCOME_ENGAGEMENT',
+    audience: { ageMin: 25, ageMax: 55, genders: 'ALL', locations: ['Maringá-PR + 15 km'], interests: [], exclusions: [], advantagePlus: true },
+    budget: { dailySuggested: 30, testDays: 7, howToSplit: '' },
+    variants: [v(1), v(2, { primaryText: 'Veja meus nudes' }), v(3), v(4), v(5), v(6)],
+    policyWarnings: [], successMetrics: [], nextSteps: [],
+  } as any)
+  assert.equal(r.variants.length, 5)
+  assert.equal(r.variants[0].headline.length, 40)
+  assert.equal(r.variants[0].description.length, 30)
+  assert.deepEqual(r.flagged, ['Variação 2: texto recusado pelo filtro de conteúdo.'])
+})
+
+test('REVAH Ads: taxa de 5% em centavos de dólar, arredondada para cima', async () => {
+  const { feeForSpend } = await import('../src/services/adsBilling')
+  assert.equal(feeForSpend(100000), 5000)
+  assert.equal(feeForSpend(1999), 100)
+  assert.equal(feeForSpend(1), 1)
+})

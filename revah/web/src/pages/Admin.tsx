@@ -12,6 +12,7 @@ interface AdminTenant {
   status: string
   source: string
   leadsAddonActive: boolean
+  adsAddonActive: boolean
   trialEndsAt: string | null
   trialEligible: boolean
   billingProvider?: string | null
@@ -76,6 +77,7 @@ function Tenants() {
                 <th>Plano</th>
                 <th>Status</th>
                 <th>Leads</th>
+                <th>Ads</th>
                 <th>Teste</th>
                 <th className="hide-sm">Uso</th>
                 <th className="hide-sm">Criada</th>
@@ -110,6 +112,9 @@ function Tenants() {
                   </td>
                   <td>
                     <input type="checkbox" checked={t.leadsAddonActive} onChange={(e) => update(t, { leadsAddonActive: e.target.checked })} aria-label="Leads ativo" />
+                  </td>
+                  <td>
+                    <input type="checkbox" checked={t.adsAddonActive} onChange={(e) => update(t, { adsAddonActive: e.target.checked })} aria-label="Ads ativo" />
                   </td>
                   <td>
                     <TrialEndInput value={t.trialEndsAt} onSave={(v) => update(t, { trialEndsAt: v })} />
