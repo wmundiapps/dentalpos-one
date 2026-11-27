@@ -51,7 +51,7 @@ export async function report(req: Request, res: Response) {
     })
     const revenue = entries.filter((e) => e.type.toUpperCase().includes('RECE')).reduce((a, e) => a + e.amount, 0)
     const expense = entries.filter((e) => e.type.toUpperCase().includes('DESP')).reduce((a, e) => a + e.amount, 0)
-    const overdue = entries.filter((e) => e.dueDate < new Date() && !paidStatuses.includes(e.status.toUpperCase())).reduce((a, e) => a + e.amount, 0)
+    const overdue = entries.filter((e) => e.dueDate < new Date() && !paidStatuses.includes(e.status.toUpperCase()) && !['CLINICORP', 'IMPORTACAO'].includes(String((e as { origin?: string }).origin || ''))).reduce((a, e) => a + e.amount, 0)
     return respond(req, res, 'financeiro', { de: fromText, ate: toText, receitas: revenue, despesas: expense, saldo: revenue - expense, vencido: overdue }, entries.map((e) => ({
       nome: e.patient?.fullName || e.personName, tipo: e.type, categoria: e.category, valor: e.amount, vencimento: e.dueDate, status: e.status, pago_em: e.paidAt || '',
     })))

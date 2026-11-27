@@ -20,6 +20,7 @@ const RECEIVE_OPTIONS = ["Dinheiro", "Cartão (maquininha)", "Pix", "Transferên
 function situation(r: Row): { label: string; color: "success" | "error" | "warning" | "default" } {
   if (r.status === "PAID") return { label: r.type === "EXPENSE" ? "Pago" : "Recebido", color: "success" };
   if (r.status === "CANCELLED") return { label: "Cancelado", color: "default" };
+  if (["CLINICORP", "IMPORTACAO"].includes(String(r.origin || ""))) return { label: "Em aberto (Clinicorp)", color: "default" };
   return new Date(r.dueDate).getTime() < Date.now() - 86400000 ? { label: "Atrasado", color: "error" } : { label: "A vencer", color: "warning" };
 }
 
@@ -145,7 +146,7 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
                 {r.status === "CANCELLED" && r.notes && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, whiteSpace: "pre-line" }}>{r.notes}</Typography>}
                 {open && (
                   <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.25 }}>
-                    <Button size="small" variant="contained" onClick={() => setCharging({ id: r.id, description: r.description, personName: patient.fullName, amount: r.amount, dueDate: r.dueDate, phone: patient.phone })}>Gerar boleto / Pix / cartão</Button>
+                    {!["CLINICORP", "IMPORTACAO"].includes(String(r.origin || "")) && <Button size="small" variant="contained" onClick={() => setCharging({ id: r.id, description: r.description, personName: patient.fullName, amount: r.amount, dueDate: r.dueDate, phone: patient.phone })}>Gerar boleto / Pix / cartão</Button>}
                     <Button size="small" variant="outlined" color="success" onClick={(e) => setMenu({ el: e.currentTarget, row: r })}>Receber agora</Button>
                     <Button size="small" variant="outlined" color="error" onClick={() => { setCancelRow(r); setCancelReason(""); }}>Cancelar boleto / parcela</Button>
                   </Box>

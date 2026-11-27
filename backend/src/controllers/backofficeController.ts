@@ -67,7 +67,7 @@ export async function dashboard(req: AuthRequest, res: Response) {
     const openPayables = entries.filter((row) => row.type === 'EXPENSE' && row.status !== 'PAID')
     const receivedThisMonth = entries.filter((row) => row.type === 'INCOME' && row.status === 'PAID' && row.paidAt && row.paidAt >= monthStart && row.paidAt < monthEnd)
     const paidThisMonth = entries.filter((row) => row.type === 'EXPENSE' && row.status === 'PAID' && row.paidAt && row.paidAt >= monthStart && row.paidAt < monthEnd)
-    const overdue = entries.filter((row) => row.status !== 'PAID' && row.dueDate < now)
+    const overdue = entries.filter((row) => row.status !== 'PAID' && row.dueDate < now && !['CLINICORP', 'IMPORTACAO'].includes(String((row as { origin?: string }).origin || '')))
     const pendingAccounting = entries.filter((row) => row.accountingStatus !== 'REVIEWED' && row.status !== 'CANCELLED')
     const taxPending = taxes.filter((row) => !['PAID', 'TRANSMITTED'].includes(row.status))
 
