@@ -3,7 +3,7 @@ import { navigationItems, type NavigationItem } from "./navigation";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-export interface MenuAccess { all: boolean; menuCodes: string[]; legacyModules: string[]; hasLegacy?: boolean }
+export interface MenuAccess { all: boolean; menuCodes: string[]; legacyModules: string[]; hasLegacy?: boolean; payables?: boolean }
 
 /** Código de permissão de um item do menu. Ex.: "/financeiro?tipo=Receita" vira "menu.financeiro_tipo_receita". */
 export function menuCode(path: string): string {
@@ -39,6 +39,8 @@ export const ALWAYS_ALLOWED = ["/meu-ponto"];
 
 export function itemAllowed(item: Pick<NavigationItem, "path">, access: MenuAccess | null): boolean {
   if (!access || access.all || ALWAYS_ALLOWED.includes(item.path.split("?")[0])) return true;
+  // Contas a pagar: só o setor Financeiro (permissão própria), mesmo que o item esteja marcado em outro departamento.
+  if (item.path.split("?")[0] === "/financeiro" && /tipo=despesa/i.test(item.path) && access.payables !== true) return false;
   if (access.menuCodes.includes(menuCode(item.path))) return true;
   const module = moduleOfPath(item.path.split("?")[0]);
   // Item sem módulo (ex.: painel inicial) fica livre, a não ser que o departamento já tenha sido configurado.

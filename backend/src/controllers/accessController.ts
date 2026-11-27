@@ -46,7 +46,9 @@ export async function myMenuAccess(req: AuthRequest, res: Response) {
     if (menu.length) menu.forEach(c => menuCodes.add(c))
     else { hasLegacy = true; codes.filter(c => c.endsWith('.view')).forEach(c => legacyModules.add(c.split('.')[0])) }
   }
-  return res.json({ all: false, menuCodes: [...menuCodes], legacyModules: [...legacyModules], hasLegacy: hasLegacy || memberships.length === 0 })
+  // Contas a pagar só aparece para quem tem a permissão própria (setor Financeiro, gestor, administrador).
+  const payables = memberships.some(m => m.profile.permissions.some(p => p.permission.code === 'finance.payables'))
+  return res.json({ all: false, menuCodes: [...menuCodes], legacyModules: [...legacyModules], hasLegacy: hasLegacy || memberships.length === 0, payables })
 }
 
 export async function assignProfile(req: AuthRequest, res: Response) {
