@@ -5,7 +5,7 @@ import { PENDING_ALERTS_EVENT } from "../services/PendingAlertsApi";
 import LabServiceOrderDialog from "../components/LabServiceOrderDialog";
 import { accompanyingItems, printLabLabels, printLabOrder } from "../utils/labOrderPrint";
 import {
-  deliverLabOrder, loadLabServiceOrders, registerLabReceipt, reportLabOrderError, resolveLabOrderError, RESPONSIBLE_LABELS,
+  cancelLabOrder, deliverLabOrder, loadLabServiceOrders, registerLabReceipt, reportLabOrderError, resolveLabOrderError, RESPONSIBLE_LABELS,
   updateLabOrderProgress, PROGRESS_PRESETS, STAGE_LABELS,
   type ErrorResponsible, type LabOrderStage, type LabServiceOrder,
 } from "../services/LabServiceOrderApi";
@@ -15,6 +15,7 @@ const STATUS: Record<string, { label: string; color: "default" | "warning" | "su
   RECEIVED: { label: "RECEBIDO pelo laboratório", color: "info" },
   REFUSED: { label: "RECUSADO pelo laboratório", color: "error" },
   DELIVERED: { label: "Entregue à clínica", color: "success" },
+  CANCELLED: { label: "CANCELADA", color: "default" },
 };
 const dmy = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "UTC" });
 const dmyHm = (iso: string) => new Date(iso).toLocaleString("pt-BR");
@@ -25,6 +26,9 @@ export default function LabServiceOrders() {
   const [error, setError] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [rcCode, setRcCode] = useState("");
+  const [cancelFor, setCancelFor] = useState<LabServiceOrder | null>(null);
+  const [cancelWhy, setCancelWhy] = useState("");
+  const [cancelNote, setCancelNote] = useState("");
   const [receipt, setReceipt] = useState<{ order: LabServiceOrder; outcome: "RECEIVED" | "REFUSED" } | null>(null);
   const [rcName, setRcName] = useState("");
   const [rcReason, setRcReason] = useState("");
@@ -44,7 +48,7 @@ export default function LabServiceOrders() {
   }, []);
   useEffect(() => { void refresh(); }, [refresh]);
 
-  const shown = useMemo(() => orders.filter((o) => filter === "ALL" ? true : filter === "OPEN" ? o.status !== "DELIVERED" : o.status === filter), [orders, filter]);
+  const shown = useMemo(() => orders.filter((o) => filter === "ALL" ? true : filter === "OPEN" ? (o.status !== "DELIVERED" && o.status !== "CANCELLED") : o.status === filter), [orders, filter]);
   const act = async (fn: () => Promise<unknown>) => {
     setBusy(true);
     try { await fn(); await refresh(); } catch (e) { window.alert(e instanceof Error ? e.message : "Não foi possível concluir."); } finally { setBusy(false); }
@@ -61,6 +65,7 @@ export default function LabServiceOrders() {
           <MenuItem value="REFUSED">Recusadas</MenuItem>
           <MenuItem value="RECEIVED">Recebidas pelo laboratório</MenuItem>
           <MenuItem value="DELIVERED">Entregues</MenuItem>
+          <MenuItem value="CANCELLED">Canceladas</MenuItem>
           <MenuItem value="ALL">Todas</MenuItem>
         </TextField>
       </Box>
@@ -123,6 +128,7 @@ export default function LabServiceOrders() {
                 </>}
                 {o.status === "RECEIVED" && <Button size="small" color="success" variant="outlined" disabled={busy} onClick={() => { if (window.confirm("Confirmar que o trabalho voltou do laboratório para a clínica?")) void act(() => deliverLabOrder(o.id)); }}>Registrar entrega à clínica</Button>}
                 {(o.status === "RECEIVED" || o.status === "DELIVERED") && <Button size="small" variant="contained" disabled={busy} onClick={() => { setProgOrder(o); setProgStage(o.status === "DELIVERED" ? "DELIVERED" : (o.stage || "IN_PROGRESS")); setProgNote(o.progressNote || ""); setProgReady(o.readyBy ? o.readyBy.slice(0, 10) : ""); }}>Atualizar / corrigir andamento</Button>}
+                {(o.status === "REFUSED" || o.status === "SENT") && <Button size="small" color="inherit" variant="outlined" disabled={busy} onClick={() => { setCancelFor(o); setCancelWhy(o.status === "REFUSED" ? "Será refeita em nova ordem" : ""); setCancelNote(""); }}>Cancelar ordem</Button>}
                 <Button size="small" color="warning" variant="outlined" onClick={() => { setErrOrder(o); setErrType(""); setErrName(""); setErrText(""); }}>Registrar erro</Button>
               </Box>
             </Paper>
@@ -131,6 +137,21 @@ export default function LabServiceOrders() {
       </Box>
 
       <LabServiceOrderDialog open={newOpen} onClose={() => setNewOpen(false)} onCreated={(order) => { setNewOpen(false); void refresh(); printLabOrder(order); }} />
+
+      <Dialog open={Boolean(cancelFor)} onClose={() => setCancelFor(null)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 900 }}>Cancelar ordem — {cancelFor?.protocol}</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          <Typography variant="body2" color="text.secondary">A ordem cancelada sai das pendências e do aviso do laboratório. Fica no histórico com o motivo.</Typography>
+          <TextField select label="Motivo" value={cancelWhy} onChange={(e) => setCancelWhy(e.target.value)}>
+            {["Será refeita em nova ordem", "Já foi refeita e entregue ao paciente", "Moldagem/arquivo enviado com atraso — refazer", "Enviada por engano", "Paciente desistiu", "Outro motivo"].map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
+          </TextField>
+          <TextField label="Observação (opcional)" value={cancelNote} onChange={(e) => setCancelNote(e.target.value)} multiline minRows={2} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelFor(null)}>Voltar</Button>
+          <Button color="error" variant="contained" disabled={busy || !cancelWhy} onClick={() => { const o = cancelFor; if (!o) return; setCancelFor(null); void act(() => cancelLabOrder(o.id, `${cancelWhy}${cancelNote.trim() ? ` — ${cancelNote.trim()}` : ""}`)); }}>Cancelar ordem</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={Boolean(receipt)} onClose={() => setReceipt(null)} fullWidth maxWidth="sm">
         <DialogTitle sx={{ fontWeight: 900 }}>{receipt?.outcome === "RECEIVED" ? "Laboratório recebeu o trabalho" : "Laboratório recusou o trabalho"} — {receipt?.order.protocol}</DialogTitle>

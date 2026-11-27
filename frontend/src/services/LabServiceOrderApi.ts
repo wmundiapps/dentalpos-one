@@ -6,7 +6,7 @@ function headers() {
   return { Authorization: `Bearer ${token}`, ...(clinicId ? { "X-Clinic-ID": clinicId } : {}), "Content-Type": "application/json" };
 }
 
-export type LabOrderStatus = "SENT" | "RECEIVED" | "REFUSED" | "DELIVERED";
+export type LabOrderStatus = "SENT" | "RECEIVED" | "REFUSED" | "DELIVERED" | "CANCELLED";
 // Andamento no laboratório. "Entregue" é o status DELIVERED (a clínica recebeu o trabalho).
 export type LabOrderStage = "IN_PROGRESS" | "FINISHED" | "DELIVERED";
 export const STAGE_LABELS: Record<LabOrderStage, string> = { IN_PROGRESS: "Em andamento", FINISHED: "Finalizado", DELIVERED: "Entregue" };
@@ -47,6 +47,7 @@ export const registerLabReceipt = (id: string, outcome: "RECEIVED" | "REFUSED", 
 export const loadPendingLabReceipts = () => call<LabServiceOrder[]>("/lab-service-orders/pending-receipt");
 export const reportLabOrderError = (id: string, responsibleType: ErrorResponsible, responsibleName: string, description: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/errors`, "POST", { responsibleType, responsibleName, description });
 export const resolveLabOrderError = (id: string, errorId: string, resolution: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/errors/${errorId}/resolve`, "POST", { resolution });
+export const cancelLabOrder = (id: string, reason: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/cancel`, "POST", { reason });
 export const deliverLabOrder = (id: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/deliver`, "POST", {});
 // readyBy: data (AAAA-MM-DD) em que o trabalho precisa estar pronto; vazio limpa a data.
 export const updateLabOrderProgress = (id: string, stage: LabOrderStage, note: string, readyBy: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/progress`, "POST", { stage, note, readyBy });
