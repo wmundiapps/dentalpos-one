@@ -1,0 +1,6 @@
+# Essas cartas e os geradores têm o link de acesso (chave) embutido no texto.
+# Não entram no histórico do git para não expor as chaves de demonstração.
+*.pdf
+*.html
+gerar-carta-uem.cjs
+gerar-cartas-prospects.cjs
