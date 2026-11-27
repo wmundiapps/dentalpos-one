@@ -428,6 +428,8 @@ type AlertFinanceRow = {
   value: number;
   dueISO?: string;
   originId?: string;
+  // Parcela importada de outro sistema (Clinicorp): o boleto está lá, então não gera aviso de vencimento aqui.
+  imported?: boolean;
 };
 
 const FINANCE_REFRESH_MS = 30000;
@@ -489,6 +491,7 @@ const fromRealFinance = (e: FinancialEntry): AlertFinanceRow => ({
   value: Number(e.amount) || 0,
   dueISO: toDayISO(e.dueDate),
   originId: e.originId ?? undefined,
+  imported: ["CLINICORP", "IMPORTACAO"].includes(String(e.origin || "")),
 });
 
 function getFinancialEntries(): AlertFinanceRow[] {
@@ -498,7 +501,7 @@ function getFinancialEntries(): AlertFinanceRow[] {
 }
 
 // Lançamentos usados pelos avisos (mesma fonte), para mostrar o financeiro do paciente na agenda do início.
-export const getFinanceRowsForAlerts = () => getFinancialEntries();
+export const getFinanceRowsForAlerts = () => getFinancialEntries().filter((r) => !r.imported);
 
 const daysBetween = (dateISO?: string) => {
   if (!dateISO) return Number.POSITIVE_INFINITY;
@@ -543,7 +546,7 @@ export function getOperationalAlerts(): OperationalAlert[] {
   });
 
   getFinancialEntries().forEach((entry) => {
-    if (entry.status === "Pago" || entry.status === "Cancelado") return;
+    if (entry.status === "Pago" || entry.status === "Cancelado" || entry.imported) return;
     const dueISO = entry.dueISO;
     const days = daysBetween(dueISO);
     if (entry.status === "Vencido" || days < 0) {
