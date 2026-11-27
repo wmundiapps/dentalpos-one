@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma'
+import { IMPORTED_ORIGINS } from './importedHold'
 
 const STEP: Record<string, number> = { MONTHLY: 1, BIMONTHLY: 2, QUARTERLY: 3, SEMIANNUAL: 6, YEARLY: 12 }
 export const FREQUENCIES = Object.keys(STEP)
@@ -104,7 +105,7 @@ export async function forecast(clinicId: string, tenantId: string, months = 6) {
 
 export async function debtors(clinicId: string, tenantId: string) {
   const today = startOfTodayBR()
-  const rows = await prisma.financialEntry.findMany({ where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: today } }, include: { patient: true }, orderBy: { dueDate: 'asc' } })
+  const rows = await prisma.financialEntry.findMany({ where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: today }, origin: { notIn: IMPORTED_ORIGINS } }, include: { patient: true }, orderBy: { dueDate: 'asc' } })
   const map = new Map<string, any>()
   for (const r of rows) {
     const key = r.patientId || `nome:${r.personName.trim().toLowerCase()}`

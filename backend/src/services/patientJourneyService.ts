@@ -156,7 +156,7 @@ export async function buildJourney(clinicId: string, tenantId: string, from: Dat
     const doctor = (a: (typeof myAp)[number]) => `${a.doctor?.user?.firstName || ''} ${a.doctor?.user?.lastName || ''}`.trim() || 'profissional'
     const missing = inWin.filter(a => a.status === 'COMPLETED' && a.scheduledAt >= from && a.scheduledAt < to && !myEv.some(e => e.appointmentId === a.id || (e.createdAt >= new Date(a.scheduledAt.getTime() - 6 * 3600000) && e.createdAt <= new Date(a.scheduledAt.getTime() + 30 * 3600000))))
     const myFin = fin.filter(f => f.patientId === p.id)
-    const overdueRows = myFin.filter(f => !['PAID', 'CANCELLED'].includes(f.status) && f.dueDate < now)
+    const overdueRows = myFin.filter(f => !['PAID', 'CANCELLED'].includes(f.status) && f.dueDate < now && !['CLINICORP', 'IMPORTACAO'].includes(String((f as { origin?: string }).origin || '')))
     const upcoming = myAp.filter(a => a.scheduledAt > now && !['CANCELLED', 'NO_SHOW', 'COMPLETED'].includes(a.status))[0]
     const lastDone = [...myAp].reverse().find(a => a.status === 'COMPLETED' && a.scheduledAt <= now)
     const nm = norm(p.fullName)
