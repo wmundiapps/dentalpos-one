@@ -7,7 +7,7 @@ export const PERMISSIONS = [
   ['clinical.view', 'clinical', 'view'], ['clinical.edit', 'clinical', 'edit'],
   ['laboratory.view', 'laboratory', 'view'], ['laboratory.create', 'laboratory', 'create'], ['laboratory.edit', 'laboratory', 'edit'], ['laboratory.receive', 'laboratory', 'receive'],
   ['design.view', 'design', 'view'], ['design.edit', 'design', 'edit'],
-  ['finance.view', 'finance', 'view'], ['finance.create', 'finance', 'create'], ['finance.edit', 'finance', 'edit'], ['finance.approve', 'finance', 'approve'], ['finance.values', 'finance', 'values'],
+  ['finance.view', 'finance', 'view'], ['finance.payables', 'finance', 'payables'], ['finance.create', 'finance', 'create'], ['finance.edit', 'finance', 'edit'], ['finance.approve', 'finance', 'approve'], ['finance.values', 'finance', 'values'],
   ['accounting.view', 'accounting', 'view'], ['accounting.edit', 'accounting', 'edit'], ['accounting.approve', 'accounting', 'approve'], ['accounting.portal', 'accounting', 'portal'],
   ['timeclock.view', 'timeclock', 'view'],
   ['hr.view', 'hr', 'view'], ['hr.create', 'hr', 'create'], ['hr.edit', 'hr', 'edit'], ['hr.sensitive', 'hr', 'sensitive'],
@@ -37,6 +37,12 @@ export async function getUserPermissionCodes(userId: string) {
   return [...new Set(memberships.flatMap(m => m.profile.permissions.map(p => p.permission.code)))]
 }
 
+// Contas a pagar (despesas) e folha: só o setor Financeiro (e o administrador/gestor). Os demais setores veem apenas o que é a receber.
+export async function canSeePayables(user: { id: string; role: string }) {
+  if (user.role === 'ADMIN') return true
+  return (await getUserPermissionCodes(user.id)).includes('finance.payables')
+}
+
 export async function createDefaultProfiles(clinicId: string, tenantId: string) {
   await seedPermissionCatalog()
   const permissions = await prisma.permission.findMany()
@@ -45,19 +51,19 @@ export async function createDefaultProfiles(clinicId: string, tenantId: string) 
   const definitions: Record<string, string[]> = {
     ADMIN: permissions.map(p => p.code),
     GESTOR: permissions.map(p => p.code),
-    RECEPCAO: ['dashboard.view','agenda.view','agenda.create','agenda.edit','agenda.cancel','patients.view','patients.create','patients.edit','clinical.view','finance.view','finance.values','marketing.view'],
+    RECEPCAO: ['dashboard.view','agenda.view','agenda.create','agenda.edit','agenda.cancel','patients.view','patients.create','patients.edit','clinical.view','finance.view','finance.values','marketing.view'], // vê só o a receber
     DENTISTA: ['dashboard.view','agenda.view','patients.view','clinical.view','clinical.edit','laboratory.view','laboratory.create','design.view','design.edit'],
     LABORATORIO: ['dashboard.view','laboratory.view','laboratory.create','laboratory.edit','laboratory.receive','design.view','design.edit'],
-    FINANCEIRO: ['dashboard.view','patients.view','finance.view','finance.create','finance.edit','finance.approve','finance.values','accounting.view','accounting.edit'],
+    FINANCEIRO: ['dashboard.view','patients.view','finance.view','finance.payables','finance.create','finance.edit','finance.approve','finance.values','accounting.view','accounting.edit','hr.view','hr.create','hr.edit','hr.sensitive'],
     PONTO: ['timeclock.view'],
-    RH: ['dashboard.view','hr.view','hr.create','hr.edit','hr.sensitive','documents.view','documents.edit','finance.view'],
-    CONTADOR: ['dashboard.view','finance.view','finance.values','accounting.view','accounting.edit','accounting.approve','accounting.portal','documents.view'],
+    RH: ['dashboard.view','hr.view','hr.create','hr.edit','hr.sensitive','documents.view','documents.edit'],
+    CONTADOR: ['dashboard.view','finance.view','finance.payables','finance.values','accounting.view','accounting.edit','accounting.approve','accounting.portal','documents.view'],
     AUXILIAR: ['dashboard.view','agenda.view','patients.view','clinical.view','laboratory.view'],
-    ADMINISTRACAO: ['dashboard.view','agenda.view','patients.view','patients.create','patients.edit','finance.view','documents.view','documents.edit','hr.view','hr.create','hr.edit','hr.sensitive','settings.view','users.view'],
+    ADMINISTRACAO: ['dashboard.view','agenda.view','patients.view','patients.create','patients.edit','finance.view','documents.view','documents.edit','settings.view','users.view'],
     MARKETING: ['dashboard.view','patients.view','marketing.view','marketing.send','documents.view'],
     VENDAS: ['dashboard.view','patients.view','sales.view','sales.edit','marketing.view'],
     MARKETPLACE: ['dashboard.view','sales.view','sales.edit'],
-    COMPRAS: ['dashboard.view','sales.view','sales.edit','finance.view'],
+    COMPRAS: ['dashboard.view','sales.view','sales.edit'],
     EDUCACIONAL: ['dashboard.view','patients.view','documents.view','documents.edit'],
     JURIDICO: ['dashboard.view','patients.view','documents.view','documents.edit','accounting.view','audit.view']
   }

@@ -5,6 +5,9 @@ import { writeAudit } from '../services/auditService'
 import { AsaasError, cancelAsaasPayment, loadAsaasConn } from '../services/asaasService'
 import { resolveFinancialAlertFromOperation } from '../services/financialAlertResolutionService'
 import { ensureRecurringEntries } from '../services/financialPlanningService'
+import { canSeePayables } from '../services/permissionService'
+
+const PAYABLES_DENIED = { error: 'Contas a pagar são só do setor Financeiro. Peça acesso ao administrador ou ao gestor.' }
 
 function context(req: AuthRequest) {
   if (!req.user) throw new Error('Não autenticado')
@@ -20,7 +23,7 @@ export function parseDay(value: unknown) {
 export async function index(req: AuthRequest, res: Response) {
   try {
     const { clinicId, tenantId } = context(req)
-    await ensureRecurringEntries(clinicId, tenantId).catch((e) => console.error(e)); const rows = await prisma.financialEntry.findMany({ where: { clinicId, tenantId }, include: { patient: true }, orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }] })
+    await ensureRecurringEntries(clinicId, tenantId).catch((e) => console.error(e)); const payables = await canSeePayables(req.user!); const rows = await prisma.financialEntry.findMany({ where: { clinicId, tenantId, ...(payables ? {} : { type: 'INCOME' }) }, include: { patient: true }, orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }] })
     return res.json(rows)
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao listar lançamentos financeiros.' }) }
 }
@@ -30,6 +33,7 @@ export async function store(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = context(req)
     const b = req.body
     if (!b.description || !b.personName || !b.amount || !b.dueDate || !b.type) return res.status(400).json({ error: 'Descrição, pessoa, valor, vencimento e tipo são obrigatórios.' })
+    if (String(b.type) === 'EXPENSE' && !(await canSeePayables(req.user!))) return res.status(403).json(PAYABLES_DENIED)
     const line = b.digitableLine ? String(b.digitableLine).replace(/\D/g, '').slice(0, 60) : null
     if (line) {
       const dup = await prisma.financialEntry.findFirst({ where: { clinicId, tenantId, digitableLine: line, status: { not: 'CANCELLED' } }, select: { id: true, description: true, dueDate: true } })
@@ -46,6 +50,7 @@ export async function update(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = context(req); const id = String(req.params.id)
     const existing = await prisma.financialEntry.findFirst({ where: { id, clinicId, tenantId } })
     if (!existing) return res.status(404).json({ error: 'Lançamento não encontrado.' })
+    if (existing.type === 'EXPENSE' && !(await canSeePayables(req.user!))) return res.status(403).json(PAYABLES_DENIED)
     const b = req.body; const data: any = {}
     for (const key of ['costCenter','type','description','category','personName','status','paymentMethod','provider','origin','originId','notes','externalId','documentNumber','fiscalDocumentType','accountingStatus','accountantNotes','recurrence','issuerEntity']) if (b[key] !== undefined) data[key] = b[key]
     for (const key of ['amount','taxWithheld','netAmount']) if (b[key] !== undefined) data[key] = b[key] == null ? null : Number(b[key])
@@ -78,6 +83,7 @@ export async function settle(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = context(req); const id = String(req.params.id)
     const existing = await prisma.financialEntry.findFirst({ where: { id, clinicId, tenantId } })
     if (!existing) return res.status(404).json({ error: 'Lançamento não encontrado.' })
+    if (existing.type === 'EXPENSE' && !(await canSeePayables(req.user!))) return res.status(403).json(PAYABLES_DENIED)
     if (existing.status === 'PAID' || existing.status === 'CANCELLED') return res.status(409).json({ error: 'Este lan\u00e7amento j\u00e1 est\u00e1 baixado ou cancelado.' })
     const b = req.body || {}
     const paidAt = b.paidAt ? new Date(String(b.paidAt)) : new Date()
@@ -106,6 +112,7 @@ export async function remove(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = context(req); const id = String(req.params.id)
     const existing = await prisma.financialEntry.findFirst({ where: { id, clinicId, tenantId } })
     if (!existing) return res.status(404).json({ error: 'Lançamento não encontrado.' })
+    if (existing.type === 'EXPENSE' && !(await canSeePayables(req.user!))) return res.status(403).json(PAYABLES_DENIED)
     if (existing.status === 'PAID') return res.status(409).json({ error: 'Lançamento já recebido/pago: não pode ser cancelado.' })
     const reasonText = String(req.body?.reason || '').trim().slice(0, 500)
     // Cobrança (boleto/Pix) em aberto no Asaas é cancelada junto, para o paciente não pagar um boleto que o sistema já considera cancelado.
@@ -131,7 +138,7 @@ export async function remove(req: AuthRequest, res: Response) {
 
 
 export async function dashboard(req:AuthRequest,res:Response){
-  try{const {clinicId,tenantId}=context(req);await ensureRecurringEntries(clinicId,tenantId).catch((e)=>console.error(e));const rows=await prisma.financialEntry.findMany({where:{clinicId,tenantId,status:{not:'CANCELLED'}}});const now=new Date();const today=now.toISOString().slice(0,10);const income=rows.filter(x=>x.type==='INCOME');const expenses=rows.filter(x=>x.type==='EXPENSE');const sum=(xs:any[])=>xs.reduce((a,x)=>a+Number(x.amount),0);const overdue=income.filter(x=>x.status!=='PAID'&&x.dueDate.toISOString().slice(0,10)<today);const due7=new Date(now);due7.setDate(due7.getDate()+7);return res.json({receivable:sum(income.filter(x=>x.status!=='PAID')),overdue:sum(overdue),received:sum(income.filter(x=>x.status==='PAID')),payable:sum(expenses.filter(x=>x.status!=='PAID')),paidExpenses:sum(expenses.filter(x=>x.status==='PAID')),cashResult:sum(income.filter(x=>x.status==='PAID'))-sum(expenses.filter(x=>x.status==='PAID')),dueNext7Days:rows.filter(x=>x.status!=='PAID'&&x.dueDate>=now&&x.dueDate<=due7).map(x=>({id:x.id,type:x.type,description:x.description,personName:x.personName,amount:x.amount,dueDate:x.dueDate,status:x.status}))})}catch(e){console.error(e);return res.status(500).json({error:'Erro no painel financeiro.'})}
+  try{const {clinicId,tenantId}=context(req);await ensureRecurringEntries(clinicId,tenantId).catch((e)=>console.error(e));const payables=await canSeePayables(req.user!);const rows=await prisma.financialEntry.findMany({where:{clinicId,tenantId,status:{not:'CANCELLED'},...(payables?{}:{type:'INCOME'})}});const now=new Date();const today=now.toISOString().slice(0,10);const income=rows.filter(x=>x.type==='INCOME');const expenses=rows.filter(x=>x.type==='EXPENSE');const sum=(xs:any[])=>xs.reduce((a,x)=>a+Number(x.amount),0);const overdue=income.filter(x=>x.status!=='PAID'&&x.dueDate.toISOString().slice(0,10)<today);const due7=new Date(now);due7.setDate(due7.getDate()+7);return res.json({receivable:sum(income.filter(x=>x.status!=='PAID')),overdue:sum(overdue),received:sum(income.filter(x=>x.status==='PAID')),payable:sum(expenses.filter(x=>x.status!=='PAID')),paidExpenses:sum(expenses.filter(x=>x.status==='PAID')),cashResult:sum(income.filter(x=>x.status==='PAID'))-sum(expenses.filter(x=>x.status==='PAID')),dueNext7Days:rows.filter(x=>x.status!=='PAID'&&x.dueDate>=now&&x.dueDate<=due7).map(x=>({id:x.id,type:x.type,description:x.description,personName:x.personName,amount:x.amount,dueDate:x.dueDate,status:x.status}))})}catch(e){console.error(e);return res.status(500).json({error:'Erro no painel financeiro.'})}
 }
 
 export async function importRules(req:AuthRequest,res:Response){try{const {clinicId,tenantId}=context(req);return res.json(await prisma.expenseImportRule.findMany({where:{clinicId,tenantId},orderBy:{name:'asc'}}))}catch(e){return res.status(500).json({error:'Erro ao listar regras.'})}}
@@ -166,6 +173,7 @@ export async function setDestination(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = context(req); const id = String(req.params.id)
     const existing = await prisma.financialEntry.findFirst({ where: { id, clinicId, tenantId } })
     if (!existing || existing.status !== 'PAID') return res.status(404).json({ error: 'Lançamento pago não encontrado.' })
+    if (existing.type === 'EXPENSE' && !(await canSeePayables(req.user!))) return res.status(403).json(PAYABLES_DENIED)
     const b = req.body || {}
     const dest = String(b.cashDestination || '').toUpperCase()
     if (dest !== 'CAIXA' && dest !== 'CONTA') return res.status(400).json({ error: 'Informe se o valor ficou no caixa ou foi enviado para uma conta.' })
