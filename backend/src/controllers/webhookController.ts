@@ -3,6 +3,32 @@ import { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { ContextRequest } from '../middleware/requestContext'
 import { applyChargeEvent } from '../services/asaasChargeWebhookService'
+import { confirmarRecebimentoPorGateway } from '../modules/financeiro/receivable'
+
+const ASAAS_STATUS_PAGO = new Set(['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'])
+function formaPagamentoAsaas(billingType: unknown): 'PIX' | 'BOLETO' | 'CARTAO' | 'DINHEIRO' | 'TRANSFERENCIA' {
+  switch (String(billingType || '').toUpperCase()) {
+    case 'PIX': return 'PIX'
+    case 'BOLETO': return 'BOLETO'
+    case 'CREDIT_CARD':
+    case 'DEBIT_CARD': return 'CARTAO'
+    case 'TRANSFER': return 'TRANSFERENCIA'
+    default: return 'DINHEIRO'
+  }
+}
+
+// Mensalidade de aluno do EduMaster (AccountReceivable) paga pelo mesmo gateway Asaas/Stripe do DentalPos:
+// dá baixa automaticamente quando o gatewayId da cobrança corresponde a uma conta a receber do EduMaster.
+// Não afeta o fluxo do DentalPos (clínica) — só age quando a cobrança é de fato uma mensalidade do EduMaster;
+// falha aqui nunca derruba o processamento do webhook do Asaas.
+async function tentarBaixarMensalidadeEduMaster(paymentId: string | undefined, type: string, billingType: unknown) {
+  if (!paymentId || !ASAAS_STATUS_PAGO.has(type)) return
+  try {
+    await confirmarRecebimentoPorGateway({ gatewayId: paymentId, formaPagamento: formaPagamentoAsaas(billingType), gatewayStatus: type })
+  } catch (error) {
+    console.error('[webhook-asaas] falha ao tentar baixar mensalidade do EduMaster (seguindo normalmente):', error)
+  }
+}
 
 function eventId(body: any, fallback: string) {
   return String(body?.id || body?.event?.id || body?.data?.object?.id || fallback)
@@ -70,6 +96,7 @@ export async function asaas(req: Request, res: Response) {
   const handledCharge = await applyChargeEvent(clinicScope, type, body?.payment).catch((error) => { console.error('Erro ao aplicar evento do Asaas:', error); return false })
 
   const paymentId = body?.payment?.id
+  await tentarBaixarMensalidadeEduMaster(paymentId, type, body?.payment?.billingType)
   if (paymentId && !handledCharge && !clinicScope) {
     const statusMap: Record<string, string> = {
       PAYMENT_RECEIVED: 'PAID',

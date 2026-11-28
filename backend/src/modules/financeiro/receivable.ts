@@ -194,10 +194,63 @@ router.post(
   }),
 );
 
-// Endpoint pensado para ser chamado pelo webhook do Asaas/Stripe já
-// existente no DentalPos One quando uma cobrança é confirmada — evita
-// reimplementar a integração com o gateway, só conecta o resultado dela
-// à baixa da conta a receber correspondente.
+type FormaPagamentoGateway = 'PIX' | 'BOLETO' | 'CARTAO' | 'DINHEIRO' | 'TRANSFERENCIA';
+
+export type ConfirmacaoGatewayResultado =
+  | { ok: true; jaProcessado?: boolean; receivable: any; transacao?: any; lancamento?: any }
+  | { ok: false; motivo: 'NAO_ENCONTRADA' | 'CANCELADA' };
+
+/**
+ * Dá baixa na mensalidade do aluno (AccountReceivable) correspondente a uma cobrança do gateway de
+ * pagamento (Asaas/Stripe), identificada pelo `gatewayId`. Não depende de tenant vindo de requisição HTTP
+ * autenticada: o `gatewayId` do Asaas/Stripe já é único por cobrança, então a busca é direta e o tenant é
+ * o da própria conta a receber encontrada. Usada tanto pela rota HTTP abaixo (chamada manual/testes) quanto
+ * diretamente pelo handler do webhook do Asaas/Stripe (ver webhookController.ts) — sem precisar de um
+ * segundo request HTTP autenticado a partir do webhook.
+ */
+export async function confirmarRecebimentoPorGateway({
+  gatewayId,
+  formaPagamento,
+  gatewayStatus,
+}: {
+  gatewayId: string;
+  formaPagamento: FormaPagamentoGateway;
+  gatewayStatus: string;
+}): Promise<ConfirmacaoGatewayResultado> {
+  const receivable = await prisma.accountReceivable.findFirst({ where: { gatewayId } });
+  if (!receivable) return { ok: false, motivo: 'NAO_ENCONTRADA' };
+  if (receivable.status === 'PAGO') return { ok: true, jaProcessado: true, receivable };
+  if (receivable.status === 'CANCELADO') return { ok: false, motivo: 'CANCELADA' };
+
+  const claim = await prisma.accountReceivable.updateMany({
+    where: { id: receivable.id, status: { in: ['PENDENTE', 'ATRASADO'] } },
+    data: { status: 'PAGO', dataPagamento: new Date(), gatewayStatus },
+  });
+  if (claim.count === 0) return { ok: true, jaProcessado: true, receivable };
+
+  let baixa;
+  try {
+    baixa = await registrarBaixaComLancamento({
+      tenantId: receivable.tenantId,
+      tipo: 'RECEITA',
+      valor: receivable.valor,
+      formaPagamento,
+      historico: `Recebimento via gateway — ${receivable.descricao}`,
+      accountReceivableId: receivable.id,
+    });
+  } catch (e) {
+    await prisma.accountReceivable.update({ where: { id: receivable.id }, data: { status: receivable.status, dataPagamento: null } });
+    throw e;
+  }
+  const updated = await prisma.accountReceivable.findUniqueOrThrow({ where: { id: receivable.id } });
+  await aoReceberTitulo(receivable.tenantId, receivable.id);
+
+  return { ok: true, receivable: updated, transacao: baixa.transacao, lancamento: baixa.lancamento };
+}
+
+// Endpoint pensado para disparo manual/testes da confirmação de gateway. A ligação automática de
+// verdade com o webhook do Asaas/Stripe é feita direto em código: ver confirmarRecebimentoPorGateway
+// acima, chamada por webhookController.ts (asaas/stripe) sem passar por este endpoint HTTP.
 router.post(
   '/receivables/webhook-gateway-confirmacao',
   requireAuth,
@@ -210,35 +263,17 @@ router.post(
     }
     const { gatewayId, formaPagamento, gatewayStatus } = parsed.data;
 
-    const receivable = await prisma.accountReceivable.findFirst({ where: { gatewayId, tenantId } });
-    if (!receivable) return res.status(404).json({ error: 'Cobrança não vinculada a nenhuma conta a receber.' });
-    if (receivable.status === 'PAGO') return res.status(200).json({ ok: true, jaProcessado: true });
-    if (receivable.status === 'CANCELADO') return res.status(409).json({ error: 'Esta conta está cancelada.' });
+    // Confere que a cobrança pertence ao tenant de quem está chamando antes de aplicar.
+    const pertenceAoTenant = await prisma.accountReceivable.findFirst({ where: { gatewayId, tenantId }, select: { id: true } });
+    if (!pertenceAoTenant) return res.status(404).json({ error: 'Cobrança não vinculada a nenhuma conta a receber.' });
 
-    const claim = await prisma.accountReceivable.updateMany({
-      where: { id: receivable.id, status: { in: ['PENDENTE', 'ATRASADO'] } },
-      data: { status: 'PAGO', dataPagamento: new Date(), gatewayStatus },
-    });
-    if (claim.count === 0) return res.status(200).json({ ok: true, jaProcessado: true });
-
-    let baixa;
-    try {
-      baixa = await registrarBaixaComLancamento({
-        tenantId: receivable.tenantId,
-        tipo: 'RECEITA',
-        valor: receivable.valor,
-        formaPagamento,
-        historico: `Recebimento via gateway — ${receivable.descricao}`,
-        accountReceivableId: receivable.id,
-      });
-    } catch (e) {
-      await prisma.accountReceivable.update({ where: { id: receivable.id }, data: { status: receivable.status, dataPagamento: null } });
-      throw e;
+    const resultado = await confirmarRecebimentoPorGateway({ gatewayId, formaPagamento, gatewayStatus });
+    if (!resultado.ok) {
+      if (resultado.motivo === 'CANCELADA') return res.status(409).json({ error: 'Esta conta está cancelada.' });
+      return res.status(404).json({ error: 'Cobrança não vinculada a nenhuma conta a receber.' });
     }
-    const updated = await prisma.accountReceivable.findUniqueOrThrow({ where: { id: receivable.id } });
-    await aoReceberTitulo(receivable.tenantId, receivable.id);
-
-    res.json({ receivable: updated, transacao: baixa.transacao, lancamento: baixa.lancamento });
+    if (resultado.jaProcessado) return res.status(200).json({ ok: true, jaProcessado: true });
+    res.json({ receivable: resultado.receivable, transacao: resultado.transacao, lancamento: resultado.lancamento });
   }),
 );
 
