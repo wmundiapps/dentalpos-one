@@ -1,0 +1,70 @@
+name: Publicar na Vercel (1 vez por semana ou quando o Robson mandar)
+
+# Publicação automática a cada mudança foi desligada (git.deploymentEnabled: false em cada vercel.json)
+# para economizar créditos da Vercel. Esta rotina publica:
+#   - toda segunda-feira às 3h de Brasília (6h UTC), só os sistemas que mudaram nos últimos 7 dias;
+#   - quando alguém clica em "Run workflow" (Actions → esta rotina), escolhendo o sistema ou "todos".
+# Precisa do segredo VERCEL_TOKEN (GitHub → Settings → Secrets and variables → Actions).
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      sistema:
+        description: 'Qual sistema publicar'
+        type: choice
+        default: mudados
+        options: [mudados, todos, spacehour, dentalpos-app, dentalpos-api, revah-web, revah-api]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-vercel
+  cancel-in-progress: false
+
+env:
+  VERCEL_ORG_ID: team_PPjPjgAfw8CsUSGsPPPop241
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - { nome: spacehour, pasta: espacos, projeto: prj_ItqIpVDPOvrYzeQzKAJGGRabf335 }
+          - { nome: dentalpos-app, pasta: frontend, projeto: prj_DfMsHRYZJriLc3a5d8L8nHbf42Fn }
+          - { nome: dentalpos-api, pasta: backend, projeto: prj_tmdpsEFxC7AUvQSvSueR6Z2i1Y2r }
+          - { nome: revah-web, pasta: revah/web, projeto: prj_vV2KIO3KNLQO1RBMUOIAZpJ2wGNM }
+          - { nome: revah-api, pasta: revah/api, projeto: prj_ZveOJrzOdxZU2Ws1yp45jXsOWfcd }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 200
+
+      - name: Precisa publicar?
+        id: decide
+        env:
+          ESCOLHA: ${{ github.event.inputs.sistema || 'mudados' }}
+          TEM_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
+        run: |
+          if [ "$TEM_TOKEN" != "true" ]; then echo "Falta o segredo VERCEL_TOKEN: nada publicado."; echo "go=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$ESCOLHA" = "todos" ] || [ "$ESCOLHA" = "${{ matrix.nome }}" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$ESCOLHA" != "mudados" ]; then echo "go=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          # Só o que mudou nos últimos 7 dias (o resto não gasta build)
+          if [ -n "$(git log --since='7 days ago' --format=%H -- '${{ matrix.pasta }}' | head -1)" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "${{ matrix.nome }}: sem mudanças na semana."; echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publicar ${{ matrix.nome }}
+        if: steps.decide.outputs.go == 'true'
+        env:
+          VERCEL_PROJECT_ID: ${{ matrix.projeto }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        # Na raiz do repositório: a Vercel usa a pasta do projeto (Root Directory) configurada no painel
+        run: npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"

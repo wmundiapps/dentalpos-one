@@ -6,7 +6,8 @@ Monorepo: `frontend/` (React + Vite + MUI), `backend/` (Express + Prisma, Postgr
 ## Como trabalhar com o Robson
 - Ele é dentista e dono da clínica; fala português. Quer **um passo curto por vez**, com comandos, URLs e valores em bloco de copiar e colar. Explique só quando ele perguntar.
 - **Nunca** pedir nem mostrar senha, chave de API, token ou código no chat. Ele digita direto na tela de destino.
-- O que mexe em **banco, cobrança, segredo ou acesso/segurança** vira PR para ele decidir. O resto, com build da Vercel pronto e sem conflito, pode ser mesclado sem perguntar.
+- O que mexe em **banco, cobrança, segredo ou acesso/segurança** vira PR para ele decidir. O resto, validado localmente (tipos, testes, build) e sem conflito, pode ser mesclado sem perguntar.
+- **Publicação na Vercel (decisão de 28/11/2026, para economizar créditos):** nada publica sozinho a cada mudança (`"git": { "deploymentEnabled": false }` nos `vercel.json`; sem builds de prévia nos PRs). A rotina `.github/workflows/deploy-semanal.yml` publica toda segunda às 3h (só o que mudou na semana) ou quando o Robson mandar (Actions → "Publicar na Vercel" → Run workflow, ou peça ao Claude para disparar). Mesclar não coloca no ar: avise o Robson que entra na próxima publicação. Não religar o deploy automático sem ele pedir.
 - A chave do Supabase do ambiente é só de leitura: SQL de criação ou alteração ele cola no editor do projeto **DentalPos One** (`lfeqfzvmasqnnmqvkjyg`). Sempre confira o nome do projeto no canto da tela (já houve SQL rodado no projeto errado).
 - Antes de mesclar PR que mexe no banco, conferir no banco que o SQL rodou.
 - Validar o frontend com `cd frontend && npx tsc -b` e o backend com `cd backend && npx tsc --noEmit`.
